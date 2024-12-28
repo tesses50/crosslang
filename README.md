@@ -10,7 +10,8 @@ Tesses Cross Language
 - SDL2 (but can be turned off)
 
 ## To Install
-[Follow TessesFramework setup](https://gitea.site.tesses.net/tesses50/tesses-framework)
+- [Follow TessesFramework setup](https://gitea.site.tesses.net/tesses50/tesses-framework)
+- Follow the commands bellow
 
 ## Run these commands to install crosslang (or use binaries from [here](https://crosslang.tesseslanguage.com/download/))
 ```bash
