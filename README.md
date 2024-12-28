@@ -1,10 +1,7 @@
 Tesses Cross Language
 =====================
 
-<svg width="100" height="100">
-    <polygon points="50,0,100,25,100,75,50,100,0,75,0,25" style="fill:orange;stroke:black;stroke-width:3" />
-    <polygon points="45,20,55,20,55,35,80,35,80,45,55,45,55,85,45,85,45,45,20,45,20,35,45,35" style="fill:white;stroke:black;stroke-width:3"/>
-</svg>
+![CrossImage](logo.svg)
 
 ```
 Ye are of God, little children, and have overcome them: because greater is he that is in you, than he that is in the world. (1 John 4:4)
