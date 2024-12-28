@@ -14,7 +14,7 @@ Tesses Cross Language
 ## To Install
 [Follow TessesFramework setup](https://gitea.site.tesses.net/tesses50/tesses-framework)
 
-## Run these commands
+## Run these commands to install crosslang (or use binaries from [here](https://crosslang.tesseslanguage.com/download/))
 ```bash
 mkdir build 
 cd build
@@ -22,7 +22,7 @@ cmake -S .. -B .
 make
 sudo make install
 ```
-
+```
 Ye are of God, little children, and have overcome them: because greater is he that is in you, than he that is in the world. (1 John 4:4)
 ```
 
