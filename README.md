@@ -12,8 +12,10 @@ Tesses Cross Language
 - SDL2 (but can be turned off)
 
 ## To Install
-- [Follow TessesFramework setup](https://gitea.site.tesses.net/tesses50/tesses-framework)
-- ```bash
+[Follow TessesFramework setup](https://gitea.site.tesses.net/tesses50/tesses-framework)
+
+## Run these commands
+```bash
 mkdir build 
 cd build
 cmake -S .. -B .
