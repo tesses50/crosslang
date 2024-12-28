@@ -1,0 +1,124 @@
+#include "CrossLang.hpp"
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+using namespace Tesses::Framework;
+using namespace Tesses::CrossLang;
+using namespace Tesses::Framework::Filesystem;
+int main(int argc, char** argv)
+{
+    TF_Init();
+    GC gc;
+    gc.Start();
+    GCList ls(gc);
+    TRootEnvironment* env = TRootEnvironment::Create(ls, TDictionary::Create(ls));
+    TStd::RegisterStd(&gc,env);
+    
+    if(argc > 1)
+    {
+        std::ifstream strm(argv[1],std::ios_base::in|std::ios_base::binary);
+        std::vector<LexToken> tokens;
+        Lex(argv[1],strm,tokens);
+
+        Parser parser(tokens);
+
+        CodeGen gen;
+        gen.GenRoot(parser.ParseRoot());
+        std::vector<uint8_t> data;
+         LocalFilesystem fs;
+        SubdirFilesystem sfs(&fs,VFSPath("."),false);
+        
+            Tesses::Framework::Streams::MemoryStream strm2(true);
+        gen.Save(&sfs,&strm2);
+
+        
+        {
+            TFile* file = TFile::Create(ls);
+
+            strm2.Seek(0,Tesses::Framework::Streams::SeekOrigin::Begin);
+            file->Load(&gc,&strm2);
+    
+            env->LoadFile(&gc, file);
+
+            
+        }
+
+         TList* args = TList::Create(ls);
+    for(int arg=1;arg<argc;arg++)
+        args->Add(std::string(argv[arg]));
+   
+    auto res = env->CallFunction(ls,"main",{args});
+    int64_t iresult;
+    if(GetObject(res,iresult))
+        return (int)iresult;
+   
+    }
+    else
+    {
+    
+   
+        while(true)
+        {
+            std::cout << "> ";
+            std::string source;
+            std::getline(std::cin,source);
+
+            Tesses::Framework::Streams::MemoryStream strm2(true);
+
+            if(source.starts_with("loadfile "))
+            {
+                std::string filename = source.substr(9);
+
+                std::ifstream strm(filename,std::ios_base::in|std::ios_base::binary);
+                std::vector<LexToken> tokens;
+                Lex(filename,strm,tokens);
+
+                Parser parser(tokens);
+
+                CodeGen gen;
+                gen.GenRoot(parser.ParseRoot());
+                
+                  LocalFilesystem fs;
+                SubdirFilesystem sfs(&fs,VFSPath("."),false);
+
+                gen.Save(&sfs, &strm2);
+
+            }
+            else if(source == "exit")
+            {
+                return 0;
+            }
+            else
+            {
+                std::vector<LexToken> tokens;
+                std::stringstream strm(source,std::ios_base::in | std::ios_base::binary);
+                Lex("lexed.tcross",strm,tokens);
+
+                Parser parser(tokens);
+
+                CodeGen gen;
+                gen.GenRoot(parser.ParseRoot());
+                
+                 LocalFilesystem fs;
+                SubdirFilesystem sfs(&fs,VFSPath("."),false);
+
+                gen.Save(&sfs,&strm2);
+            }
+
+            {
+                
+            TFile* file = TFile::Create(ls);
+
+            strm2.Seek(0,Tesses::Framework::Streams::SeekOrigin::Begin);
+            file->Load(&gc,&strm2);
+    
+            env->LoadFile(&gc, file);
+
+                
+            }   
+
+    
+        }
+    }
+}

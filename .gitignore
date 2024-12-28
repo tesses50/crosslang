@@ -1,0 +1,7 @@
+build
+bin
+*.db
+*.crvm
+*.o
+*.a
+*.exe

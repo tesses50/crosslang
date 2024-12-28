@@ -1,0 +1,199 @@
+#include "CrossLang.hpp"
+
+
+#include <cstring>
+#include <filesystem>
+#include <iostream>
+namespace Tesses::CrossLang
+{
+
+    TFile* TFile::Create(GCList& ls)
+    {
+        TFile* f = new TFile();
+        GC* _gc = ls.GetGC();
+        ls.Add(f);
+        _gc->Watch(f);
+        return f;
+    }
+    TFile* TFile::Create(GCList* ls)
+    {
+        TFile* f = new TFile();
+        GC* _gc = ls->GetGC();
+        ls->Add(f);
+        _gc->Watch(f);
+        return f;
+    }
+    void TFileChunk::Mark()
+    {
+        if(this->marked) return;
+        this->marked=true;
+        this->file->Mark();
+    }
+   
+    TFileChunk* TFileChunk::Create(GCList& ls)
+    {
+        TFileChunk* chk = new TFileChunk();
+        GC* _gc = ls.GetGC();
+        ls.Add(chk);
+        _gc->Watch(chk);
+        return chk;
+    }
+    TFileChunk* TFileChunk::Create(GCList* ls)
+    {
+        TFileChunk* chk = new TFileChunk();
+        GC* _gc = ls->GetGC();
+        ls->Add(chk);
+        _gc->Watch(chk);
+        return chk;
+    }
+    void TFile::Mark()
+    {
+        if(this->marked) return;
+        this->marked=true;
+    
+        for(auto item : this->chunks)
+            item->Mark();
+       
+    }
+    void TFile::Skip(Tesses::Framework::Streams::Stream* stream,size_t len)
+    {
+        if(stream->CanSeek())
+        {
+            stream->Seek((int64_t)len,Tesses::Framework::Streams::SeekOrigin::Current);
+        }
+        else{
+        uint8_t* buffer=new uint8_t[len];
+        Ensure(stream,buffer,len);
+        delete buffer;
+        }
+    }
+    void TFile::Ensure(Tesses::Framework::Streams::Stream* stream, uint8_t* buffer,size_t len)
+    {
+        size_t read = stream->ReadBlock(buffer, len);
+        if(read < len) throw VMException("End of file, could not read " + std::to_string((int64_t)len) + " byte(s)., offset=" + std::to_string(stream->GetLength()));
+    }
+    std::string TFile::EnsureString(Tesses::Framework::Streams::Stream* stream)
+    {
+        auto len = EnsureInt(stream);
+        if(len == 0) return {};
+        std::string str={};
+        str.resize((size_t)len);
+        Ensure(stream,(uint8_t*)str.data(),str.size());
+        return str;
+    }
+    
+    uint32_t TFile::EnsureInt(Tesses::Framework::Streams::Stream* stream)
+    {
+        uint8_t buffer[4];
+        Ensure(stream,buffer,4);
+        return BitConverter::ToUint32BE(buffer[0]);
+    }
+    std::string TFile::GetString(Tesses::Framework::Streams::Stream* stream)
+    {
+        uint32_t index=EnsureInt(stream);
+        if(index > this->strings.size()) throw VMException("String does not exist in TCrossVM file, expected string index: " + std::to_string(index) + ", total strings: " + std::to_string(this->strings.size()));
+        return this->strings[index];
+    }
+
+    void TFile::Load(GC* gc, Tesses::Framework::Streams::Stream* stream)
+    {
+        GCList ls(gc);
+        uint8_t main_header[18];
+        Ensure(stream,main_header,sizeof(main_header));
+        if(strncmp((const char*)main_header,"TCROSSVM",8) != 0) throw VMException("Invalid TCrossVM image.");
+        TVMVersion version(main_header+8);
+        if(version.CompareToRuntime() == 1)
+        {
+            throw VMException("Runtime is too old.");
+        }
+        TVMVersion v2(main_header+13);
+        this->version = v2;
+
+        size_t _len = (size_t)EnsureInt(stream);
+
+        char table_name[4];
+
+        for(size_t i = 0;i < _len; i++)
+        {
+            Ensure(stream,(uint8_t*)table_name,sizeof(table_name));
+            size_t tableLen = (size_t)EnsureInt(stream);
+            if(strncmp(table_name,"NAME",4) == 0) 
+            {
+                this->name = GetString(stream);
+            }
+            else if(strncmp(table_name,"INFO",4) == 0) 
+            {
+                this->info = GetString(stream);
+            }
+            else if(strncmp(table_name,"DEPS",4) == 0) //dependencies
+            {
+                std::string name = GetString(stream);
+                uint8_t version_bytes[5];
+                Ensure(stream,version_bytes,sizeof(version_bytes));
+                TVMVersion depVersion(version_bytes);
+                this->dependencies.push_back(std::pair<std::string,TVMVersion>(name, depVersion));
+            }
+            else if(strncmp(table_name,"RESO",4) == 0) //resources (using embed)
+            {
+                std::vector<uint8_t> data;
+                data.resize(tableLen);
+                Ensure(stream,data.data(), tableLen);
+                this->resources.push_back(data);
+            }
+            else if(strncmp(table_name,"CHKS",4) == 0) //chunks
+            {
+                size_t chunkCount = (size_t)EnsureInt(stream);
+                for(size_t j = 0; j < chunkCount; j++)
+                {
+                    auto chunk = TFileChunk::Create(ls);
+                    chunk->file = this;
+                    size_t argCount = (size_t)EnsureInt(stream);
+                    for(size_t k = 0; k < argCount; k++)
+                    {
+                        chunk->args.push_back(GetString(stream));
+                    }
+                    size_t len = (size_t)EnsureInt(stream);
+                    chunk->code.resize(len);
+                    Ensure(stream,chunk->code.data(),len);
+                    //reader.ReadIntoBuffer(chunk->code);
+
+                    this->chunks.push_back(chunk);
+                }
+            }
+            else if(strncmp(table_name,"FUNS",4) == 0) //functions
+            {
+                size_t funLength = (size_t)EnsureInt(stream);
+
+                for(size_t j = 0; j < funLength;j++)
+                {
+                    std::vector<std::string> fnParts;
+                    uint32_t fnPartsC = EnsureInt(stream);
+                    for(uint32_t k = 0; k < fnPartsC; k++)
+                    {
+                        fnParts.push_back(GetString(stream));
+                    }
+
+                    uint32_t fnNumber = EnsureInt(stream);
+                    this->functions.push_back(std::pair<std::vector<std::string>,uint32_t>(fnParts,fnNumber));
+       
+                }
+                
+            }
+            else if(strncmp(table_name,"STRS",4) == 0) //strings
+            {
+                size_t strsLen = (size_t)EnsureInt(stream);
+                for(size_t j = 0;j < strsLen;j++)
+                {
+                    this->strings.push_back(EnsureString(stream));
+                }
+            }
+            else
+            {
+                Skip(stream,tableLen);
+            }
+        }
+        
+    }
+
+    
+}

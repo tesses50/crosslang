@@ -1,0 +1,8 @@
+<svg width="375" height="100">
+    <polygon points="50,0,100,25,100,75,50,100,0,75,0,25" style="fill:orange;stroke:black;stroke-width:3" />
+    <polygon points="45,20,55,20,55,35,80,35,80,45,55,45,55,85,45,85,45,45,20,45,20,35,45,35" style="fill:white;stroke:black;stroke-width:3"/>
+    <polygon points="160,25,160,35,130,35,130,75,160,75,160,85,120,85,120,25" style="fill:orange;stroke:black;stroke-width:3" />
+    <polygon points="180,25,210,25,210,35,190,35,190,85,180,85" style="fill:orange;stroke:black;stroke-width:3" />
+    <polygon points="230,25,230,70,235,85,255,85,260,70,260,25,250,25,250,60,248.5,75,242.5,75,240,60,240,25" style="fill:orange;stroke:black;stroke-width:3" />
+    <polygon points="280,25,280,85,290,85,290,35,310,35,310,85,320,85,320,35,340,35,340,85,350,85,350,25" style="fill:orange;stroke:black;stroke-width:3" />
+</svg>
