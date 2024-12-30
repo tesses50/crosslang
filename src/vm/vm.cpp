@@ -919,7 +919,7 @@ namespace Tesses::CrossLang {
 
         if(std::holds_alternative<int64_t>(left) && std::holds_alternative<int64_t>(right))
         {
-            cse.back()->Push(gc,std::get<int64_t>(left) || std::get<int64_t>(right));
+            cse.back()->Push(gc,std::get<int64_t>(left) | std::get<int64_t>(right));
         }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
@@ -928,7 +928,7 @@ namespace Tesses::CrossLang {
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
-                TObject fn = dict->GetValue("operator||");
+                TObject fn = dict->GetValue("operator|");
                 gc->BarrierEnd();
                 return InvokeTwo(ls,fn,left,right);
             }
@@ -989,7 +989,7 @@ namespace Tesses::CrossLang {
 
         if(std::holds_alternative<int64_t>(left) && std::holds_alternative<int64_t>(right))
         {
-            cse.back()->Push(gc,std::get<int64_t>(left) && std::get<int64_t>(right));
+            cse.back()->Push(gc,std::get<int64_t>(left) & std::get<int64_t>(right));
         }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
@@ -998,7 +998,7 @@ namespace Tesses::CrossLang {
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
-                TObject fn = dict->GetValue("operator&&");
+                TObject fn = dict->GetValue("operator&");
                 gc->BarrierEnd();
                 return InvokeTwo(ls,fn,left,right);
             }
@@ -3597,6 +3597,7 @@ namespace Tesses::CrossLang {
                         break;
                     case RIGHTSHIFT:
                         TVM_HANDLER(RShift);
+                        break;
                     case LESSTHAN:
                         TVM_HANDLER(Lt);
                         break;
@@ -4179,19 +4180,9 @@ namespace Tesses::CrossLang {
             auto dict = dynamic_cast<TDictionary*>(obj);
             if(dict != nullptr)
             {
-                gc->BarrierBegin();
-                auto v = dict->GetValue("ToString");
-                gc->BarrierEnd();
-                if(std::holds_alternative<THeapObjectHolder>(v))
-                {
-                    auto callable=dynamic_cast<TCallable*>(std::get<THeapObjectHolder>(v).obj);
-                    if(callable != nullptr)
-                    {
-                        GCList ls(gc);
-                        auto res = callable->Call(ls,{});
-                        return ToString(gc,res);
-                    }
-                }
+                    GCList ls(gc);
+                    return ToString(gc,dict->CallMethod(ls,"ToString",{}));
+                
             }
       }
 

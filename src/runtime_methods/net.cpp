@@ -1,12 +1,7 @@
 #include "CrossLang.hpp"
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
 #include <csignal>
-#include <arpa/inet.h>
 #include <iostream>
-#include <netinet/tcp.h>
 #include <unistd.h>
 #include <cstring>
 using namespace Tesses::Framework::Streams;

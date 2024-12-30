@@ -1,9 +1,22 @@
 #include "CrossLang.hpp"
 
 #include "../sago/platform_folders.h"
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 
 namespace Tesses::CrossLang
 {
+    static std::string GetHomeFolder()
+    {
+        #if !defined(SAGO_DISABLE)
+        return sago::getHomeDir();
+        #elif defined(__EMSCRIPTEN__)
+        return "/home/web_user";
+        #else
+        return "/CrossLangProfile";
+        #endif
+    }
     static TObject Env_getPlatform(GCList& ls, std::vector<TObject> args)
     {
         #if defined(__SWITCH__)
@@ -52,7 +65,7 @@ namespace Tesses::CrossLang
         std::string key;
         if(GetArgument(args,0,key))
         {
-            auto res = getenv(key.c_str());
+            auto res = std::getenv(key.c_str());
             if(res == nullptr) return nullptr;
             std::string value = res;
             return value;
@@ -66,57 +79,108 @@ namespace Tesses::CrossLang
         if(GetArgument(args,0,key))
         {
             if(GetArgument(args,1,value))
-            setenv(key.c_str(), value.c_str(),1);
+            #if defined(_WIN32)
+                SetEnvironmentVariable(key.c_str(),value.c_str());
+            #else
+                setenv(key.c_str(), value.c_str(),1);
+            #endif
             else
+            #if defined(_WIN32)
+            {
+
+            }
+            #else
             unsetenv(key.c_str());
+            #endif
             return value;
         }
         return nullptr;
     }
     static TObject Env_getDownloads(GCList& ls, std::vector<TObject> args)
     {
+        #if !defined(SAGO_DISABLE)
         return sago::getDownloadFolder();
+        #else
+        return GetHomeFolder() + "/Downloads";
+        #endif
     }
     static TObject Env_getMusic(GCList& ls, std::vector<TObject> args)
     {
+
+        #if !defined(SAGO_DISABLE)
         return sago::getMusicFolder();
+        #else
+        return GetHomeFolder() + "/Music";
+        #endif
     }
     static TObject Env_getPictures(GCList& ls, std::vector<TObject> args)
     {
-        return sago::getMusicFolder();
+        #if !defined(SAGO_DISABLE)
+        return sago::getPicturesFolder();
+        #else
+        return GetHomeFolder() + "/Pictures";
+        #endif
     }
     static TObject Env_getVideos(GCList& ls, std::vector<TObject> args)
     {
+        #if !defined(SAGO_DISABLE)
         return sago::getVideoFolder();
+        #else
+        return GetHomeFolder() + "/Videos";
+        #endif
     }
     static TObject Env_getDocuments(GCList& ls, std::vector<TObject> args)
     {
+        #if !defined(SAGO_DISABLE)
         return sago::getDocumentsFolder();
+        #else
+        return GetHomeFolder() + "/Documents";
+        #endif
     }
     static TObject Env_getConfig(GCList& ls, std::vector<TObject> args)
     {
+        #if !defined(SAGO_DISABLE)
         return sago::getConfigHome();
+        #else
+        return GetHomeFolder() + "/Config";
+        #endif
     }
 
     static TObject Env_getDesktop(GCList& ls, std::vector<TObject> args)
     {
+        #if !defined(SAGO_DISABLE)
         return sago::getDesktopFolder();
+        #else
+        return GetHomeFolder() + "/Desktop";
+        #endif
     }
     static TObject Env_getState(GCList& ls, std::vector<TObject> args)
     {
+        #if !defined(SAGO_DISABLE)
         return sago::getStateDir();
+        #else
+        return GetHomeFolder() + "/State";
+        #endif
     }
     static TObject Env_getCache(GCList& ls, std::vector<TObject> args)
     {
+        #if !defined(SAGO_DISABLE)
         return sago::getCacheDir();
+        #else
+        return GetHomeFolder() + "/Cache";
+        #endif
     }
      static TObject Env_getData(GCList& ls, std::vector<TObject> args)
     {
+        #if !defined(SAGA_DISABLE)
         return sago::getDataHome();
+        #else
+        return GetHomeFolder() + "/Data";
+        #endif
     }
     static TObject Env_getUser(GCList& ls, std::vector<TObject> args)
     {
-        return sago::getHomeDir();
+        return GetHomeFolder();
     }
     void TStd::RegisterEnv(GC* gc, TRootEnvironment* env)
     {

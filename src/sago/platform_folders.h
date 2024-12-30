@@ -26,8 +26,24 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/*
+Modified by Mike Nolan for this project
+I modified it to return home directory and conditionally compile for systems that are not GEKKO / NX  etc
+*/
+
+
+
+
 #ifndef SAGO_PLATFORM_FOLDERS_H
 #define SAGO_PLATFORM_FOLDERS_H
+
+#if defined(GEKKO) || defined(__SWITCH__) || defined(__EMSCRIPTEN__)
+#define SAGO_DISABLE
+#endif
+
+
+
+#if !defined(SAGO_DISABLE)
 
 #include <vector>
 #include <string>
@@ -285,5 +301,5 @@ private:
 
 
 }  //namespace sago
-
+#endif
 #endif  /* PLATFORM_FOLDERS_H */

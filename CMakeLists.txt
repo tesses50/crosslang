@@ -14,10 +14,9 @@ option(CROSSLANG_ENABLE_PROCESS "Enable process" ON)
 option(CROSSLANG_ENABLE_SDL2 "Enable SDL2 (For Drawing)" ON)
 option(CROSSLANG_ENABLE_TERMIOS "Enable termios (For changing terminal options)" ON)
 
-option(CROSSLANG_ENABLE_64BIT_FILE "Allow files over 2GiB" ON)
 
 
-set(JANSSON_DIR "Directory for Jansson" "")
+set(JANSSON_DIR "Directory for Jansson" CACHE PATH "Jansson directory")
 
 find_package(TessesFramework REQUIRED)
 

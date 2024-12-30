@@ -26,6 +26,12 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+/*
+Modified by Mike Nolan for this project
+I modified it to return home directory and conditionally compile for systems that are not GEKKO / NX  etc
+*/
+
+#if !defined(SAGO_DISABLE)
 #include "platform_folders.h"
 #include <iostream>
 #include <stdexcept>
@@ -218,7 +224,12 @@ std::string getDataHome() {
 }
 std::string getHomeDir() 
 {
+	#if defined(_WIN32)
+
+		return GetKnownWindowsFolder(FOLDERID_Profile, "Profile could not be found");
+	#else
 	return getHome();
+	#endif
 }
 std::string getConfigHome() {
 #ifdef _WIN32
@@ -458,3 +469,4 @@ std::string getSaveGamesFolder2() {
 }
 
 }  //namespace sago
+#endif

@@ -670,7 +670,7 @@ namespace Tesses::CrossLang
             {
                 expr = AdvancedSyntaxNode::Create(LessThanEqualsExpression, true, {expr,ParseShift()});
             }
-            else if(tkn.text == ">")
+            else if(tkn.text == ">=")
             {
                 expr = AdvancedSyntaxNode::Create(GreaterThanEqualsExpression, true, {expr,ParseShift()});
             }

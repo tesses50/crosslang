@@ -9,6 +9,13 @@ Tesses Cross Language
 - CMake
 - SDL2 (but can be turned off)
 
+## Use in docker
+```bash
+    git clone https://gitea.site.tesses.net/tesses50/crosslang
+    cd crosslang
+    sudo docker build -t crosslang:latest .
+```
+
 ## To Install
 - [Follow TessesFramework setup](https://gitea.site.tesses.net/tesses50/tesses-framework)
 - Follow the commands bellow
