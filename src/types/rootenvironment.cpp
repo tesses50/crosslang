@@ -1,5 +1,5 @@
 #include "CrossLang.hpp"
-
+#include <iostream>
 namespace Tesses::CrossLang {
     void TRootEnvironment::LoadDependency(GC* gc,Tesses::Framework::Filesystem::VFS* vfs, std::pair<std::string,TVMVersion> dep)
     {
@@ -14,7 +14,6 @@ namespace Tesses::CrossLang {
         
 
         Tesses::Framework::Streams::Stream* file;
-
         if(vfs->RegularFileExists(filename) && (file = vfs->OpenFile(filename,"rb")) != nullptr)
         {
             
@@ -159,7 +158,7 @@ namespace Tesses::CrossLang {
             TFile* f = TFile::Create(ls);
             f->Load(gc, file);
             Tesses::Framework::Filesystem::SubdirFilesystem dir(vfs,path.GetParent(),false);
-            LoadFileWithDependencies(gc,vfs,f);
+            LoadFileWithDependencies(gc,&dir,f);
         }
         else throw VMException("Could not open file: \"" + path.GetFileName() + "\".");
         

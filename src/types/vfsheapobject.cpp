@@ -201,7 +201,9 @@ namespace Tesses::CrossLang {
                 return out;
             }
         }
+        return false;
     }
+
     bool TObjectVFS::SymlinkExists(Tesses::Framework::Filesystem::VFSPath path)
     {
         TVFSHeapObject* vfs;
@@ -220,6 +222,7 @@ namespace Tesses::CrossLang {
                 return out;
             }
         }
+        return false;
     }
     bool TObjectVFS::CharacterDeviceExists(Tesses::Framework::Filesystem::VFSPath path)
     {
@@ -239,6 +242,7 @@ namespace Tesses::CrossLang {
                 return out;
             }
         }
+        return false;
     }
     bool TObjectVFS::BlockDeviceExists(Tesses::Framework::Filesystem::VFSPath path)
     {
@@ -258,6 +262,7 @@ namespace Tesses::CrossLang {
                 return out;
             }
         }
+        return false;
     }
     bool TObjectVFS::SocketFileExists(Tesses::Framework::Filesystem::VFSPath path)
     {
@@ -277,6 +282,7 @@ namespace Tesses::CrossLang {
                 return out;
             }
         }
+        return false;
     }
     bool TObjectVFS::FIFOFileExists(Tesses::Framework::Filesystem::VFSPath path)
     {
@@ -296,6 +302,7 @@ namespace Tesses::CrossLang {
                 return out;
             }
         }
+        return false;
     }
     bool TObjectVFS::FileExists(Tesses::Framework::Filesystem::VFSPath path)
     {
@@ -315,6 +322,7 @@ namespace Tesses::CrossLang {
                 return out;
             }
         }
+        return false;
     }
     bool TObjectVFS::SpecialFileExists(Tesses::Framework::Filesystem::VFSPath path)
     {
@@ -334,6 +342,7 @@ namespace Tesses::CrossLang {
                 return out;
             }
         }
+        return false;
     }
     void TObjectVFS::CreateSymlink(Tesses::Framework::Filesystem::VFSPath existingFile, Tesses::Framework::Filesystem::VFSPath symlinkFile)
     {
@@ -383,6 +392,7 @@ namespace Tesses::CrossLang {
                 return out;
             }
         }
+        return false;
     }
     void TObjectVFS::DeleteFile(Tesses::Framework::Filesystem::VFSPath path)
     {
@@ -450,6 +460,7 @@ namespace Tesses::CrossLang {
                 delete ls;
             });
         }
+        return Tesses::Framework::Filesystem::VFSPathEnumerator();
     }
     void TObjectVFS::MoveFile(Tesses::Framework::Filesystem::VFSPath src, Tesses::Framework::Filesystem::VFSPath dest)
     {

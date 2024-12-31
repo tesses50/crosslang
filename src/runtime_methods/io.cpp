@@ -54,6 +54,23 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }
+    static TObject FS_MakeFull(GCList& ls, std::vector<TObject> args)
+    {
+        Tesses::Framework::Filesystem::VFSPath path;
+        if(GetArgumentAsPath(args,0,path))
+        {
+            if(path.relative)
+            {
+                Tesses::Framework::Filesystem::LocalFilesystem lfs;
+                auto curDir = std::filesystem::current_path();
+                auto myPath = lfs.SystemToVFSPath(curDir.string()) / path;
+                myPath = myPath.CollapseRelativeParents();
+                return myPath;
+            }
+            return path.CollapseRelativeParents();
+        }
+        return nullptr;
+    }
     void TStd::RegisterIO(GC* gc,TRootEnvironment* env,bool enableLocalFilesystem)
     {
 
@@ -68,6 +85,7 @@ namespace Tesses::CrossLang
             TVFSHeapObject* vfs = TVFSHeapObject::Create(ls, new Tesses::Framework::Filesystem::LocalFilesystem());
         
             dict->SetValue("Local", vfs);
+            dict->DeclareFunction(gc, "MakeFull", "Make absolute path from relative path",{"path"},FS_MakeFull);
         }
     
         dict->DeclareFunction(gc, "MountableFilesystem","Create a mountable filesystem",{"root"}, FS_MountableFilesystem);

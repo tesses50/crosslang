@@ -17,8 +17,9 @@ int main(int argc, char** argv)
     Tesses::Framework::Filesystem::LocalFilesystem fs;
     GC gc;
     gc.Start();
-    GCList ls(gc);
+
     tryAgain:
+    GCList ls(gc);
     TRootEnvironment* env = TRootEnvironment::Create(ls, TDictionary::Create(ls));
     
 
@@ -29,13 +30,13 @@ int main(int argc, char** argv)
     else
     {
         tryAgainFast:
-        std::cout << "File " << filename.ToString() << " not found, do you want to download the installer from: https://crosslang.tesseslanguage.com/crosslang-shell-install.tcross (this will install other stuff as well) (Y/n)? ";
+        std::cout << "File " << filename.ToString() << " not found, do you want to download the installer from: https://gitea.site.tesses.net/tesses50/crosslang-libs/raw/branch/master/crosslang-shell-install.tcross (this may install other stuff as well) (Y/n)? ";
         std::string line;
         std::getline(std::cin,line);
         if(line == "Y" || line == "y")
         {
             HttpRequest req;
-            req.url = "https://crosslang.tesseslanguage.com/crosslang-shell-install.tcross";
+            req.url = "https://gitea.site.tesses.net/tesses50/crosslang-libs/raw/branch/master/crosslang-shell-install.tcross";
             req.method = "GET";
             HttpResponse resp(req);
             if(resp.statusCode == StatusCode::OK)
