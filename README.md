@@ -4,26 +4,26 @@ Tesses Cross Language
 ![CrossImage](logo.png)
 
 ## What is required to build this project
-- [TessesFramework](https://gitea.site.tesses.net/tesses50/tesses-framework)
+- [TessesFramework](https://onedev.site.tesses.net/TessesFramework)
 - Jansson (but can be turned off but is strongly recommended otherwise many programs will not work)
 - CMake
 - SDL2 (but can be turned off)
 
 ## Use in docker
 ```bash
-    git clone https://gitea.site.tesses.net/tesses50/crosslang
-    cd crosslang
+    git clone https://onedev.site.tesses.net/CrossLang
+    cd CrossLang
     sudo docker build -t crosslang:latest .
 ```
 
 ## To Install
-- [Follow TessesFramework setup](https://gitea.site.tesses.net/tesses50/tesses-framework)
+- [Follow TessesFramework setup](https://onedev.site.tesses.net/TessesFramework)
 - Follow the commands bellow
 
 ## Run these commands to install crosslang (or use binaries from [here](https://crosslang.tesseslanguage.com/download/))
 ```bash
-git clone https://gitea.site.tesses.net/tesses50/crosslang
-cd crosslang
+git clone https://onedev.site.tesses.net/CrossLang
+cd CrossLang
 mkdir build 
 cd build
 cmake -S .. -B .
