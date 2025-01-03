@@ -80,6 +80,14 @@ namespace Tesses::CrossLang {
 
     #define TVM_HANDLER(hndl) if(hndl(gc)) goto execute
 
+    typedef bool (InterperterThread::*opcode)(GC* gc);
+
+
+    
+
+
+    
+
     bool InterperterThread::InvokeTwo(GCList& ls, TObject fn, TObject left, TObject right)
     {
         if(std::holds_alternative<THeapObjectHolder>(fn))
@@ -3146,6 +3154,20 @@ namespace Tesses::CrossLang {
                             cse.back()->Push(gc, r);
                             return false;
                         }
+                        if(key == "Length")
+                        {
+                            int64_t r = strm->stream != nullptr ? strm->stream->GetLength() : 0;
+                            
+                            cse.back()->Push(gc, r);
+                            return false;
+                        }
+                         if(key == "Position")
+                        {
+                            int64_t r = strm->stream != nullptr ? strm->stream->GetPosition() : 0;
+                            
+                            cse.back()->Push(gc, r);
+                            return false;
+                        }
 
                         cse.back()->Push(gc, nullptr);
 
@@ -3337,7 +3359,7 @@ namespace Tesses::CrossLang {
           return false;
     }
 
-    void InterperterThread::GetVariable(GC* gc)
+    bool InterperterThread::GetVariable(GC* gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         if(!cse.empty())
@@ -3357,8 +3379,9 @@ namespace Tesses::CrossLang {
                 throw VMException("[GETVARIABLE] Can't pop string.");
             }
         }
+        return false;
     }
-    void InterperterThread::SetVariable(GC* gc)
+    bool InterperterThread::SetVariable(GC* gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         if(!cse.empty())
@@ -3379,8 +3402,9 @@ namespace Tesses::CrossLang {
                 throw VMException("[SETVARIABLE] Can't pop string.");
             }
         }
+        return false;
     }
-    void InterperterThread::DeclareVariable(GC* gc)
+    bool InterperterThread::DeclareVariable(GC* gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         if(!cse.empty())
@@ -3402,10 +3426,11 @@ namespace Tesses::CrossLang {
                 throw VMException("[DECLAREVARIABLE] Can't pop string.");
             }
         }
+        return false;
     }
   
 
-    void InterperterThread::PushResource(GC* gc)
+    bool InterperterThread::PushResource(GC* gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         if(!cse.empty())
@@ -3432,154 +3457,193 @@ namespace Tesses::CrossLang {
                 throw VMException("Can't read chunk.");
             }
         }
+        return false;
     }
-  
-    void InterperterThread::PushClosure(GC* gc,bool ownScope)
+    bool InterperterThread::Throw(GC* gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
-        if(!cse.empty())
-        {
-            auto stk = cse.back();
-            std::vector<uint8_t>& code = stk->callable->closure->code;
-            if(stk->ip + 4 <= code.size())
-            {
-                uint32_t n=BitConverter::ToUint32BE(code[stk->ip]);
-                if(n >= stk->callable->file->chunks.size())
-                    throw VMException("Can't read chunk.");
-                stk->ip = stk->ip + 4;
+        GCList ls(gc);
+        auto _res2 = cse.back()->Pop(ls);
 
-                gc->BarrierBegin();
-                GCList ls(gc);
-                TClosure* closure = TClosure::Create(ls,stk->env,stk->callable->file,n,ownScope);
-                stk->Push(gc,closure);
-                gc->BarrierEnd();
-            }
-            else
-            {
-                throw VMException("Can't read chunk.");
-            }
+        if(!std::holds_alternative<Undefined>(_res2))
+        {
+            throw VMByteCodeException(gc,_res2);
         }
+        return false;
     }
-    void InterperterThread::PushString(GC* gc)
+    bool InterperterThread::JumpUndefined(GC* gc)
     {
         
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
-        if(!cse.empty())
-        {
-            auto stk = cse.back();
-            std::vector<uint8_t>& code = stk->callable->closure->code;
-            if(stk->ip + 4 <= code.size())
-            {
-                uint32_t n=BitConverter::ToUint32BE(code[stk->ip]);
-                if(n < stk->callable->file->strings.size())
-                    stk->Push(gc,stk->callable->file->strings[n]);
-                else
-                    throw VMException("Can't read string.");
-                stk->ip = stk->ip + 4;
-            }
-        }
-    }
-    
-    void InterperterThread::PushLong(GC* gc)
-    {
-        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
-        if(!cse.empty())
-        {
-            auto stk = cse.back();
-            std::vector<uint8_t>& code = stk->callable->closure->code;
-            if(stk->ip + 8 <= code.size())
-            {
-                uint64_t n=BitConverter::ToUint64BE(code[stk->ip]);
-                stk->Push(gc,(int64_t)n);
-                stk->ip = stk->ip + 8;
-            }
-        }
-    }
-    void InterperterThread::PushChar(GC* gc)
-    {
-        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
-        if(!cse.empty())
-        {
-            auto stk = cse.back();
-            std::vector<uint8_t>& code = stk->callable->closure->code;
-            if(stk->ip + 1 <= code.size())
-            {
-                char c = (char)code[stk->ip];
-                stk->Push(gc,c);
-                stk->ip = stk->ip + 1;
-            }
-        }
-    }
-    void InterperterThread::PushDouble(GC* gc)
-    {
-        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
-        if(!cse.empty())
-        {
-            auto stk = cse.back();
-            std::vector<uint8_t>& code = stk->callable->closure->code;
-            if(stk->ip + 8 <= code.size())
-            {
-                double dbl = BitConverter::ToDoubleBE(code[stk->ip]);
-                stk->Push(gc,dbl);
-                stk->ip = stk->ip + 8;
-            }
-        }
-    }
-    
+        auto stk = cse.back();
 
-    void InterperterThread::Execute(GC* gc)
+        if(stk->ip + 4 <= stk->callable->closure->code.size())
+        {
+            uint32_t n=BitConverter::ToUint32BE(stk->callable->closure->code[stk->ip]);
+                            
+            GCList ls(gc);
+            auto _res2 = stk->Pop(ls);
+                                
+            stk->ip = stk->ip + 4;
+            if(std::holds_alternative<Undefined>(_res2))
+                stk->ip = n;
+            else
+                stk->Push(gc,_res2);
+                            
+                            
+        }
+        else
+            throw VMException("Can't read jmpundefined pc.");
+        return false;
+    }
+    bool InterperterThread::Jump(GC* gc)
     {
 
-       std::vector<CallStackEntry*>& cse=this->call_stack_entries;
-    
-        execute:
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
 
-        if(!cse.empty())
+        if(stk->ip + 4 <= stk->callable->closure->code.size())
         {
-            auto stk = cse.back();
-            try{
-            while(stk->ip < 0xFFFFFFFF && stk->ip < stk->callable->closure->code.size())
-            {
-               
-                uint32_t ip = stk->ip;
-                stk->ip = ip + 1;
-                switch(stk->callable->closure->code[ip])
-                {
-                    case JMP:
-                    {
-                        if(stk->ip + 4 <= stk->callable->closure->code.size())
+            uint32_t n=BitConverter::ToUint32BE(stk->callable->closure->code[stk->ip]);
+            stk->ip = n;
+        }
+        else
+            throw VMException("Can't read jmp pc.");
+        return false;
+    }
+    bool InterperterThread::PushNull(GC* gc)
+    {
+
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
+       
+        stk->Push(gc,nullptr);
+        return false;
+    }
+     bool InterperterThread::PushUndefined(GC* gc)
+    {
+
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
+       
+        stk->Push(gc,Undefined());
+        return false;
+    }
+      bool InterperterThread::PushFalse(GC* gc)
+    {
+
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
+       
+        stk->Push(gc,false);
+        return false;
+    }
+      bool InterperterThread::PushTrue(GC* gc)
+    {
+
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
+       
+        stk->Push(gc,true);
+        return false;
+    }
+    bool InterperterThread::CreateDictionary(GC* gc)
+    {
+
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
+        GCList ls(gc);
+        TDictionary* dict = TDictionary::Create(ls);
+        stk->Push(gc,dict);
+        return false;
+    }
+     bool InterperterThread::Nop(GC* gc)
+    {
+        return false;
+    }   
+    bool InterperterThread::AppendList(GC* gc)
+    {
+
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
+       
+                        GCList ls(gc);
+                        gc->BarrierBegin();
+                        auto obj = stk->Pop(ls);
+                        auto objhold= stk->Pop(ls);
+                        if(std::holds_alternative<THeapObjectHolder>(objhold))
                         {
-                            uint32_t n=BitConverter::ToUint32BE(stk->callable->closure->code[stk->ip]);
-                            
-                            
-                             stk->ip = n;
+                            auto list= dynamic_cast<TList*>(std::get<THeapObjectHolder>(objhold).obj);
+                            if(list != nullptr)
+                            {
+                                list->Add(obj);
+                            }
+                            /*
+                            if(dict != nullptr)
+                            {
+                                auto potential_str = stk->Pop(ls);
+                                if(std::holds_alternative<std::string>(potential_str))
+                                {
+                                    dict->SetValue(std::get<std::string>(potential_str), stk->Pop(ls));
+                                }
+                            }*/
                         }
-                        else
-                            throw VMException("Can't read jmp pc.");
-                    }
-                        break;
-                    case JMPC:
-                    {
-                        if(stk->ip + 4 <= stk->callable->closure->code.size())
+
+                        stk->Push(gc, objhold);
+
+                        gc->BarrierEnd();
+        return false;
+    }
+     bool InterperterThread::AppendDictionary(GC* gc)
+    {
+
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
+        GCList ls(gc);
+                        gc->BarrierBegin();
+                        auto value = stk->Pop(ls);
+                        auto k = stk->Pop(ls);
+                        auto objhold= stk->Pop(ls);
+                        if(std::holds_alternative<THeapObjectHolder>(objhold) && std::holds_alternative<std::string>(k))
                         {
-                            uint32_t n=BitConverter::ToUint32BE(stk->callable->closure->code[stk->ip]);
+                            auto dict= dynamic_cast<TDictionary*>(std::get<THeapObjectHolder>(objhold).obj);
+                           
                             
-                                GCList ls2(gc);
-                                auto _res2 = stk->Pop(ls2);
-                                auto _res = ToBool(_res2);
-                                stk->ip = stk->ip + 4;
-                                if(_res)
-                                stk->ip = n;
-                            
-                            
-                            
+                            if(dict != nullptr)
+                            {
+                                dict->SetValue(std::get<std::string>(k), value);
+                            }
                         }
-                        else
-                            throw VMException("Can't read jmpc pc.");
-                    }
-                        break;
-                    case TRYCATCH:
-                    {
+
+                        stk->Push(gc, objhold);
+
+                        gc->BarrierEnd();
+        return false;
+    }
+     bool InterperterThread::CreateArray(GC* gc)
+    {
+
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
+        GCList ls(gc);
+        TList* dict = TList::Create(ls);
+        stk->Push(gc,dict);
+        return false;
+    }
+    bool InterperterThread::Pop(GC* gc)
+    {
+
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
+        GCList ls(gc);
+        stk->Pop(ls);
+        return false;
+    }
+    bool InterperterThread::TryCatch(GC* gc)
+    {
+
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
                         GCList ls(gc);
                         auto catchFn = stk->Pop(ls);
                         auto tryFn = stk->Pop(ls);
@@ -3621,178 +3685,214 @@ namespace Tesses::CrossLang {
                                 stk->Push(gc, catchC->Call(ls,{dict}));
                             }
                         }
-                    }
-                        break;
-                    case THROW:
-                    {
+        return false;
+    }
+    bool InterperterThread::JumpConditional(GC* gc)
+    {
 
-                        GCList ls2(gc);
-                        auto _res2 = stk->Pop(ls2);
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
+        if(stk->ip + 4 <= stk->callable->closure->code.size())
+        {
+            uint32_t n=BitConverter::ToUint32BE(stk->callable->closure->code[stk->ip]);
+                            
+            GCList ls2(gc);
+            auto _res2 = stk->Pop(ls2);
+            auto _res = ToBool(_res2);
+            stk->ip = stk->ip + 4;
+            if(_res)
+            stk->ip = n;
+                            
+                            
+                            
+        }
+        else
+            throw VMException("Can't read jmpc pc.");
+        return false;
+    }
+    bool InterperterThread::PushClosure(GC* gc)
+    {
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        if(!cse.empty())
+        {
+            auto stk = cse.back();
+            std::vector<uint8_t>& code = stk->callable->closure->code;
+            if(stk->ip + 4 <= code.size())
+            {
+                uint32_t n=BitConverter::ToUint32BE(code[stk->ip]);
+                if(n >= stk->callable->file->chunks.size())
+                    throw VMException("Can't read chunk.");
+                stk->ip = stk->ip + 4;
 
-                        if(!std::holds_alternative<Undefined>(_res2))
-                        {
-                            throw VMByteCodeException(gc,_res2);
-                        }
-                    }
-                    break;
-                    case JMPUNDEFINED:
-                    {
-                        if(stk->ip + 4 <= stk->callable->closure->code.size())
-                        {
-                            uint32_t n=BitConverter::ToUint32BE(stk->callable->closure->code[stk->ip]);
-                            
-                                GCList ls2(gc);
-                                auto _res2 = stk->Pop(ls2);
-                                
-                                stk->ip = stk->ip + 4;
-                            if(std::holds_alternative<Undefined>(_res2))
-                                stk->ip = n;
-                            else
-                                stk->Push(gc,_res2);
-                            
-                            
-                        }
-                        else
-                            throw VMException("Can't read jmpundefined pc.");
-                    }
-                        break;
-                    
-                    case ADD:
-                        TVM_HANDLER(Add);
-                        break;
-                    case SUB:
-                        TVM_HANDLER(Sub);
-                        break;
-                    case TIMES:
-                        TVM_HANDLER(Times);
-                        break;
-                    case DIVIDE:
-                        TVM_HANDLER(Divide);
-                        break;
-                    case MODULO:
-                        TVM_HANDLER(Mod);
-                        break;
-                    case LEFTSHIFT:
-                        TVM_HANDLER(LShift);
-                        break;
-                    case RIGHTSHIFT:
-                        TVM_HANDLER(RShift);
-                        break;
-                    case LESSTHAN:
-                        TVM_HANDLER(Lt);
-                        break;
-                    case LESSTHANEQ:
-                        TVM_HANDLER(Lte);
-                        break;
-                    case GREATERTHAN:
-                        TVM_HANDLER(Gt);
-                        break;
-                    case GREATERTHANEQ:
-                        TVM_HANDLER(Gte);
-                        break;
-                    case NEQ:
-                        TVM_HANDLER(NEq);
-                        break;
-                    case EQ:
-                        TVM_HANDLER(Eq);
-                        break;
-                    case NEGATIVE:
-                        TVM_HANDLER(Neg);
-                        break;
-                    case BITWISEOR:
-                        TVM_HANDLER(BOr);
-                        break;
-                    case BITWISEAND:
-                        TVM_HANDLER(BAnd);
-                        break;
-                    case BITWISENOT:
-                        TVM_HANDLER(BNot);
-                        break;
-                    case NOT:   
-                        TVM_HANDLER(LNot);
-                        break;
-                    case XOR:
-                        TVM_HANDLER(XOr);
-                        break;
-                    case CALLFUNCTION:
-                        TVM_HANDLER(ExecuteFunction);
-                        break;
-                    case CALLMETHOD:
-                        TVM_HANDLER(ExecuteMethod);
-                        break;
-                    case GETVARIABLE:
-                        GetVariable(gc);
-                        break;
-                    case SETVARIABLE:
-                        SetVariable(gc);
-                        break;
-                     case GETFIELD:
-                        TVM_HANDLER(GetField);
-                        break;
-                    case SETFIELD:
-                        TVM_HANDLER(SetField);
-                        break;
-                    case DECLAREVARIABLE:
-                        DeclareVariable(gc);
-                        break;
-                    case PUSHRESOURCE:
-                        PushResource(gc);
-                        break;
-                    case PUSHCLOSURE:
-                        PushClosure(gc);
-                        break;
-                    case PUSHSCOPELESSCLOSURE:
-                        PushClosure(gc,false);
-                        break;
-                    case PUSHLONG:
-                        PushLong(gc);
-                        break;
-                    case PUSHDOUBLE:
-                        PushDouble(gc);
-                        break;
-                    case PUSHSTRING:
-                        PushString(gc);
-                        break;
-                    case PUSHCHAR:
-                        PushChar(gc);
-                        break;
-                    case SCOPEBEGIN:
-                    {
+                gc->BarrierBegin();
+                GCList ls(gc);
+                TClosure* closure = TClosure::Create(ls,stk->env,stk->callable->file,n,true);
+                stk->Push(gc,closure);
+                gc->BarrierEnd();
+            }
+            else
+            {
+                throw VMException("Can't read chunk.");
+            }
+        }
+        return false;
+    }
+    bool InterperterThread::PushScopelessClosure(GC* gc)
+    {
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        if(!cse.empty())
+        {
+            auto stk = cse.back();
+            std::vector<uint8_t>& code = stk->callable->closure->code;
+            if(stk->ip + 4 <= code.size())
+            {
+                uint32_t n=BitConverter::ToUint32BE(code[stk->ip]);
+                if(n >= stk->callable->file->chunks.size())
+                    throw VMException("Can't read chunk.");
+                stk->ip = stk->ip + 4;
+
+                gc->BarrierBegin();
+                GCList ls(gc);
+                TClosure* closure = TClosure::Create(ls,stk->env,stk->callable->file,n,false);
+                stk->Push(gc,closure);
+                gc->BarrierEnd();
+            }
+            else
+            {
+                throw VMException("Can't read chunk.");
+            }
+        }
+        return false;
+    }
+    
+    bool InterperterThread::PushString(GC* gc)
+    {
+        
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        if(!cse.empty())
+        {
+            auto stk = cse.back();
+            std::vector<uint8_t>& code = stk->callable->closure->code;
+            if(stk->ip + 4 <= code.size())
+            {
+                uint32_t n=BitConverter::ToUint32BE(code[stk->ip]);
+                if(n < stk->callable->file->strings.size())
+                    stk->Push(gc,stk->callable->file->strings[n]);
+                else
+                    throw VMException("Can't read string.");
+                stk->ip = stk->ip + 4;
+            }
+        }
+        return false;
+    }
+    
+    bool InterperterThread::PushLong(GC* gc)
+    {
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        if(!cse.empty())
+        {
+            auto stk = cse.back();
+            std::vector<uint8_t>& code = stk->callable->closure->code;
+            if(stk->ip + 8 <= code.size())
+            {
+                uint64_t n=BitConverter::ToUint64BE(code[stk->ip]);
+                stk->Push(gc,(int64_t)n);
+                stk->ip = stk->ip + 8;
+            }
+        }
+        return false;
+    }
+    bool InterperterThread::PushChar(GC* gc)
+    {
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        if(!cse.empty())
+        {
+            auto stk = cse.back();
+            std::vector<uint8_t>& code = stk->callable->closure->code;
+            if(stk->ip + 1 <= code.size())
+            {
+                char c = (char)code[stk->ip];
+                stk->Push(gc,c);
+                stk->ip = stk->ip + 1;
+            }
+        }
+        return false;
+    }
+    bool InterperterThread::PushDouble(GC* gc)
+    {
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        if(!cse.empty())
+        {
+            auto stk = cse.back();
+            std::vector<uint8_t>& code = stk->callable->closure->code;
+            if(stk->ip + 8 <= code.size())
+            {
+                double dbl = BitConverter::ToDoubleBE(code[stk->ip]);
+                stk->Push(gc,dbl);
+                stk->ip = stk->ip + 8;
+            }
+        }
+        return false;
+    }
+    bool InterperterThread::Return(GC* gc)
+    {
+
+
+       std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+
+            auto stk = cse.back();
+             stk->ip = (uint32_t)stk->callable->closure->code.size();
+            return false;
+    }
+    bool InterperterThread::ScopeBegin(GC* gc)
+    {
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+
+        auto stk = cse.back();
+
+        gc->BarrierBegin();
+        GCList ls(gc);
+        stk->env = stk->env->GetSubEnvironment(ls);
+        stk->scopes++;
+        gc->BarrierEnd();
+        
+        return false;
+    }
+     bool InterperterThread::Defer(GC* gc)
+    {
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+
+        auto stk = cse.back();
+
                         gc->BarrierBegin();
                         GCList ls(gc);
-                        stk->env = stk->env->GetSubEnvironment(ls);
-                        stk->scopes++;
+                        auto item = stk->Pop(ls);
+                        TCallable* call;
+                        if(GetObjectHeap(item,call))
+                        cse.back()->env->defers.insert(cse.back()->env->defers.begin(), {call});
                         gc->BarrierEnd();
-                    }
-                        break;
-                    case SCOPEEND:
-                    {
-                        gc->BarrierBegin();
-                        GCList ls(gc);
-                        std::vector<TCallable*> callable;
-                    
-                        if(!stk->env->defers.empty())
-                        {
-                            ls.Add(stk->env);
-                            callable.insert(callable.end(), stk->env->defers.begin(),stk->env->defers.end());
-                        }
-                            
-                        stk->scopes--;
-                        stk->env = stk->env->GetParentEnvironment();
-                        gc->BarrierEnd();
+        
+        return false;
+    }
+     bool InterperterThread::Dup(GC* gc)
+    {
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
 
+        auto stk = cse.back();
+        GCList ls(gc);
+        auto res = stk->Pop(ls);
+        stk->Push(gc,res);
+        stk->Push(gc,res);
 
-                        for(auto item : callable) 
-                        {
-                            GCList ls2(gc);
-                            item->Call(ls2,{});
-                        }
-                        
-                    }
-                        break;
-                    case SCOPEENDTIMES:
-                    {
-                        gc->BarrierBegin();
+        return false;
+    }
+    bool InterperterThread::ScopeEndTimes(GC* gc)
+    {
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+
+        auto stk = cse.back();
+
+        gc->BarrierBegin();
                         GCList ls(gc);
                         std::vector<TCallable*> callable;
                         std::vector<uint8_t>& code = stk->callable->closure->code;
@@ -3818,130 +3918,79 @@ namespace Tesses::CrossLang {
                             GCList ls2(gc);
                             item->Call(ls2,{});
                         }
-                    }
-                        break;
-                    case PUSHFALSE:
-                    {
-                        GCList ls(gc);
-                        stk->Push(gc,false);
-                    }
-                        break;
-                    case PUSHTRUE:
-                    {
-                        GCList ls(gc);
-                        stk->Push(gc,true);
-                    }
-                        break;
-                    case PUSHNULL:
-                    {
-                        GCList ls(gc);
-                        stk->Push(gc,nullptr);
-                    }
-                        break;
-                    case PUSHUNDEFINED:
-                    {
-                        GCList ls(gc);
-                        stk->Push(gc,Undefined());
-                    }
-                        break;
-                    case CREATEDICTIONARY:
-                    {
-                        GCList ls(gc);
-                        TDictionary* dict = TDictionary::Create(ls);
-                        stk->Push(gc,dict);
-                    }
-                        break;
-                    case POP:
-                    {
-                        GCList ls(gc);
-                        stk->Pop(ls);
-                    }
-                        break;
-                    
-                    case CREATEARRAY:
-                    {
-                        GCList ls(gc);
-                        TList* myList = TList::Create(ls);
-                        stk->Push(gc,myList);
-                    }
-                        break;
-                    
-                    case APPENDLIST:
-                    {
-                        GCList ls(gc);
+        
+        return false;
+    }
+     bool InterperterThread::ScopeEnd(GC* gc)
+    {
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+
+        auto stk = cse.back();
+
+        
                         gc->BarrierBegin();
-                        auto obj = stk->Pop(ls);
-                        auto objhold= stk->Pop(ls);
-                        if(std::holds_alternative<THeapObjectHolder>(objhold))
+                        GCList ls(gc);
+                        std::vector<TCallable*> callable;
+                    
+                        if(!stk->env->defers.empty())
                         {
-                            auto list= dynamic_cast<TList*>(std::get<THeapObjectHolder>(objhold).obj);
-                            if(list != nullptr)
-                            {
-                                list->Add(obj);
-                            }
-                            /*
-                            if(dict != nullptr)
-                            {
-                                auto potential_str = stk->Pop(ls);
-                                if(std::holds_alternative<std::string>(potential_str))
-                                {
-                                    dict->SetValue(std::get<std::string>(potential_str), stk->Pop(ls));
-                                }
-                            }*/
+                            ls.Add(stk->env);
+                            callable.insert(callable.end(), stk->env->defers.begin(),stk->env->defers.end());
                         }
-
-                        stk->Push(gc, objhold);
-
-                        gc->BarrierEnd();
-                    }
-                        break;
-                    case APPENDDICT:
-                    {
-                        GCList ls(gc);
-                        gc->BarrierBegin();
-                        auto value = stk->Pop(ls);
-                        auto k = stk->Pop(ls);
-                        auto objhold= stk->Pop(ls);
-                        if(std::holds_alternative<THeapObjectHolder>(objhold) && std::holds_alternative<std::string>(k))
-                        {
-                            auto dict= dynamic_cast<TDictionary*>(std::get<THeapObjectHolder>(objhold).obj);
-                           
                             
-                            if(dict != nullptr)
-                            {
-                                dict->SetValue(std::get<std::string>(k), value);
-                            }
+                        stk->scopes--;
+                        stk->env = stk->env->GetParentEnvironment();
+                        gc->BarrierEnd();
+
+
+                        for(auto item : callable) 
+                        {
+                            GCList ls2(gc);
+                            item->Call(ls2,{});
                         }
+        
+        return false;
+    }
+    bool InterperterThread::Illegal(GC* gc)
+    {
 
-                        stk->Push(gc, objhold);
 
-                        gc->BarrierEnd();
-                    }
-                    break;
-                    case NOP:
-                        //this does nothing
-                        break;
-                    case RET:
-                        stk->ip = (uint32_t)stk->callable->closure->code.size();
-                        break;
-                    case DEFER:
-                    {
-                        gc->BarrierBegin();
-                        GCList ls(gc);
-                        auto item = stk->Pop(ls);
-                        TCallable* call;
-                        if(GetObjectHeap(item,call))
-                        cse.back()->env->defers.insert(cse.back()->env->defers.begin(), {call});
-                        gc->BarrierEnd();
-                    }
-                        break;
-                    default:
-                    {
-                        char chr[3];
-                        snprintf(chr,3,"%02X",stk->callable->closure->code[ip]);
-                        throw VMException("Illegal instruction: 0x" + std::string(chr)  + ".");
-                    }
-                }
+       std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+
+            auto stk = cse.back();
+        char chr[3];
+        snprintf(chr,3,"%02X",stk->callable->closure->code[stk->ip-1]);
+        throw VMException("Illegal instruction: 0x" + std::string(chr)  + ".");
+                    
+    }
+
+    void InterperterThread::Execute(GC* gc)
+    {
+
+       std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        #define VM_OPCODE_TABLE_INLINE
+       #include "vm_opcode_table.h"
+       #undef VM_OPCODE_TABLE_INLINE
+    
+        execute:
+
+        if(!cse.empty())
+        {
+            auto stk = cse.back();
+
+
+            
+
+            try{
+            while(stk->ip < 0xFFFFFFFF && stk->ip < stk->callable->closure->code.size())
+            {
+               
+                uint32_t ip = stk->ip;
+                stk->ip = ip + 1;
+
+                if(((*this).*(opcodes[stk->callable->closure->code[ip]]))(gc))
+                    goto execute;
+               
 
                 if(gc->UsingNullThreads()) gc->Collect();
                 

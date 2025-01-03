@@ -8,7 +8,6 @@ namespace Tesses::CrossLang
         
         TDictionary* dict;
        
-        dict->items.begin();
         if(args.size() == 1 && std::holds_alternative<THeapObjectHolder>(args[0]))
         {
             auto item = dynamic_cast<TDictionary*>(std::get<THeapObjectHolder>(args[0]).obj);

@@ -232,6 +232,7 @@ namespace Tesses::CrossLang {
                 return true;
 
             }
+
             std::string ToString()
             {
                 std::string str={};
@@ -262,6 +263,9 @@ namespace Tesses::CrossLang {
             }
     };
 
+
+    void CrossArchiveCreate(Tesses::Framework::Filesystem::VFS* vfs,Tesses::Framework::Streams::Stream* strm,std::string name,TVMVersion version,std::string info);
+    std::pair<std::pair<std::string,TVMVersion>,std::string> CrossArchiveExtract(Tesses::Framework::Streams::Stream* strm,Tesses::Framework::Filesystem::VFS* vfs);
 
 
 
@@ -1162,19 +1166,42 @@ class GC {
             bool BAnd(GC* gc);
             bool ExecuteFunction(GC* gc);
             bool ExecuteMethod(GC* gc);
-            void GetVariable(GC* gc);
-            void SetVariable(GC* gc);
+            bool GetVariable(GC* gc);
+            bool SetVariable(GC* gc);
             bool GetField(GC* gc);
             bool SetField(GC* gc);
             bool GetArray(GC* gc);
             bool SetArray(GC* gc);
-            void DeclareVariable(GC* gc);
-            void PushLong(GC* gc);
-            void PushDouble(GC* gc);
-            void PushChar(GC* gc);
-            void PushString(GC* gc);
-            void PushClosure(GC* gc,bool ownScope=true);
-            void PushResource(GC* gc);
+            bool DeclareVariable(GC* gc);
+            bool PushLong(GC* gc);
+            bool PushDouble(GC* gc);
+            bool PushChar(GC* gc);
+            bool PushString(GC* gc);
+            bool PushClosure(GC* gc);
+            bool PushScopelessClosure(GC* gc);
+            bool PushResource(GC* gc);
+            bool Illegal(GC* gc);
+            bool Throw(GC* gc);
+            bool Jump(GC* gc);
+            bool JumpConditional(GC* gc);
+            bool JumpUndefined(GC* gc);
+            bool Defer(GC* gc);
+            bool TryCatch(GC* gc);
+            bool Return(GC* gc);
+            bool ScopeBegin(GC* gc);
+            bool ScopeEnd(GC* gc);
+            bool ScopeEndTimes(GC* gc);
+            bool PushTrue(GC* gc);
+            bool PushFalse(GC* gc);
+            bool PushNull(GC* gc);
+            bool PushUndefined(GC* gc);
+            bool CreateDictionary(GC* gc);
+            bool CreateArray(GC* gc);
+            bool AppendList(GC* gc);
+            bool AppendDictionary(GC* gc);
+            bool Pop(GC* gc);
+            bool Dup(GC* gc);
+            bool Nop(GC* gc);
         public:
             static InterperterThread* Create(GCList* ls);
             static InterperterThread* Create(GCList& ls);

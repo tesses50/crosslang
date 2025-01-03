@@ -40,10 +40,7 @@ int main(int argc, char** argv)
    std::string name="out";
    std::string info="{}";
    TVMVersion version;
-   if(argc < 2)
-   {
-        Help(argv[0]);
-   }
+   
 
    for(int i = 1; i < argc; i++)
    {
@@ -135,7 +132,10 @@ int main(int argc, char** argv)
             source.push_back(argv[i]);
         }
    }
- 
+    if(source.empty())
+   {
+        Help(argv[0]);
+   }
   
 
     std::vector<LexToken> tokens;

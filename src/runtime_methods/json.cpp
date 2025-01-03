@@ -12,6 +12,31 @@ namespace Tesses::CrossLang
 {
 
 #if defined(CROSSLANG_ENABLE_JSON)
+    static bool IsValidForJson(TObject v)
+    {
+        if(std::holds_alternative<std::nullptr_t>(v)) return true;
+
+        if(std::holds_alternative<int64_t>(v)) return true;
+
+        if(std::holds_alternative<double>(v)) return true;
+
+
+        if(std::holds_alternative<bool>(v)) return true;
+
+
+        if(std::holds_alternative<std::string>(v)) return true;
+
+
+        if(std::holds_alternative<THeapObjectHolder>(v))
+        {
+            auto res = std::get<THeapObjectHolder>(v);
+            auto ls = dynamic_cast<TList*>(res.obj);
+            auto dict = dynamic_cast<TDictionary*>(res.obj);
+            if(ls != nullptr) return true;
+            if(dict != nullptr) return true;
+        }
+        return false;
+    }
     static json_t* JsonSerialize(TObject v)
     {
         if(std::holds_alternative<std::nullptr_t>(v)) return json_null();
@@ -34,7 +59,9 @@ namespace Tesses::CrossLang
                 json_t* items=json_array();
                 for(int64_t i = 0; i < ls->Count(); i++)
                 {
-                    json_array_append_new(items,JsonSerialize(ls->Get(i)));
+                    auto val = ls->Get(i);
+                    if(IsValidForJson(val))
+                    json_array_append_new(items,JsonSerialize(val));
                 }
                 return items;
             }
@@ -44,6 +71,7 @@ namespace Tesses::CrossLang
                 json_t* obj = json_object();
                 for(auto item : dict->items)
                 {
+                    if(IsValidForJson(item.second))
                     json_object_setn_new(obj, item.first.c_str(), item.first.size(),JsonSerialize(item.second));
                 }   
                 return obj;

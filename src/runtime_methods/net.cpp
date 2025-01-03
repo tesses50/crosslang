@@ -329,6 +329,14 @@ namespace Tesses::CrossLang
         }
         return Undefined();
     }
+    static TObject Net_HtmlEncode(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.size() == 1 && std::holds_alternative<std::string>(args[0]))
+        {   
+            return  HttpUtils::HtmlEncode(std::get<std::string>(args[0]));
+        }
+        return Undefined();
+    }
     static TObject Net_UrlEncode(GCList& ls, std::vector<TObject> args)
     {
         if(args.size() == 1 && std::holds_alternative<std::string>(args[0]))
@@ -530,6 +538,8 @@ namespace Tesses::CrossLang
         TDictionary* dict = TDictionary::Create(ls);
         
         TDictionary* http = TDictionary::Create(ls);
+        http->DeclareFunction(gc, "HtmlEncode","Html encode",{"param"}, Net_HtmlEncode);
+       
         http->DeclareFunction(gc, "UrlEncode","Url encode query param",{"param"}, Net_UrlEncode);
         http->DeclareFunction(gc, "UrlDecode","Url decode query param",{"param"}, Net_UrlDecode);
         http->DeclareFunction(gc, "UrlPathEncode","Url encode path",{"path"}, Net_UrlPathEncode);
