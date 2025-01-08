@@ -5,6 +5,25 @@ namespace Tesses::CrossLang
     
     void CrossArchiveCreate(Tesses::Framework::Filesystem::VFS* vfs,Tesses::Framework::Streams::Stream* strm,std::string name, TVMVersion version, std::string info)
     {
+        std::vector<std::string> ignored_files;
+        std::string file = "/.crossarchiveignore";
+        if(vfs->FileExists(file))
+        {
+            auto strm = vfs->OpenFile(file,"rb");
+            if(strm != nullptr)
+            {
+                Tesses::Framework::TextStreams::StreamReader reader(strm,true);
+                std::string ignores;
+                while(reader.ReadLine(ignores))
+                {
+                    if(!ignores.empty() && ignores[0] != '#')
+                    {
+                        ignored_files.push_back(ignores);
+                    }
+                    ignores.clear();
+                }
+            }
+        }
         static std::vector<uint8_t> error_message_byte_code = {
             PUSHSTRING,
             0,
@@ -73,7 +92,7 @@ namespace Tesses::CrossLang
         };
         Tesses::Framework::Streams::MemoryStream ms(true);
 
-        std::function<void(Tesses::Framework::Filesystem::VFSPath)> walkFS = [vfs,&ensureString,&ensureResource,&ms,&walkFS,&writeInt](Tesses::Framework::Filesystem::VFSPath path)->void {
+        std::function<void(Tesses::Framework::Filesystem::VFSPath)> walkFS = [&ignored_files,vfs,&ensureString,&ensureResource,&ms,&walkFS,&writeInt](Tesses::Framework::Filesystem::VFSPath path)->void {
            
             if(vfs->DirectoryExists(path))
             {
@@ -83,6 +102,11 @@ namespace Tesses::CrossLang
                 for(auto item : vfs->EnumeratePaths(path))
                 {
                     if(!item.relative && item.path.size() == 1 && item.path[0] == "__resdir_tmp") continue;
+                    if(!item.relative && item.path.size() == 1 && item.path[0] == ".crossarchiveignore") continue;
+                    std::string filename = item.GetFileName();
+                    bool shallIgnore=false;
+                    for(auto ign : ignored_files) if(ign == filename) {shallIgnore=true; break;}
+                    if(shallIgnore) continue;
                     if(vfs->DirectoryExists(item) || vfs->RegularFileExists(item))
                         paths.push_back(item.GetFileName());
                 }
@@ -280,7 +304,7 @@ namespace Tesses::CrossLang
                 else{
                     uint8_t* buffer=new uint8_t[tableLen];
                     ensure(buffer,tableLen);
-                    delete buffer;
+                    delete[] buffer;
                 }
             }
         }

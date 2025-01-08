@@ -1,12 +1,13 @@
 #include "CrossLang.hpp"
-#if defined(CROSSLANG_ENABLE_MBED)
+#include <TessesFramework/TessesFrameworkFeatures.h>
+#if defined(TESSESFRAMEWORK_ENABLE_MBED)
 #include <iostream>
 
 #include <mbedtls/sha1.h>
 #include <mbedtls/sha256.h>
 #include <mbedtls/sha512.h>
 #include <mbedtls/base64.h>
-
+#include <mbedtls/pkcs5.h>
 #include <mbedtls/entropy.h>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/x509.h>
@@ -18,8 +19,94 @@
 
 namespace Tesses::CrossLang
 {
-    #if defined(CROSSLANG_ENABLE_MBED)
+    #if defined(TESSESFRAMEWORK_ENABLE_MBED)
+    static TObject Crypto_RandomBytes(GCList& ls, std::vector<TObject> args)
+    {
+        int64_t size;
+        std::string personalStr;
+        if(GetArgument(args,0,size) && GetArgument(args,1,personalStr))
+        {
+            mbedtls_entropy_context entropy;
+            mbedtls_ctr_drbg_context ctr_drbg;
+
+            mbedtls_entropy_init(&entropy);
+            mbedtls_ctr_drbg_init(&ctr_drbg);
+
+            int ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, (const unsigned char *) "personalization_string", strlen("personalization_string"));
+            if(ret != 0)
+            {
+                mbedtls_ctr_drbg_free(&ctr_drbg);
+                mbedtls_entropy_free(&entropy);
+                return nullptr;
+            }
+            std::vector<uint8_t> bytes;
+            bytes.resize((size_t)size);
+            ret = mbedtls_ctr_drbg_random(&ctr_drbg, bytes.data(),bytes.size());
+            if (ret != 0) 
+            {
+                mbedtls_ctr_drbg_free(&ctr_drbg);
+                mbedtls_entropy_free(&entropy);
+                return nullptr;
+            }       
+            mbedtls_ctr_drbg_free(&ctr_drbg);
+            mbedtls_entropy_free(&entropy);
+            TByteArray* ba = TByteArray::Create(ls);
+            ba->data = bytes;
+            return ba;
+        }
+        return nullptr;
+    }
+    static TObject Crypto_PBKDF2(GCList& ls, std::vector<TObject> args)
+    {
+        std::string pass;
+        TByteArray* bArraySalt;
+        int64_t itterations;
+        int64_t keylength;
+        int64_t shanum;
+        if(GetArgument(args,0,pass) && GetArgumentHeap(args,1, bArraySalt) && GetArgument(args,2, itterations) && GetArgument(args,3,keylength) && GetArgument(args,4,shanum))
+        {
+            mbedtls_md_context_t ctx;
+            mbedtls_md_init(&ctx);
+            const mbedtls_md_info_t* info = NULL;
+            switch(shanum)
+            {
+                case 1:
+                    info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA1);
+                    break;
+                case 224:
+                    info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA224);
+                    break;
+                case 256:
+                    info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+                    break;
+                default:
+                case 384:
+                    info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA384);
+                    break;
+                case 512:
+                    info = mbedtls_md_info_from_type(MBEDTLS_MD_SHA512);
+                    break;
+            }
+             
+            
+            mbedtls_md_setup(&ctx,  info, 1);
+
+            std::vector<uint8_t> key;
+            key.resize((size_t)keylength);
     
+            if(mbedtls_pkcs5_pbkdf2_hmac(&ctx, (const unsigned char*)pass.c_str(), pass.size(), bArraySalt->data.data(), bArraySalt->data.size(), (int)itterations,(uint32_t)key.size(),key.data()) == 0)
+            {
+                auto ba = TByteArray::Create(ls);
+                ba->data = key;
+                mbedtls_md_free(&ctx);
+                return ba;
+            }
+
+            mbedtls_md_free(&ctx);
+        }
+        return nullptr;
+    }
+
 
     static TObject Crypto_Sha1(GCList& ls, std::vector<TObject> args)
     {
@@ -228,9 +315,9 @@ namespace Tesses::CrossLang
 
             }
             
-            return "";
 
         }
+        return "";
     }   
     static TObject Crypto_Base64Decode(GCList& ls, std::vector<TObject> args)
     {
@@ -253,58 +340,27 @@ namespace Tesses::CrossLang
 
             
         }
+        return "";
     }   
    #endif
     void TStd::RegisterCrypto(GC* gc,TRootEnvironment* env)
     {
 
         env->permissions.canRegisterCrypto=true;
-        #if defined(CROSSLANG_ENABLE_MBED)
+        #if defined(TESSESFRAMEWORK_ENABLE_MBED)
 
         GCList ls(gc);
         TDictionary* dict = TDictionary::Create(ls);
+        dict->DeclareFunction(gc, "PBKDF2","Hash passwords with PBKDF2",{"pass","salt","itterations","keylen","shanum"},Crypto_PBKDF2);
+        dict->DeclareFunction(gc, "RandomBytes","Create bytearray but with random bytes in it instead of zeros (this uses mbedtls by the way)",{"byteCount","personalString"},Crypto_RandomBytes);
         dict->DeclareFunction(gc, "Sha1","Sha1 Algorithm (needed for WebSocket handshake/BitTorrent etc) (don't use unless you have no other choice)",{},Crypto_Sha1);
         dict->DeclareFunction(gc, "Sha256","Sha256 Algorithm",{"$is224"},Crypto_Sha256);
         dict->DeclareFunction(gc, "Sha512","Sha512 Algorithm",{"$is384"},Crypto_Sha512);
-        dict->DeclareFunction(gc, "Base64Encode","Sha512 Algorithm",{"data"},Crypto_Base64Encode);
+        dict->DeclareFunction(gc, "Base64Encode","Base64 encode",{"data"},Crypto_Base64Encode);
+        dict->DeclareFunction(gc, "Base64Decode","Base64 decode",{"str"},Crypto_Base64Decode);
         gc->BarrierBegin();
         env->DeclareVariable("Crypto", dict);
         gc->BarrierEnd();
-        dict = TDictionary::Create(ls);
-        dict->DeclareFunction(gc, "Encode","Encode Base64",{"buffer","offset","count"},[](GCList& ls,std::vector<TObject> args)->TObject{
-            TByteArray* bArray;
-            int64_t offset;
-            int64_t count;
-            
-            if(!GetArgumentHeap<TByteArray*>(args,0,bArray))
-                return nullptr;
-            if(!GetArgument<int64_t>(args,1, offset))
-                return nullptr;
-            if(!GetArgument<int64_t>(args,2, count))
-                return nullptr;
-
-            size_t off = (size_t)offset;
-            size_t len = (size_t)count;
-
-            off = std::min(off, bArray->data.size());
-
-            len = std::min(len, bArray->data.size()-off);
-
-            size_t outLen = ((4 * len / 3) + 3) & ~3;
-
-            std::string str(outLen,'\0');
-            
-            if(mbedtls_base64_encode((unsigned char*)str.data(),str.size(),&outLen,bArray->data.data(),bArray->data.size()) != 0)
-                return nullptr;
-            
-            str.resize(outLen);
-
-            return str;
-                
-            //bArray->data.size();
-                
-                //
-        });
         
         #endif
     }

@@ -4,9 +4,13 @@
 #include <unistd.h>
 
 #if defined(CROSSLANG_ENABLE_SQLITE) 
+extern "C" {
 #include "../sqlite/sqlite3.h"
+}
 #if defined(GEKKO)
-extern sqlite3_vfs *sqlite3_demovfs(void);
+extern "C" {
+    sqlite3_vfs *sqlite3_demovfs();
+}
 #endif
 #endif
 using namespace Tesses::Framework::Threading;
@@ -24,7 +28,7 @@ namespace Tesses::CrossLang
     GC::GC()
     {
         #if defined(CROSSLANG_ENABLE_SQLITE)
-            sqlite3_initialize();
+           sqlite3_initialize();
             #if defined(GEKKO)
             sqlite3_vfs_register(sqlite3_demovfs(),1);
             #endif
@@ -104,15 +108,16 @@ namespace Tesses::CrossLang
             this_frame = system_clock::now();
             if((this_frame - last_frame) > 10s)
             {
+
+
                 last_frame = this_frame;
                 this->Collect();
                 usleep(1000000);
 
-
             }
 
             
-            
+            usleep(10000);
         }
         GC::Collect();
         });

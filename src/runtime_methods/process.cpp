@@ -20,7 +20,58 @@ namespace Tesses::CrossLang
         // Environment = []
         //})
 
-        
+        TDictionary* dict;
+
+        if(GetArgumentHeap(args, 0, dict))
+        {
+            auto gc = ls.GetGC();
+            gc->BarrierBegin();
+
+            auto fobj = dict->GetValue("FileName");
+            auto myargs = dict->GetValue("Arguments");
+            auto env = dict->GetValue("Environment");
+
+            std::string filename;
+            TList* _args;
+            TList* env;
+            std::vector<std::string> _args2;
+            std::vector<std::string> _env;
+
+            if(GetObject(fobj,filename))
+            {
+                gc->BarrierEnd();
+                return nullptr;
+            }
+            _args2.push_back(filename);
+            if(GetObjectHeap(myargs,_args))
+            {
+                for(auto a : _args->items)
+                {
+                    std::string a2;
+                    if(GetObject(a,a2))
+                    {
+                        _args2.push_back(a2);
+                    }
+                }
+            }
+            if(GetObjectHeap(myargs,_args))
+            {
+                for(auto a : _args->items)
+                {
+                    std::string a2;
+                    if(GetObject(a,a2))
+                    {
+                        _args2.push_back(a2);
+                    }
+                }
+            }
+
+
+
+            gc->BarrierEnd();
+            subprocess_create_ex()
+        }
+        return nullptr;
     }
     //#endif
 }

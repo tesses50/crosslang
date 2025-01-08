@@ -68,7 +68,7 @@ namespace Tesses::CrossLang  {
     {
         if(std::holds_alternative<Undefined>(value))
         {
-            if(this->items.contains(key))
+            if(this->items.count(key) > 0)
                 this->items.erase(key);
         }
         else
@@ -78,7 +78,7 @@ namespace Tesses::CrossLang  {
     }
     bool TDictionary::HasValue(std::string key)
     {
-        return this->items.contains(key);
+        return this->items.count(key) > 0;
     }
     void TDictionary::Mark()
     {

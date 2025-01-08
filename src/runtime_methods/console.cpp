@@ -1,3 +1,4 @@
+#ifndef CROSSLANG_CUSTOM_CONSOLE
 #include "CrossLang.hpp"
 #include <iostream>
 
@@ -13,14 +14,14 @@ namespace Tesses::CrossLang {
     struct termios orig_termios;
     static void disableRawMode()
     {
-        tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
+        tcsetattr(0, TCSAFLUSH, &orig_termios);
     }
     #endif
     TObject Console_getEcho(GCList& ls, std::vector<TObject> args)
     {
         #ifdef CROSSLANG_ENABLE_TERMIOS
             struct termios raw;
-            tcgetattr(STDIN_FILENO, &raw);
+            tcgetattr(0, &raw);
             return (raw.c_lflag & ECHO) > 0;
         
         #endif
@@ -33,7 +34,7 @@ namespace Tesses::CrossLang {
             bool cooked = std::get<bool>(args[0]);
             #ifdef CROSSLANG_ENABLE_TERMIOS
                 struct termios raw;
-                tcgetattr(STDIN_FILENO, &raw);
+                tcgetattr(0, &raw);
                 if(cooked)
                 {
                     raw.c_lflag |= ECHO;
@@ -43,7 +44,7 @@ namespace Tesses::CrossLang {
                     raw.c_lflag &= ~(ECHO);
                 }
         
-                  tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+                  tcsetattr(0, TCSAFLUSH, &raw);
 
             #endif
             return cooked;
@@ -54,7 +55,7 @@ namespace Tesses::CrossLang {
     {
         #ifdef CROSSLANG_ENABLE_TERMIOS
             struct termios raw;
-            tcgetattr(STDIN_FILENO, &raw);
+            tcgetattr(0, &raw);
             return (raw.c_lflag & ICANON) > 0;
         
         #endif
@@ -67,7 +68,7 @@ namespace Tesses::CrossLang {
             bool cooked = std::get<bool>(args[0]);
             #ifdef CROSSLANG_ENABLE_TERMIOS
                 struct termios raw;
-                tcgetattr(STDIN_FILENO, &raw);
+                tcgetattr(0, &raw);
                 if(cooked)
                 {
                     raw.c_lflag |= ICANON;
@@ -77,7 +78,7 @@ namespace Tesses::CrossLang {
                     raw.c_lflag &= ~(ICANON);
                 }
         
-                  tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+                  tcsetattr(0, TCSAFLUSH, &raw);
 
             #endif
             return cooked;
@@ -88,7 +89,7 @@ namespace Tesses::CrossLang {
     {
         #ifdef CROSSLANG_ENABLE_TERMIOS
             struct termios raw;
-            tcgetattr(STDIN_FILENO, &raw);
+            tcgetattr(0, &raw);
             return (raw.c_lflag & ISIG) > 0;
         
         #endif
@@ -101,7 +102,7 @@ namespace Tesses::CrossLang {
             bool cooked = std::get<bool>(args[0]);
             #ifdef CROSSLANG_ENABLE_TERMIOS
                 struct termios raw;
-                tcgetattr(STDIN_FILENO, &raw);
+                tcgetattr(0, &raw);
                 if(cooked)
                 {
                     raw.c_lflag |= ISIG;
@@ -111,7 +112,7 @@ namespace Tesses::CrossLang {
                     raw.c_lflag &= ~(ISIG);
                 }
         
-                  tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
+                  tcsetattr(0, TCSAFLUSH, &raw);
 
             #endif
             return cooked;
@@ -164,7 +165,7 @@ namespace Tesses::CrossLang {
     {
         env->permissions.canRegisterConsole=true;
         #ifdef CROSSLANG_ENABLE_TERMIOS
-            tcgetattr(STDIN_FILENO, &orig_termios);
+            tcgetattr(0, &orig_termios);
             atexit(disableRawMode);   
         #endif
         GCList ls(gc);
@@ -187,3 +188,4 @@ namespace Tesses::CrossLang {
         gc->BarrierEnd();
     }
 }
+#endif

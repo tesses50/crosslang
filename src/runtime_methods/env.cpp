@@ -1,15 +1,55 @@
 #include "CrossLang.hpp"
-
+#if defined(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
 #include "../sago/platform_folders.h"
+#endif
 #if defined(_WIN32)
 #include <windows.h>
 #endif
 
 namespace Tesses::CrossLang
 {
+    #if defined(_WIN32)
+    static char EnvPathSeperator=';';
+    #else
+    static char EnvPathSeperator=':';
+    #endif
+
+    Tesses::Framework::Filesystem::VFSPath GetRealExecutablePath(Tesses::Framework::Filesystem::VFSPath realPath)
+    {
+        using namespace Tesses::Framework::Filesystem;
+        using namespace Tesses::Framework::Http;
+        LocalFilesystem lfs;
+        if(!realPath.relative) return realPath;
+        const char* path = std::getenv("PATH");
+        #if defined(_WIN32)
+        const char* pathext = std::getenv("PATHEXT");
+        auto pext = HttpUtils::SplitString(pathext,";");
+        pext.push_back({});
+        auto pathParts = HttpUtils::SplitString(path,";");
+        for(auto item : pathParts)
+        {
+            for(auto item2 : pext)
+            {
+                auto newPath = (lfs.SystemToVFSPath(item) / realPath) + item2;
+                if(lfs.FileExists(newPath)) return newPath;
+            }
+        }
+        return realPath.RelativeCurrentDirectory();
+        #else
+        
+        auto pathParts = HttpUtils::SplitString(path,":");
+        for(auto item : pathParts)
+        {
+            auto newPath = lfs.SystemToVFSPath(item) / realPath;
+            if(lfs.FileExists(newPath)) return newPath;
+        }
+        return realPath.RelativeCurrentDirectory();
+        #endif
+    }
+
     static std::string GetHomeFolder()
     {
-        #if !defined(SAGO_DISABLE)
+        #if defined(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
         return sago::getHomeDir();
         #elif defined(__EMSCRIPTEN__)
         return "/home/web_user";
@@ -98,7 +138,7 @@ namespace Tesses::CrossLang
     }
     static TObject Env_getDownloads(GCList& ls, std::vector<TObject> args)
     {
-        #if !defined(SAGO_DISABLE)
+        #if defined(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
         return sago::getDownloadFolder();
         #else
         return GetHomeFolder() + "/Downloads";
@@ -107,7 +147,7 @@ namespace Tesses::CrossLang
     static TObject Env_getMusic(GCList& ls, std::vector<TObject> args)
     {
 
-        #if !defined(SAGO_DISABLE)
+        #if defined(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
         return sago::getMusicFolder();
         #else
         return GetHomeFolder() + "/Music";
@@ -115,7 +155,7 @@ namespace Tesses::CrossLang
     }
     static TObject Env_getPictures(GCList& ls, std::vector<TObject> args)
     {
-        #if !defined(SAGO_DISABLE)
+        #if defined(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
         return sago::getPicturesFolder();
         #else
         return GetHomeFolder() + "/Pictures";
@@ -123,7 +163,7 @@ namespace Tesses::CrossLang
     }
     static TObject Env_getVideos(GCList& ls, std::vector<TObject> args)
     {
-        #if !defined(SAGO_DISABLE)
+        #if defined(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
         return sago::getVideoFolder();
         #else
         return GetHomeFolder() + "/Videos";
@@ -131,7 +171,7 @@ namespace Tesses::CrossLang
     }
     static TObject Env_getDocuments(GCList& ls, std::vector<TObject> args)
     {
-        #if !defined(SAGO_DISABLE)
+        #if defined(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
         return sago::getDocumentsFolder();
         #else
         return GetHomeFolder() + "/Documents";
@@ -139,7 +179,7 @@ namespace Tesses::CrossLang
     }
     static TObject Env_getConfig(GCList& ls, std::vector<TObject> args)
     {
-        #if !defined(SAGO_DISABLE)
+        #if defined(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
         return sago::getConfigHome();
         #else
         return GetHomeFolder() + "/Config";
@@ -148,7 +188,7 @@ namespace Tesses::CrossLang
 
     static TObject Env_getDesktop(GCList& ls, std::vector<TObject> args)
     {
-        #if !defined(SAGO_DISABLE)
+        #if defined(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
         return sago::getDesktopFolder();
         #else
         return GetHomeFolder() + "/Desktop";
@@ -156,7 +196,7 @@ namespace Tesses::CrossLang
     }
     static TObject Env_getState(GCList& ls, std::vector<TObject> args)
     {
-        #if !defined(SAGO_DISABLE)
+        #if defined(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
         return sago::getStateDir();
         #else
         return GetHomeFolder() + "/State";
@@ -164,7 +204,7 @@ namespace Tesses::CrossLang
     }
     static TObject Env_getCache(GCList& ls, std::vector<TObject> args)
     {
-        #if !defined(SAGO_DISABLE)
+        #if defined(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
         return sago::getCacheDir();
         #else
         return GetHomeFolder() + "/Cache";
@@ -172,7 +212,7 @@ namespace Tesses::CrossLang
     }
      static TObject Env_getData(GCList& ls, std::vector<TObject> args)
     {
-        #if !defined(SAGA_DISABLE)
+        #if defined(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
         return sago::getDataHome();
         #else
         return GetHomeFolder() + "/Data";
@@ -181,6 +221,15 @@ namespace Tesses::CrossLang
     static TObject Env_getUser(GCList& ls, std::vector<TObject> args)
     {
         return GetHomeFolder();
+    }
+    static TObject Env_GetRealExecutablePath(GCList& ls, std::vector<TObject> args)
+    {
+        Tesses::Framework::Filesystem::VFSPath p;
+        if(GetArgumentAsPath(args,0,p))
+        {
+            return GetRealExecutablePath(p);
+        }
+        return Tesses::Framework::Filesystem::VFSPath();
     }
     void TStd::RegisterEnv(GC* gc, TRootEnvironment* env)
     {
@@ -203,8 +252,9 @@ namespace Tesses::CrossLang
         dict->DeclareFunction(gc,"getData","Get data folder",{},Env_getData);
         dict->DeclareFunction(gc,"getUser","Get user folder",{},Env_getUser);
         dict->DeclareFunction(gc,"getPlatform","Get platform name",{},Env_getPlatform);
-
+        dict->DeclareFunction(gc,"GetRealExecutablePath", "Get the absolute path for executable", {"path"},Env_GetRealExecutablePath);
         gc->BarrierBegin();
+        dict->SetValue("EnvPathSeperator",EnvPathSeperator);
         env->SetVariable("Env", dict);
         gc->BarrierEnd();
     }

@@ -110,6 +110,38 @@ namespace Tesses::CrossLang
         return nullptr;
     }
 
+    static TObject FS_ReadAllText(GCList& ls, std::vector<TObject> args)
+    {
+        Tesses::Framework::Filesystem::VFSPath path;
+
+        TVFSHeapObject* vfs;
+        if(GetArgumentHeap(args,0,vfs) && GetArgumentAsPath(args,1,path))
+        {
+            auto txtFile = vfs->vfs->OpenFile(path,"rb");
+            if(txtFile == nullptr) return "";
+            Tesses::Framework::TextStreams::StreamReader reader(txtFile,true);
+            return reader.ReadToEnd();
+        }
+        return "";
+    }
+
+    static TObject FS_WriteAllText(GCList& ls, std::vector<TObject> args)
+    {
+        Tesses::Framework::Filesystem::VFSPath path;
+
+        TVFSHeapObject* vfs;
+
+        std::string content;
+        if(GetArgumentHeap(args,0,vfs) && GetArgumentAsPath(args,1,path) && GetArgument(args,2,content))
+        {
+            auto txtFile = vfs->vfs->OpenFile(path,"wb");
+            if(txtFile == nullptr) return nullptr;
+            Tesses::Framework::TextStreams::StreamWriter writer(txtFile,true);
+            writer.Write(content);
+        }
+        return nullptr;
+    }
+
     void TStd::RegisterIO(GC* gc,TRootEnvironment* env,bool enableLocalFilesystem)
     {
 
@@ -126,6 +158,9 @@ namespace Tesses::CrossLang
             dict->SetValue("Local", vfs);
             dict->DeclareFunction(gc, "MakeFull", "Make absolute path from relative path",{"path"},FS_MakeFull);
         }
+
+        dict->DeclareFunction(gc, "ReadAllText","Read all text from file", {"fs","filename"},FS_ReadAllText);
+        dict->DeclareFunction(gc, "WriteAllText","Write all text to file", {"fs","filename","content"},FS_WriteAllText);
     
         dict->DeclareFunction(gc, "MountableFilesystem","Create a mountable filesystem",{"root"}, FS_MountableFilesystem);
         dict->DeclareFunction(gc, "SubdirFilesystem","Create a subdir filesystem",{"fs","subdir"}, FS_SubdirFilesystem);

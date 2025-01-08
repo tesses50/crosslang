@@ -1,5 +1,6 @@
 #include "CrossLang.hpp"
 #include <iostream>
+#include <sstream>
 namespace Tesses::CrossLang
 {
     std::string EscapeString(std::string text,bool quote)

@@ -1,5 +1,6 @@
 #include "CrossLang.hpp"
 #include <iostream>
+#include <sstream>
 namespace Tesses::CrossLang {
     void TRootEnvironment::LoadDependency(GC* gc,Tesses::Framework::Filesystem::VFS* vfs, std::pair<std::string,TVMVersion> dep)
     {

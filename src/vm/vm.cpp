@@ -2,6 +2,7 @@
 #include <iostream>
 #include <cmath>
 #include <cstring>
+#include <sstream>
 namespace Tesses::CrossLang {
     
      thread_local CallStackEntry* current_function=nullptr;
@@ -156,7 +157,9 @@ namespace Tesses::CrossLang {
                 }
                 return true;
             }
-            
+            else {
+                this->call_stack_entries.back()->Push(ls.GetGC(),Undefined());
+            }
         }
         return false;
     }
@@ -1318,7 +1321,7 @@ namespace Tesses::CrossLang {
                 }
                 if(key == "ToLongBits")
                 {
-                    cse.back()->Push(gc, std::bit_cast<int64_t>(number));
+                    cse.back()->Push(gc, *(int64_t*)&number);
                     return false;
                 }
                 if(key == "Floor")
@@ -1468,7 +1471,7 @@ namespace Tesses::CrossLang {
                 }
                 if(key == "ToDoubleBits")
                 {
-                    cse.back()->Push(gc,std::bit_cast<double>(number));
+                    cse.back()->Push(gc,*(double*)&number);
                     return false;
                 }
                 
@@ -1521,6 +1524,26 @@ namespace Tesses::CrossLang {
                 if(key == "GetFileName")
                 {
                     cse.back()->Push(gc, path.GetFileName());
+                    return false;
+                }
+                if(key == "GetExtension")
+                {
+                    cse.back()->Push(gc, path.GetExtension());
+                    return false;
+                }
+                if(key == "ChangeExtension")
+                {
+                    Tesses::Framework::Filesystem::VFSPath newPath = path;
+                    std::string ext;
+                    if(GetArgument(args,0, ext))
+                    {
+                        newPath.ChangeExtension(ext);
+                    }   
+                    else
+                    {
+                        newPath.RemoveExtension();
+                    }
+                    cse.back()->Push(gc, newPath);
                     return false;
                 }
                 if(key == "CollapseRelativeParents")
@@ -1655,21 +1678,21 @@ namespace Tesses::CrossLang {
                     std::string oldStr;
                     std::string newStr;
 
-                        std::string str={};
+                    std::string _str={};
                     if(GetArgument(args,0,oldStr) && GetArgument(args,1,newStr))
                     {
                         bool first=true;
 
                         for(auto txt : Tesses::Framework::Http::HttpUtils::SplitString(str,oldStr))
                         {
-                            if(!first) str.append(newStr);
+                            if(!first) _str.append(newStr);
                             first=false;
-                            str.append(txt);
+                            _str.append(txt);
                         }
 
                         
                     }
-                    cse.back()->Push(gc,str);
+                    cse.back()->Push(gc,_str);
 
                     return  false;
                 }
@@ -1777,7 +1800,7 @@ namespace Tesses::CrossLang {
                         TStd::RegisterDictionary(gc, rootEnv);
 
                         if(myEnv->permissions.canRegisterEnv && !rootEnv->permissions.locked)
-                            TStd::RegisterDictionary(gc, rootEnv);
+                            TStd::RegisterEnv(gc, rootEnv);
 
 
                         if(myEnv->permissions.canRegisterIO && !rootEnv->permissions.locked)

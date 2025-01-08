@@ -23,6 +23,8 @@ namespace Tesses::CrossLang {
     
     std::string EscapeString(std::string text,bool quote);
 
+    Tesses::Framework::Filesystem::VFSPath GetRealExecutablePath(Tesses::Framework::Filesystem::VFSPath realPath);
+
     enum TVMVersionStage : uint8_t
     {
         DevVersion=0,
@@ -641,7 +643,7 @@ class Parser {
             }
             THeapObjectHolder()
             {
-                this->obj = obj;
+                
             }
     };
     class MethodInvoker {

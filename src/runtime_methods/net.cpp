@@ -162,9 +162,9 @@ namespace Tesses::CrossLang
             return ctx->NeedToParseFormData();
         });
 
-        /*dict->DeclareFunction(gc,"ReadString","Read string from request",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
+        dict->DeclareFunction(gc,"ReadString","Read string from request",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
             return ctx->ReadString();
-        });*/
+        });
 
         dict->DeclareFunction(gc,"SendText","Send response text",{"text"},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
             std::string text;
@@ -392,7 +392,7 @@ namespace Tesses::CrossLang
             std::filesystem::path p2 = p.GetFileName();
             return HttpUtils::MimeType(p2);
         }
-        return "application/octet-stream";
+        return std::string("application/octet-stream");
     }
 
     static TObject Net_Http_MakeRequest(GCList& ls, std::vector<TObject> args)

@@ -64,7 +64,7 @@ namespace Tesses::CrossLang
         else{
         uint8_t* buffer=new uint8_t[len];
         Ensure(stream,buffer,len);
-        delete buffer;
+        delete[] buffer;
         }
     }
     void TFile::Ensure(Tesses::Framework::Streams::Stream* stream, uint8_t* buffer,size_t len)
