@@ -15,12 +15,19 @@ jobs:
     registryLogins:
     - registryUrl: '@server_url@'
       userName: '@job_token@'
-      passwordSecret: 'dockersecret'
+      passwordSecret: dockersecret
     platforms: linux/amd64
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   triggers:
   - !BranchUpdateTrigger
     projects: crosslang
+  - !DependencyFinishedTrigger
+    projects: tesses-framework
+  projectDependencies:
+  - projectPath: tesses-framework
+    buildProvider: !LastFinishedBuild
+      jobName: Build for x86_64
+    artifacts: -**
   retryCondition: never
   maxRetries: 3
   retryDelay: 30
