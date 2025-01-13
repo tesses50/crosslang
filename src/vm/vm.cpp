@@ -1772,6 +1772,7 @@ namespace Tesses::CrossLang {
                 auto vfs = dynamic_cast<TVFSHeapObject*>(obj);
                 auto env = dynamic_cast<TEnvironment*>(obj);
                 auto rootEnv = dynamic_cast<TRootEnvironment*>(obj);
+                auto callable = dynamic_cast<TCallable*>(obj);
 
                 if(rootEnv != nullptr)
                 {
@@ -1784,12 +1785,17 @@ namespace Tesses::CrossLang {
                     //TStd::RegisterOGC
                     //TStd::RegisterPath
                     //TStd::RegisterRoot
-                    //TStd::RegisterSDL2
                     //TStd::RegisterSqlite
                     //TStd::RegisterVM
                     auto myEnv = cse.back()->env->GetRootEnvironment();
                     if(key == "RegisterEverything")
                     {
+                        if(myEnv->permissions.canRegisterEverything)
+                        {
+                            TStd::RegisterStd(gc, rootEnv);
+                        } 
+                        else
+                        {
                         if(myEnv->permissions.canRegisterConsole && !rootEnv->permissions.locked)
                         TStd::RegisterConsole(gc, rootEnv);
 
@@ -1829,34 +1835,44 @@ namespace Tesses::CrossLang {
 
                          if(myEnv->permissions.canRegisterVM && !rootEnv->permissions.locked)
                         TStd::RegisterVM(gc, rootEnv);
+                        if(myEnv->permissions.canRegisterProcess && !rootEnv->permissions.locked)
+                        TStd::RegisterProcess(gc, rootEnv);
+                        }
 
                         cse.back()->Push(gc,nullptr);
                         return false;
                     }
                     if(key == "RegisterConsole")
                     {
-                        if(myEnv->permissions.canRegisterConsole && !rootEnv->permissions.locked)
+                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterConsole) && !rootEnv->permissions.locked)
                         TStd::RegisterConsole(gc, rootEnv);
+                        cse.back()->Push(gc,nullptr);
+                        return false;
+                    }
+                    if(key == "RegisterProcess")
+                    {
+                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterProcess) && !rootEnv->permissions.locked)
+                        TStd::RegisterProcess(gc, rootEnv);
                         cse.back()->Push(gc,nullptr);
                         return false;
                     }
                     if(key == "RegisterCrypto")
                     {
-                        if(myEnv->permissions.canRegisterCrypto && !rootEnv->permissions.locked)
+                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterCrypto) && !rootEnv->permissions.locked)
                         TStd::RegisterCrypto(gc, rootEnv);
                         cse.back()->Push(gc,nullptr);
                         return false;
                     }
                     if(key == "RegisterDictionary")
                     {
-                        if(myEnv->permissions.canRegisterDictionary && !rootEnv->permissions.locked)
+                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterDictionary) && !rootEnv->permissions.locked)
                         TStd::RegisterDictionary(gc, rootEnv);
                         cse.back()->Push(gc,nullptr);
                         return false;
                     }
                     if(key == "RegisterEnv")
                     {
-                        if(myEnv->permissions.canRegisterEnv && !rootEnv->permissions.locked)
+                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterEnv) && !rootEnv->permissions.locked)
                         TStd::RegisterDictionary(gc, rootEnv);
                         cse.back()->Push(gc,nullptr);
                         return false;
@@ -1866,7 +1882,7 @@ namespace Tesses::CrossLang {
                         bool r;
                         if(GetArgument(args,0,r))
                         {
-                            if(myEnv->permissions.canRegisterIO && !rootEnv->permissions.locked)
+                            if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterIO) && !rootEnv->permissions.locked)
                                 TStd::RegisterIO(gc, rootEnv, myEnv->permissions.canRegisterLocalFS ? r : false);
                         }
                         cse.back()->Push(gc,nullptr);
@@ -1875,35 +1891,35 @@ namespace Tesses::CrossLang {
                     }
                     if(key == "RegisterJson")
                     {
-                        if(myEnv->permissions.canRegisterJSON && !rootEnv->permissions.locked)
+                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterJSON) && !rootEnv->permissions.locked)
                         TStd::RegisterJson(gc, rootEnv);
                         cse.back()->Push(gc,nullptr);
                         return false;
                     }
                     if(key == "RegisterNet")
                     {
-                        if(myEnv->permissions.canRegisterNet && !rootEnv->permissions.locked)
+                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterNet) && !rootEnv->permissions.locked)
                         TStd::RegisterNet(gc, rootEnv);
                         cse.back()->Push(gc,nullptr);
                         return false;
                     }
                     if(key == "RegisterOGC")
                     {
-                        if(myEnv->permissions.canRegisterOGC && !rootEnv->permissions.locked)
+                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterOGC) && !rootEnv->permissions.locked)
                         TStd::RegisterOGC(gc, rootEnv);
                         cse.back()->Push(gc,nullptr);
                         return false;
                     }
                     if(key == "RegisterPath")
                     {
-                        if(myEnv->permissions.canRegisterPath && !rootEnv->permissions.locked)
+                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterPath) && !rootEnv->permissions.locked)
                         TStd::RegisterPath(gc, rootEnv);
                         cse.back()->Push(gc,nullptr);
                         return false;
                     }
                     if(key == "RegisterRoot")
                     {
-                        if(myEnv->permissions.canRegisterRoot && !rootEnv->permissions.locked)
+                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterRoot) && !rootEnv->permissions.locked)
                         TStd::RegisterRoot(gc, rootEnv);
                         cse.back()->Push(gc,nullptr);
                         return false;
@@ -1911,14 +1927,14 @@ namespace Tesses::CrossLang {
 
                     if(key == "RegisterSDL2")
                     {
-                        if(myEnv->permissions.canRegisterSDL2 && !rootEnv->permissions.locked)
+                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterSDL2) && !rootEnv->permissions.locked)
                         TStd::RegisterSDL2(gc, rootEnv);
                         cse.back()->Push(gc,nullptr);
                         return false;
                     }
                     if(key == "RegisterSqlite")
                     {
-                        if(myEnv->permissions.canRegisterSqlite && !rootEnv->permissions.locked)
+                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterSqlite) && !rootEnv->permissions.locked)
                         TStd::RegisterSqlite(gc, rootEnv);
                         cse.back()->Push(gc,nullptr);
                         return false;
@@ -1958,7 +1974,7 @@ namespace Tesses::CrossLang {
                     }
                     if(key == "RegisterVM")
                     {
-                        if(myEnv->permissions.canRegisterVM && !rootEnv->permissions.locked)
+                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterVM) && !rootEnv->permissions.locked)
                         TStd::RegisterVM(gc, rootEnv);
                         cse.back()->Push(gc,nullptr);
                         return false;
@@ -3039,6 +3055,29 @@ namespace Tesses::CrossLang {
                     gc->BarrierEnd();
 
                     return InvokeMethod(ls,o,dict,args);
+                }
+                else if(callable != nullptr)
+                {
+                    if(key == "Call")
+                    {
+                        TList* argls;
+                        if(GetArgumentHeap(args,0,argls))
+                        {
+                            TClosure* clo = dynamic_cast<TClosure*>(callable);
+                            if(clo != nullptr)
+                            {
+                                AddCallStackEntry(ls,clo,argls->items);
+                                return true;
+                            }
+                            else
+                            {
+                                cse.back()->Push(gc,callable->Call(ls, argls->items));
+                                return false;
+                            }
+                        }
+                    }
+                    cse.back()->Push(gc,nullptr);
+                    return false;
                 }
                 else
                 {

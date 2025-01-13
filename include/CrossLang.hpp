@@ -650,12 +650,15 @@ class Parser {
 
     };
 using TObject = std::variant<int64_t,double,char,bool,std::string,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder>;
+class TRootEnvironment;
+class GC;
 class GC {
     Tesses::Framework::Threading::Thread* thrd;
     Tesses::Framework::Threading::Mutex* mtx;
     volatile std::atomic<bool> running;
     std::vector<THeapObject*> roots;
     std::vector<THeapObject*> objects;
+    std::vector<std::function<void(GC* gc, TRootEnvironment* env)>> register_everything;
     public:
         bool UsingNullThreads();
         GC();
@@ -669,6 +672,8 @@ class GC {
         void SetRoot(TObject obj);
         void UnsetRoot(TObject obj);
         static void Mark(TObject obj);
+        void RegisterEverythingCallback(std::function<void(GC* gc, TRootEnvironment* env)> cb);
+        void RegisterEverything(TRootEnvironment* env);
         ~GC();
 };
 
@@ -824,6 +829,7 @@ class GC {
         public:
             EnvironmentPermissions();
             Tesses::Framework::Filesystem::VFSPath sqliteOffsetPath;
+            bool canRegisterEverything;
             bool canRegisterConsole;
             bool canRegisterIO;
             bool canRegisterLocalFS;
@@ -835,6 +841,7 @@ class GC {
             bool canRegisterCrypto;
             bool canRegisterSDL2;
             bool canRegisterRoot;
+            bool canRegisterProcess;
             bool canRegisterPath;
             bool canRegisterOGC;
             bool canRegisterEnv;
@@ -884,6 +891,7 @@ class GC {
             static void RegisterPath(GC* gc, TRootEnvironment* env);
             static void RegisterOGC(GC* gc, TRootEnvironment* env);
             static void RegisterEnv(GC* gc, TRootEnvironment* env);
+            static void RegisterProcess(GC* gc, TRootEnvironment* env);
 
     };
     class TSubEnvironment : public TEnvironment

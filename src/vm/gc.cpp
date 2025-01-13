@@ -226,6 +226,16 @@ namespace Tesses::CrossLang
         for(auto item : objects) delete item;
         delete this->mtx;
     }
+
+    void GC::RegisterEverythingCallback(std::function<void(GC* gc, TRootEnvironment* env)> cb)
+    {
+        this->register_everything.push_back(cb);
+    }
+    void GC::RegisterEverything(TRootEnvironment* env)
+    {
+        for(auto item : this->register_everything)
+            item(this,env);
+    }
     void GC::Collect()
     {
         this->BarrierBegin();

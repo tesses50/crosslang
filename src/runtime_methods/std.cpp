@@ -188,6 +188,7 @@ namespace Tesses::CrossLang
         this->canRegisterNet=false;
         this->canRegisterOGC=false;
         this->canRegisterPath=false;
+        this->canRegisterProcess=false;
         this->canRegisterRoot=false;
         this->canRegisterSDL2=false;
         this->canRegisterSqlite=false;
@@ -224,6 +225,7 @@ namespace Tesses::CrossLang
     }
     void TStd::RegisterStd(GC* gc, TRootEnvironment* env)
     {
+        env->permissions.canRegisterEverything=true;
         RegisterEnv(gc, env);
         RegisterRoot(gc,env);
         RegisterPath(gc,env);
@@ -237,6 +239,16 @@ namespace Tesses::CrossLang
         RegisterCrypto(gc,env);
         RegisterSDL2(gc, env);
         RegisterOGC(gc, env);
+        RegisterProcess(gc,env);
+
+        gc->RegisterEverything(env);
+
+        GCList ls(gc);
+
+        TDictionary* dict = TDictionary::Create(ls);
+        gc->BarrierBegin();
+        env->SetVariable("Reflection",dict);
+        gc->BarrierEnd();
         env->permissions.locked=true;
     }
 }

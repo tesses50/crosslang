@@ -4,7 +4,8 @@ project(TessesCrossLang VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 20)
 
-set(ENABLE_TESTING OFF)
+
+include(CMakePackageConfigHelpers)
 option(CROSSLANG_ENABLE_STATIC "Enable Tesses CrossLang static libraries" ON)
 option(CROSSLANG_ENABLE_SHARED "Enable Tesses CrossLang shared libraries" ON)
 option(CROSSLANG_ENABLE_BINARIES "Enable Tesses CrossLang binaries" ON)
@@ -66,7 +67,7 @@ find_package(SDL2_ttf REQUIRED)
 
 
 target_include_directories(${CROSSLANG_TARGET_NAME} PUBLIC ${SDL2_INCLUDE_DIRS})
-target_link_libraries(${CROSSLANG_TARGET_NAME} PUBLIC ${SDL2_LIBRARIES})
+target_link_libraries(${CROSSLANG_TARGET_NAME} PUBLIC SDL2::SDL2)
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoWii" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoGameCube")
 target_link_libraries(${CROSSLANG_TARGET_NAME} PUBLIC SDL2_image png jpeg z)
 else()
@@ -106,6 +107,7 @@ src/runtime_methods/crypto.cpp
 src/runtime_methods/ogc.cpp
 src/runtime_methods/path.cpp
 src/runtime_methods/env.cpp
+src/runtime_methods/process.cpp
 src/types/ittr.cpp
 src/types/closure.cpp
 src/types/dictionary.cpp
@@ -184,8 +186,6 @@ install(EXPORT TessesCrossLangTargets
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/TessesCrossLang
 )
 
-
-include(CMakePackageConfigHelpers)
 configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/TessesCrossLangConfig.cmake"
 INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/TessesCrossLang)
 
