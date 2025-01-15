@@ -23,10 +23,10 @@ jobs:
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   - !CommandStep
     name: find
-    runInContainer: true
-    image: ubuntu:latest
+    runInContainer: false
     interpreter: !DefaultInterpreter
       commands: |
+        echo $PWD
         find
     useTTY: true
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
