@@ -21,6 +21,15 @@ jobs:
         make install DESTDIR=out
     useTTY: true
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+  - !CommandStep
+    name: find
+    runInContainer: true
+    image: ubuntu:latest
+    interpreter: !DefaultInterpreter
+      commands: |
+        find
+    useTTY: true
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   - !BuildImageStep
     name: Build Docker Image
     dockerfile: Dockerfile.run
@@ -42,7 +51,7 @@ jobs:
   - projectPath: tesses-framework
     buildProvider: !LastFinishedBuild
       jobName: Build for x86_64
-    artifacts: -**
+    artifacts: '*'
   retryCondition: never
   maxRetries: 3
   retryDelay: 30
