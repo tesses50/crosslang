@@ -47,11 +47,6 @@ jobs:
   - !BranchUpdateTrigger
     branches: master
     projects: crosslang
-  projectDependencies:
-  - projectPath: tesses-framework
-    buildProvider: !LastFinishedBuild
-      jobName: Build for x86_64
-    artifacts: '*'
   retryCondition: never
   maxRetries: 3
   retryDelay: 30
