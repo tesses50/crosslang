@@ -85,29 +85,6 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }
-    
-    
-    TObject Dictionary_GetField(GCList& ls, std::vector<TObject> args)
-    {
-        TDictionary* dict;
-        TDynamicDictionary* dynDict;
-        std::string key;
-        if(GetArgument(args,1,key))
-        {
-            if(GetArgumentHeap(args,0,dict))
-            {
-                ls.GetGC()->BarrierBegin();
-                auto res = dict->GetValue(key);
-                ls.GetGC()->BarrierEnd();
-                return res;
-            }
-            else if(GetArgumentHeap(args,0,dynDict))
-            {
-                return dynDict->GetField(ls,key);
-            }
-        }
-        return nullptr;
-    }
     void TStd::RegisterDictionary(GC* gc,TRootEnvironment* env)
     {
 
