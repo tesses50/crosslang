@@ -1,2 +1,2 @@
 FROM onedev.site.tesses.net/tesses-framework/tesses-framework:latest
-COPY build/out /
+COPY ./build/out /
