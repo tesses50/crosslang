@@ -21,15 +21,6 @@ jobs:
         make install DESTDIR=out
     useTTY: true
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
-  - !CommandStep
-    name: find
-    runInContainer: false
-    interpreter: !DefaultInterpreter
-      commands: |
-        echo $PWD
-        find
-    useTTY: true
-    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   - !BuildImageStep
     name: Build Docker Image
     dockerfile: Dockerfile.run
