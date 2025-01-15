@@ -996,6 +996,8 @@ class GC {
             TObject GetCurrent(GCList& ls);
             void Mark();
     };
+    class TDynamicList;
+    class TDynamicDictionary;
     class TDynamicListEnumerator : public TEnumerator 
     {
         int64_t index;
