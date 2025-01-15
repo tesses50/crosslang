@@ -18,7 +18,7 @@ jobs:
         cd build
         cmake -S .. -B .
         make -j12
-        make install DESTDIR=out
+        make install DESTDIR=../out
     useTTY: true
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   - !BuildImageStep
@@ -38,6 +38,11 @@ jobs:
   - !BranchUpdateTrigger
     branches: master
     projects: crosslang
+  projectDependencies:
+  - projectPath: tesses-framework
+    buildProvider: !LastFinishedBuild
+      jobName: Build for x86_64
+    artifacts: '*'
   retryCondition: never
   maxRetries: 3
   retryDelay: 30
