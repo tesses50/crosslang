@@ -8,8 +8,22 @@ jobs:
     withLfs: true
     withSubmodules: false
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+  - !CommandStep
+    name: Execute build
+    runInContainer: true
+    image: onedev.site.tesses.net/tesses-framework/tesses-framework:latest
+    interpreter: !DefaultInterpreter
+      commands: |
+        mkdir build
+        cd build
+        cmake -S .. -B .
+        make -j12
+        make install DESTDIR=out
+    useTTY: true
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   - !BuildImageStep
     name: Build Docker Image
+    dockerfile: Dockerfile.run
     output: !RegistryOutput
       tags: onedev.site.tesses.net/crosslang/crosslang:latest
     registryLogins:
@@ -20,14 +34,7 @@ jobs:
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   triggers:
   - !BranchUpdateTrigger
-    projects: crosslang
-  - !DependencyFinishedTrigger
     projects: tesses-framework
-  projectDependencies:
-  - projectPath: tesses-framework
-    buildProvider: !LastFinishedBuild
-      jobName: Build for x86_64
-    artifacts: -**
   retryCondition: never
   maxRetries: 3
   retryDelay: 30

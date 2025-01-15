@@ -56,6 +56,8 @@ namespace Tesses::CrossLang
     {
         std::string str;
         TList* mls;
+        TDynamicList* dynList;
+        TDynamicDictionary* dynDict;
         TDictionary* dict;
         TEnumerator* enumerator;
         if(GetObject(obj,str))
@@ -65,6 +67,10 @@ namespace Tesses::CrossLang
         else if(GetObjectHeap(obj,mls))
         {
             return TListEnumerator::Create(ls,mls);
+        }
+        else if(GetObjectHeap(obj,dynList))
+        {
+            return TDynamicListEnumerator::Create(ls,dynList);
         }
         else if(GetObjectHeap(obj,dict))
         {
@@ -207,6 +213,52 @@ namespace Tesses::CrossLang
         this->marked = true;
         this->ls->Mark();
     }
+
+    TDynamicListEnumerator* TDynamicListEnumerator::Create(GCList& ls, TDynamicList* list)
+    {
+        TDynamicListEnumerator* liste=new TDynamicListEnumerator();
+        liste->ls = list;
+        liste->index = -1;
+        GC* _gc = ls.GetGC();
+        ls.Add(liste);
+        _gc->Watch(liste);
+        return liste;
+    }
+    TDynamicListEnumerator* TDynamicListEnumerator::Create(GCList* ls, TDynamicList* list)
+    {
+        TDynamicListEnumerator* liste=new TDynamicListEnumerator();
+        liste->ls = list;
+        liste->index = -1;
+        GC* _gc = ls->GetGC();
+        ls->Add(liste);
+        _gc->Watch(liste);
+        return liste;
+    }
+    bool TDynamicListEnumerator::MoveNext(GC* ls)
+    {
+        this->index++;
+        GCList ls2(ls);
+        return this->index >= 0 && this->index < this->ls->Count(ls2);
+    }
+    TObject TDynamicListEnumerator::GetCurrent(GCList& ls)
+    {
+        
+        if(this->index < -1) return nullptr;
+        auto r = this->ls->Count(ls);
+        if(r == 0) return nullptr;
+        if(this->index >= r) return nullptr;
+        ls.GetGC()->BarrierBegin();
+        TObject o = this->ls->GetAt(ls,index);
+        ls.GetGC()->BarrierEnd();
+        return o;
+    }
+    void TDynamicListEnumerator::Mark()
+    {
+        if(this->marked) return;
+        this->marked = true;
+        this->ls->Mark();
+    }
+
 
     TStringEnumerator* TStringEnumerator::Create(GCList& ls,std::string str)
     {

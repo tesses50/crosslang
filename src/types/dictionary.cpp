@@ -1,6 +1,96 @@
 #include "CrossLang.hpp"
 
 namespace Tesses::CrossLang  {
+    TDynamicDictionary* TDynamicDictionary::Create(GCList& ls,TCallable* callable)
+    {
+
+        TDynamicDictionary* dict=new TDynamicDictionary();
+        dict->cb = callable;
+        GC* _gc = ls.GetGC();
+        ls.Add(dict);
+        _gc->Watch(dict);
+        return dict;
+    }
+    TDynamicDictionary* TDynamicDictionary::Create(GCList* ls,TCallable* callable)
+    {
+        TDynamicDictionary* dict=new TDynamicDictionary();
+        dict->cb = callable;
+        GC* _gc = ls->GetGC();
+        ls->Add(dict);
+        _gc->Watch(dict);
+        return dict;
+    }
+
+    void TDynamicDictionary::Mark()
+    {
+        if(this->marked) return;
+        this->marked=true;
+        this->cb->Mark();
+    }
+
+    TObject TDynamicDictionary::GetField(GCList& ls, std::string key)
+    {
+        auto dict = TDictionary::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        dict->SetValue("Type", "GetField");
+        dict->SetValue("Key", key);
+        ls.GetGC()->BarrierEnd();
+        return cb->Call(ls,{dict});
+    }
+
+    void TDynamicDictionary::SetField(GCList& ls, std::string key, TObject value)
+    {
+        auto dict = TDictionary::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        dict->SetValue("Type", "SetField");
+        dict->SetValue("Key", key);
+        dict->SetValue("Value", value);
+        ls.GetGC()->BarrierEnd();
+        cb->Call(ls,{dict});
+    }
+
+    TObject TDynamicDictionary::CallMethod(GCList& ls, std::string name, std::vector<TObject> args)
+    {
+        auto dict = TDictionary::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        dict->SetValue("Type", "CallMethod");
+        dict->SetValue("Name", name);
+        auto argVal = TList::Create(ls);
+        argVal->items = args;
+        dict->SetValue("Arguments", argVal);
+        ls.GetGC()->BarrierEnd();
+        return cb->Call(ls,{dict});
+    }
+
+    TEnumerator* TDynamicDictionary::GetEnumerator(GCList& ls)
+    {
+        auto dict = TDictionary::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        dict->SetValue("Type", "GetEnumerator");
+
+        ls.GetGC()->BarrierEnd();
+
+        return TEnumerator::CreateFromObject(ls,cb->Call(ls,{dict}));
+    }
+    bool TDynamicDictionary::MethodExists(GCList& ls,std::string name)
+    {
+        auto dict = TDictionary::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        dict->SetValue("Type", "MethodExists");
+        dict->SetValue("Name", name);
+
+        ls.GetGC()->BarrierEnd();
+
+        auto res = cb->Call(ls,{dict});
+        bool r2;
+        if(GetObject(res,r2)) return r2;
+        return false;
+    }
+
+    TDynamicDictionary::~TDynamicDictionary()
+    {
+
+    }
     TObject TDictionary::CallMethod(GCList& ls, std::string key, std::vector<TObject> args)
     {
         ls.GetGC()->BarrierBegin();

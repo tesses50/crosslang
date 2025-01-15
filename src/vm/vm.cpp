@@ -191,12 +191,18 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator-");
                 gc->BarrierEnd();
                 return InvokeTwo(ls,fn,left,right);
+            }
+            else if(dynDict != nullptr)
+            {
+                cse.back()->Push(gc,dynDict->CallMethod(ls,"operator-",{right}));
+                return false;
             }
             else
             {
@@ -238,12 +244,19 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator*");
                 gc->BarrierEnd();
                 return InvokeTwo(ls,fn,left,right);
+            }
+            else if(dynDict != nullptr)
+            {
+                cse.back()->Push(gc,dynDict->CallMethod(ls,"operator*",{right}));
+                return false;
             }
             else
             {
@@ -306,12 +319,19 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator/");
                 gc->BarrierEnd();
                 return InvokeTwo(ls,fn,left,right);
+            }
+            else if(dynDict != nullptr)
+            {
+                cse.back()->Push(gc,dynDict->CallMethod(ls,"operator/",{right}));
+                return false;
             }
             else
             {
@@ -354,12 +374,19 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator%");
                 gc->BarrierEnd();
                 return InvokeTwo(ls,fn,left,right);
+            }
+            else if(dynDict != nullptr)
+            {
+                cse.back()->Push(gc,dynDict->CallMethod(ls,"operator%",{right}));
+                return false;
             }
             else
             {
@@ -393,12 +420,18 @@ namespace Tesses::CrossLang {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
             
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject negfn = dict->GetValue("operator-");
                 gc->BarrierEnd();
                 return InvokeOne(ls,negfn,left);
+            }
+            else if(dynDict != nullptr)
+            {
+                cse.back()->Push(gc,dynDict->CallMethod(ls,"operator-",{}));
+                return false;
             }
             else
             {
@@ -442,12 +475,18 @@ namespace Tesses::CrossLang {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
             
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject negfn = dict->GetValue("operator!");
                 gc->BarrierEnd();
                 return InvokeOne(ls,negfn,left);
+            }
+            else if(dynDict != nullptr)
+            {
+                cse.back()->Push(gc,dynDict->CallMethod(ls,"operator!",{}));
+                return false;
             }
             else
             {
@@ -479,12 +518,18 @@ namespace Tesses::CrossLang {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
            
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject negfn = dict->GetValue("operator~");
                 gc->BarrierEnd();
                 return InvokeOne(ls,negfn,left);
+            }
+            else if(dynDict != nullptr)
+            {
+                cse.back()->Push(gc,dynDict->CallMethod(ls,"operator~",{}));
+                return false;
             }
             else
             {
@@ -528,12 +573,19 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator<");
                 gc->BarrierEnd();
                 return InvokeTwo(ls,fn,left,right);
+            }
+            else if(dynDict != nullptr)
+            {
+                cse.back()->Push(gc,dynDict->CallMethod(ls,"operator<",{right}));
+                return false;
             }
             else
             {
@@ -577,12 +629,19 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator>");
                 gc->BarrierEnd();
                 return InvokeTwo(ls,fn,left,right);
+            }
+            else if(dynDict != nullptr)
+            {
+                cse.back()->Push(gc,dynDict->CallMethod(ls,"operator>",{right}));
+                return false;
             }
             else
             {
@@ -626,12 +685,19 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator<=");
                 gc->BarrierEnd();
                 return InvokeTwo(ls,fn,left,right);
+            }
+            else if(dynDict != nullptr)
+            {
+                cse.back()->Push(gc,dynDict->CallMethod(ls,"operator<=",{right}));
+                return false;
             }
             else
             {
@@ -675,12 +741,19 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator>=");
                 gc->BarrierEnd();
                 return InvokeTwo(ls,fn,left,right);
+            }
+            else if(dynDict != nullptr)
+            {
+                cse.back()->Push(gc,dynDict->CallMethod(ls,"operator>=",{right}));
+                return false;
             }
             else
             {
@@ -748,6 +821,8 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
@@ -757,7 +832,16 @@ namespace Tesses::CrossLang {
                 return InvokeTwo(ls,fn,left,right);
                 
             }
-
+            
+            else if(dynDict != nullptr)
+            {
+                auto res = dynDict->CallMethod(ls,"operator==",{right});
+                if(!std::holds_alternative<std::nullptr_t>(res) && std::holds_alternative<Undefined>(res))
+                {
+                    cse.back()->Push(gc,res);
+                    return false;
+                }
+            }
             if(std::holds_alternative<THeapObjectHolder>(right))
             {
                 cse.back()->Push(gc,obj == std::get<THeapObjectHolder>(right).obj);
@@ -824,6 +908,8 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
@@ -833,6 +919,16 @@ namespace Tesses::CrossLang {
                 return InvokeTwo(ls,fn,left,right);
             }
 
+            else if(dynDict != nullptr)
+            {
+                
+                auto res = dynDict->CallMethod(ls,"operator!=",{right});
+                if(!std::holds_alternative<std::nullptr_t>(res) && std::holds_alternative<Undefined>(res))
+                {
+                    cse.back()->Push(gc,res);
+                    return false;
+                }
+            }
             if(std::holds_alternative<THeapObjectHolder>(right))
             {
                 cse.back()->Push(gc,obj != std::get<THeapObjectHolder>(right).obj);
@@ -866,12 +962,20 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator<<");
                 gc->BarrierEnd();
                 return InvokeTwo(ls,fn,left,right);
+            }
+
+            else if(dynDict != nullptr)
+            {
+                cse.back()->Push(gc,dynDict->CallMethod(ls,"operator<<",{right}));
+                return false;
             }
             else
             {
@@ -901,12 +1005,20 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator>>");
                 gc->BarrierEnd();
                 return InvokeTwo(ls,fn,left,right);
+            }
+
+            else if(dynDict != nullptr)
+            {
+                cse.back()->Push(gc,dynDict->CallMethod(ls,"operator>>",{right}));
+                return false;
             }
             else
             {
@@ -936,12 +1048,20 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator|");
                 gc->BarrierEnd();
                 return InvokeTwo(ls,fn,left,right);
+            }
+
+            else if(dynDict != nullptr)
+            {
+                cse.back()->Push(gc,dynDict->CallMethod(ls,"operator|",{right}));
+                return false;
             }
             else
             {
@@ -971,12 +1091,20 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator^");
                 gc->BarrierEnd();
                 return InvokeTwo(ls,fn,left,right);
+            }
+
+            else if(dynDict != nullptr)
+            {
+                cse.back()->Push(gc,dynDict->CallMethod(ls,"operator^",{right}));
+                return false;
             }
             else
             {
@@ -1006,12 +1134,19 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator&");
                 gc->BarrierEnd();
                 return InvokeTwo(ls,fn,left,right);
+            }
+            else if(dynDict != nullptr)
+            {
+                cse.back()->Push(gc,dynDict->CallMethod(ls,"operator&",{right}));
+                return false;
             }
             else
             {
@@ -1130,12 +1265,18 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator+");
                 gc->BarrierEnd();
                 return InvokeTwo(ls,fn,left,right);
+            }
+            else if(dynDict != nullptr)
+            {
+                cse.back()->Push(gc,dynDict->CallMethod(ls,"operator+",{right}));
+                return false;
             }
             else
             {

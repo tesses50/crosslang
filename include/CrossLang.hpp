@@ -646,6 +646,7 @@ class Parser {
                 
             }
     };
+    //this is a dummy type with
     class MethodInvoker {
 
     };
@@ -799,6 +800,8 @@ class GC {
             std::string documentation;
             virtual TObject Call(GCList& ls,std::vector<TObject> args)=0;
     };
+
+    
 
     class TEnvironment : public THeapObject {
         
@@ -993,6 +996,17 @@ class GC {
             TObject GetCurrent(GCList& ls);
             void Mark();
     };
+    class TDynamicListEnumerator : public TEnumerator 
+    {
+        int64_t index;
+        TDynamicList* ls;
+        public:
+            static TDynamicListEnumerator* Create(GCList& ls, TDynamicList* list);
+            static TDynamicListEnumerator* Create(GCList* ls, TDynamicList* list);
+            bool MoveNext(GC* ls);
+            TObject GetCurrent(GCList& ls);
+            void Mark();
+    };
     class TVFSPathEnumerator : public TEnumerator
     {
         Tesses::Framework::Filesystem::VFSPathEnumerator enumerator;
@@ -1126,7 +1140,46 @@ class GC {
             TObject Call(GCList& ls,std::vector<TObject> args);
             void Mark();
     };
+    class TDynamicList : public THeapObject
+    {
+        public:
+            TCallable* cb;
+            static TDynamicList* Create(GCList& ls,TCallable* callable);
+            static TDynamicList* Create(GCList* ls,TCallable* callable);
 
+            void Mark();
+
+            int64_t Count(GCList& ls);
+
+            TObject GetAt(GCList& ls, int64_t index);
+
+            void SetAt(GCList& ls, int64_t index, TObject val);
+
+            ~TDynamicList();
+    };
+    class TDynamicDictionary : public THeapObject
+    {
+        public:
+            TCallable* cb;
+
+            static TDynamicDictionary* Create(GCList& ls,TCallable* callable);
+            static TDynamicDictionary* Create(GCList* ls,TCallable* callable);
+
+            void Mark();
+
+            TObject GetField(GCList& ls, std::string key);
+
+            void SetField(GCList& ls, std::string key, TObject value);
+
+            TObject CallMethod(GCList& ls, std::string name, std::vector<TObject> args);      
+
+            bool MethodExists(GCList& ls, std::string name);
+
+            TEnumerator* GetEnumerator(GCList& ls);
+
+
+            ~TDynamicDictionary();
+    };
 
     
      class CallStackEntry : public THeapObject

@@ -2,7 +2,69 @@
 
 namespace Tesses::CrossLang
 {
-    TObject TypeOf(GCList& ls, std::vector<TObject> args)
+    static TObject TypeIsDefined(GCList& ls,std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        return (!std::holds_alternative<std::nullptr_t>(args[0]) && !std::holds_alternative<Undefined>(args[0]));
+    }
+    static TObject TypeIsHeap(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        return std::holds_alternative<THeapObjectHolder>(args[0]);
+    }
+    static TObject TypeIsNumber(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        return std::holds_alternative<int64_t>(args[0]) || std::holds_alternative<double>(args[0]);
+    }
+    static TObject TypeIsLong(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        return std::holds_alternative<int64_t>(args[0]);
+    }
+    static TObject TypeIsDouble(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        return std::holds_alternative<double>(args[0]);
+    }
+    static TObject TypeIsString(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        return std::holds_alternative<std::string>(args[0]);
+    }
+    static TObject TypeIsCallable(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        TCallable* call;
+        return GetArgumentHeap(args,0,call);
+    }
+    static TObject TypeIsDictionary(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        TDictionary* dict;
+        TDynamicDictionary* dynDict;
+        return GetArgumentHeap(args,0,dict) || GetArgumentHeap(args,0,dynDict);
+    }
+    static TObject TypeIsList(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        TList* list;
+        TDynamicList* dynList;
+        return GetArgumentHeap(args,0,list) || GetArgumentHeap(args,0, dynList);
+    }
+    static TObject TypeIsStream(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        TStreamHeapObject* strm;
+        return GetArgumentHeap(args,0,strm);
+    }
+    static TObject TypeIsVFS(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        TVFSHeapObject* vfs;
+        return GetArgumentHeap(args,0,vfs);
+    }
+    static TObject TypeOf(GCList& ls, std::vector<TObject> args)
     {
         if(args.size() < 1) return "Undefined";
         if(std::holds_alternative<Undefined>(args[0])) return "Undefined";
@@ -18,7 +80,10 @@ namespace Tesses::CrossLang
         {
             auto obj = std::get<THeapObjectHolder>(args[0]).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
+            
             auto list = dynamic_cast<TList*>(obj);
+            auto dynList = dynamic_cast<TDynamicList*>(obj);
             auto argWrapper = dynamic_cast<TArgWrapper*>(obj);
             auto closure = dynamic_cast<TClosure*>(obj);
             auto externalMethod = dynamic_cast<TExternalMethod*>(obj);
@@ -26,6 +91,8 @@ namespace Tesses::CrossLang
             auto native = dynamic_cast<TNative*>(obj);
             auto vfs = dynamic_cast<TVFSHeapObject*>(obj);
             auto strm = dynamic_cast<TStreamHeapObject*>(obj);
+            if(dynDict != nullptr) return "DynamicDictionary";
+            if(dynList != nullptr) return "DynamicList";
             if(strm != nullptr)
             {
                 auto netStrm = dynamic_cast<Tesses::Framework::Streams::NetworkStream*>(strm->stream);
@@ -141,41 +208,6 @@ namespace Tesses::CrossLang
 
     
 
-    static TObject Throw(GCList& ls, std::vector<TObject> args)
-    {
-        if(!args.empty())
-        {
-            VMByteCodeException bce(ls.GetGC(),args[0]);
-            throw bce;
-        }
-        return nullptr;
-    }
-    static TObject Try(GCList& ls, std::vector<TObject> args)
-    {
-        TCallable* tryPart;
-        TCallable* catchPart;
-        if(GetArgumentHeap(args,0,tryPart) && GetArgumentHeap(args,1,catchPart))
-        {
-            try {
-                tryPart->Call(ls,{});
-            }   
-            catch(VMByteCodeException& ex)
-            {
-                catchPart->Call(ls,{ex.exception});
-            }
-            catch(std::exception& ex)
-            {
-                TDictionary* dict = TDictionary::Create(ls);
-                auto gc = ls.GetGC();
-                gc->BarrierBegin();
-                dict->SetValue("Type","NativeException");
-                dict->SetValue("Text",ex.what());
-                gc->BarrierEnd();
-                catchPart->Call(ls,{dict});
-            }
-        }
-        return nullptr;
-    }   
     EnvironmentPermissions::EnvironmentPermissions()
     {
         this->canRegisterConsole=false;
@@ -203,11 +235,22 @@ namespace Tesses::CrossLang
 
         env->permissions.canRegisterRoot=true;
         env->DeclareFunction(gc, "ParseLong","Parse Long from String",{"arg","$base"},ParseLong);
-
         env->DeclareFunction(gc, "ParseDouble","Parse Double from String",{"arg"},ParseDouble);
         env->DeclareFunction(gc, "TypeOf","Get type of object",{"object"},TypeOf);
-        env->DeclareFunction(gc, "Throw", "Throw an exception",{"object"},Throw);
-        env->DeclareFunction(gc, "Try", "Handle exceptions",{"callbackToTry","callbackToCatch"},Try);
+        env->DeclareFunction(gc, "TypeIsDefined","Get whether object is not null or undefined",{"object"},TypeIsDefined);
+        env->DeclareFunction(gc, "TypeIsHeap","Get whether object is susceptible to garbage collection",{"object"},TypeIsHeap);
+        env->DeclareFunction(gc, "TypeIsNumber","Get whether object is a number",{"object"},TypeIsNumber);
+        env->DeclareFunction(gc, "TypeIsLong","Get whether object is a long (not a double)",{"object"},TypeIsLong);
+        env->DeclareFunction(gc, "TypeIsDouble","Get whether object is a double (not a long)",{"object"},TypeIsDouble);
+        env->DeclareFunction(gc, "TypeIsString","Get whether object is a string",{"object"},TypeIsString);
+        env->DeclareFunction(gc, "TypeIsCallable","Get whether object is callable",{"object"},TypeIsCallable);
+        env->DeclareFunction(gc, "TypeIsDictionary","Get whether object is a dictionary or dynamic dictionary",{"object"},TypeIsDictionary);
+        env->DeclareFunction(gc, "TypeIsList","Get whether object is a list or dynamic list",{"object"},TypeIsList);
+        env->DeclareFunction(gc, "TypeIsStream","Get whether object is a stream",{"object"},TypeIsStream);
+        env->DeclareFunction(gc, "TypeIsVFS","Get whether object is a virtual filesystem",{"object"},TypeIsVFS);
+        
+        
+        
         env->DeclareFunction(gc, "Thread","Create thread",{"callback"},[](GCList& ls, std::vector<TObject> args)-> TObject
         {
             if(args.size() == 1 && std::holds_alternative<THeapObjectHolder>(args[0]))
@@ -221,7 +264,9 @@ namespace Tesses::CrossLang
             return Undefined();
         });
         env->DeclareFunction(gc,"ByteArray","Create bytearray, with optional either size (to size it) or string argument (to fill byte array)",{"$data"},ByteArray);
-       
+        gc->BarrierBegin();
+        env->DeclareVariable("InvokeMethod",MethodInvoker());
+        gc->BarrierEnd();
     }
     void TStd::RegisterStd(GC* gc, TRootEnvironment* env)
     {

@@ -1,5 +1,72 @@
 #include "CrossLang.hpp"
 namespace Tesses::CrossLang {
+    TDynamicList* TDynamicList::Create(GCList& ls,TCallable* callable)
+    {
+        TDynamicList* list=new TDynamicList();
+        list->cb = callable;
+        GC* _gc = ls.GetGC();
+        ls.Add(list);
+        _gc->Watch(list);
+        return list;
+    }
+    TDynamicList* TDynamicList::Create(GCList* ls,TCallable* callable)
+    {
+        TDynamicList* list=new TDynamicList();
+        list->cb = callable;
+        GC* _gc = ls->GetGC();
+        ls->Add(list);
+        _gc->Watch(list);
+        return list;
+    }
+
+    void TDynamicList::Mark()
+    {
+        if(this->marked) return;
+        this->marked=true;
+        this->cb->Mark();
+    }
+
+    int64_t TDynamicList::Count(GCList& ls)
+    {
+        
+        auto dict = TDictionary::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        dict->SetValue("Type", "Count");
+        ls.GetGC()->BarrierEnd();
+        auto res = cb->Call(ls,{dict});
+        int64_t n;
+        if(GetObject(res,n)) return n;
+        return 0;
+    }
+
+    TObject TDynamicList::GetAt(GCList& ls, int64_t index)
+    {
+
+        auto dict = TDictionary::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        dict->SetValue("Type", "GetAt");
+        dict->SetValue("Index",index);
+        ls.GetGC()->BarrierEnd();
+        return cb->Call(ls,{dict});
+    }
+
+    void TDynamicList::SetAt(GCList& ls, int64_t index, TObject val)
+    {
+        auto dict = TDictionary::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        dict->SetValue("Type", "SetAt");
+        dict->SetValue("Index",index);
+        dict->SetValue("Value",val);
+        ls.GetGC()->BarrierEnd();
+        cb->Call(ls,{dict});
+    }
+
+    TDynamicList::~TDynamicList()
+    {
+
+    }
+    
+
     TByteArray* TByteArray::Create(GCList& ls)
     {
          TByteArray* arr=new TByteArray();
