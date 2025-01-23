@@ -32,7 +32,7 @@ namespace Tesses::CrossLang
             mbedtls_entropy_init(&entropy);
             mbedtls_ctr_drbg_init(&ctr_drbg);
 
-            int ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, (const unsigned char *) "personalization_string", strlen("personalization_string"));
+            int ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, (const unsigned char *) personalStr.c_str(), personalStr.size());
             if(ret != 0)
             {
                 mbedtls_ctr_drbg_free(&ctr_drbg);
@@ -290,30 +290,10 @@ namespace Tesses::CrossLang
     static TObject Crypto_Base64Encode(GCList& ls, std::vector<TObject> args)
     {
         TByteArray* byteArray;
-        int64_t offset;
-        int64_t length;
-        if(GetArgumentHeap(args,0,byteArray) && GetArgument(args,1,offset) && GetArgument(args,2,length))
+        
+        if(GetArgumentHeap(args,0,byteArray))
         {
-            std::string str={};
-            size_t olen;
-            size_t off = (size_t)offset;
-            size_t len = (size_t)length;
-            len = std::min(std::min(byteArray->data.size(),len-off),len);
-
-            if(len > 0)
-            {
-
-                mbedtls_base64_encode((uint8_t*)str.data(), 0, &olen, byteArray->data.data()+offset,len);
-                str.resize(olen);
-                
-
-                if(mbedtls_base64_encode((uint8_t*)str.data(), olen, &olen, byteArray->data.data()+offset,len)==0)
-                {   
-                    return str;
-                }
-
-
-            }
+            return Tesses::Framework::Crypto::Base64_Encode(byteArray->data);
             
 
         }
@@ -324,23 +304,13 @@ namespace Tesses::CrossLang
         std::string str;
         if(GetArgument(args,0,str))
         {
-            size_t olen;
-
             TByteArray* bArray = TByteArray::Create(ls);
-        
+            bArray->data = Tesses::Framework::Crypto::Base64_Decode(str);
 
-            mbedtls_base64_decode(bArray->data.data(), 0, &olen, (const uint8_t*)str.data(),str.size());
-                str.resize(olen);
-                
-
-                if(mbedtls_base64_decode(bArray->data.data(), olen, &olen, (const uint8_t*)str.data(),str.size())==0)
-                {   
-                    return str;
-                }
-
+            return bArray;
             
         }
-        return "";
+        return nullptr;
     }   
    #endif
     void TStd::RegisterCrypto(GC* gc,TRootEnvironment* env)

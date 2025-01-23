@@ -7,7 +7,6 @@ Tesses Cross Language
 - [TessesFramework](https://onedev.site.tesses.net/tesses-framework)
 - Jansson (but can be turned off but is strongly recommended otherwise many programs will not work)
 - CMake
-- SDL2 (but can be turned off)
 
 ## Use in docker (use my container)
 ```bash

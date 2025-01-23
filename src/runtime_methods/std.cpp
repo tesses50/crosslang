@@ -1,7 +1,61 @@
 #include "CrossLang.hpp"
-
+#if defined(CROSSLANG_ENABLE_SHARED)
+#if defined(_WIN32)
+#include <windows.h>
+#else
+#include <dlfcn.h>
+#endif
+#endif
 namespace Tesses::CrossLang
 {
+    #if defined(CROSSLANG_ENABLE_SHARED)
+    class DL {
+        void* handle;
+        public:
+            DL(Tesses::Framework::Filesystem::VFSPath p)
+            {
+                Tesses::Framework::Filesystem::LocalFilesystem lfs;
+                std::string str = lfs.VFSPathToSystem(p);
+                #if defined(_WIN32)
+                handle = LoadLibraryExA(str.c_str() , NULL, LOAD_WITH_ALTERED_SEARCH_PATH );
+                #else
+                handle = dlopen(str.c_str(), RTLD_LAZY);
+                #endif
+            }
+            template<typename T>
+            T Resolve(std::string name)
+            {
+                #if defined(_WIN32)
+                return (T)GetProcAddress(handle,name.c_str());
+                #else
+                return (T)dlsym(handle,name.c_str());
+                
+                #endif
+            }
+            ~DL()
+            {
+                #if defined(_WIN32)
+                FreeLibrary(handle);
+                #else
+                dlclose(handle);
+                #endif
+            }
+    };
+    #endif
+    
+    void LoadPlugin(GC* gc, TRootEnvironment* env, Tesses::Framework::Filesystem::VFSPath sharedObjectPath)
+    {
+        #if defined(CROSSLANG_ENABLE_SHARED)
+        auto ptr = std::make_shared<DL>(sharedObjectPath);
+        auto cb = ptr->Resolve<PluginFunction>("CrossLangPluginInit");
+        if(cb == nullptr) return;
+        gc->RegisterEverythingCallback([ptr,cb](GC* gc, TRootEnvironment* env)-> void{
+            cb(gc,env);
+        });
+        cb(gc,env);
+        #endif
+    }
+
     static TObject TypeIsDefined(GCList& ls,std::vector<TObject> args)
     {
         if(args.empty()) return nullptr;
@@ -67,6 +121,7 @@ namespace Tesses::CrossLang
     static TObject TypeOf(GCList& ls, std::vector<TObject> args)
     {
         if(args.size() < 1) return "Undefined";
+        if(std::holds_alternative<std::regex>(args[0])) return "Regex";
         if(std::holds_alternative<Undefined>(args[0])) return "Undefined";
         if(std::holds_alternative<std::nullptr_t>(args[0])) return "Null";
         if(std::holds_alternative<bool>(args[0])) return "Boolean";
@@ -91,6 +146,7 @@ namespace Tesses::CrossLang
             auto native = dynamic_cast<TNative*>(obj);
             auto vfs = dynamic_cast<TVFSHeapObject*>(obj);
             auto strm = dynamic_cast<TStreamHeapObject*>(obj);
+            auto svr = dynamic_cast<TServerHeapObject*>(obj);
             if(dynDict != nullptr) return "DynamicDictionary";
             if(dynList != nullptr) return "DynamicList";
             if(strm != nullptr)
@@ -103,6 +159,20 @@ namespace Tesses::CrossLang
                 
 
                 return "Stream";
+            }
+            if(svr != nullptr)
+            {
+                auto fileServer = dynamic_cast<Tesses::Framework::Http::FileServer*>(svr->server);
+                auto mountableServer = dynamic_cast<Tesses::Framework::Http::MountableServer*>(svr->server);
+                if(fileServer != nullptr)
+                {
+                    return "FileServer";
+                }
+                if(mountableServer != nullptr)
+                {
+                    return "MountableServer";
+                }
+                return "HttpServer";
             }
             if(vfs != nullptr)
             {
@@ -126,6 +196,7 @@ namespace Tesses::CrossLang
             if(externalMethod != nullptr) return "ExternalMethod";
             if(byteArray != nullptr) return "ByteArray";
             if(native != nullptr) return "Native";
+            
 
             return "HeapObject";
         }
@@ -222,7 +293,6 @@ namespace Tesses::CrossLang
         this->canRegisterPath=false;
         this->canRegisterProcess=false;
         this->canRegisterRoot=false;
-        this->canRegisterSDL2=false;
         this->canRegisterSqlite=false;
         this->canRegisterVM = false;
         this->locked=false;
@@ -250,7 +320,59 @@ namespace Tesses::CrossLang
         env->DeclareFunction(gc, "TypeIsVFS","Get whether object is a virtual filesystem",{"object"},TypeIsVFS);
         
         
-        
+        env->DeclareFunction(gc, "Regex", "Create regex object",{"regex"},[](GCList& ls,std::vector<TObject> args)->TObject {
+            std::string str;
+            if(GetArgument(args,0,str))
+            {
+                std::regex regex(str);
+                return regex;
+            }
+            return nullptr;
+        });
+        env->DeclareFunction(gc, "Mutex", "Create mutex",{}, [](GCList& ls,std::vector<TObject> args)->TObject {
+            ls.GetGC()->BarrierBegin();
+            auto mtx = TDictionary::Create(ls);
+            auto native = TNative::Create(ls, new Tesses::Framework::Threading::Mutex(),[](void* ptr)->void{
+                delete static_cast<Tesses::Framework::Threading::Mutex*>(ptr);
+            });
+            auto lock = TExternalMethod::Create(ls,"Lock the mutex",{},[native](GCList& ls, std::vector<TObject> args)->TObject {
+                if(native->GetDestroyed()) return nullptr;
+                auto r = static_cast<Tesses::Framework::Threading::Mutex*>(native->GetPointer());
+                r->Lock();
+                return nullptr;
+            });
+            lock->watch.push_back(native);
+            mtx->SetValue("Lock",lock);
+
+            auto unlock = TExternalMethod::Create(ls,"Unlock the mutex",{},[native](GCList& ls, std::vector<TObject> args)->TObject {
+                if(native->GetDestroyed()) return nullptr;
+                auto r = static_cast<Tesses::Framework::Threading::Mutex*>(native->GetPointer());
+                r->Unlock();
+                return nullptr;
+            });
+            unlock->watch.push_back(native);
+            mtx->SetValue("Unlock",unlock);
+
+
+            auto trylock = TExternalMethod::Create(ls,"Try to lock the mutex, returns true if we aquire the lock, false if we can't due to another thread owning it",{},[native](GCList& ls, std::vector<TObject> args)->TObject {
+                if(native->GetDestroyed()) return true;
+                auto r = static_cast<Tesses::Framework::Threading::Mutex*>(native->GetPointer());
+                return r->TryLock();
+            });
+            trylock->watch.push_back(native);
+            mtx->SetValue("TryLock",trylock);
+            ls.GetGC()->BarrierEnd();
+
+
+            auto close = TExternalMethod::Create(ls,"Try to lock the mutex, returns true if we aquire the lock, false if we can't due to another thread owning it",{},[native](GCList& ls, std::vector<TObject> args)->TObject {
+                native->Destroy();
+                return nullptr;
+            });
+            close->watch.push_back(native);
+            mtx->SetValue("Close",close);
+            ls.GetGC()->BarrierEnd();
+            return mtx;
+        });
         env->DeclareFunction(gc, "Thread","Create thread",{"callback"},[](GCList& ls, std::vector<TObject> args)-> TObject
         {
             if(args.size() == 1 && std::holds_alternative<THeapObjectHolder>(args[0]))
@@ -282,7 +404,6 @@ namespace Tesses::CrossLang
         RegisterJson(gc, env);
         RegisterDictionary(gc, env);
         RegisterCrypto(gc,env);
-        RegisterSDL2(gc, env);
         RegisterOGC(gc, env);
         RegisterProcess(gc,env);
 
@@ -291,6 +412,14 @@ namespace Tesses::CrossLang
         GCList ls(gc);
 
         TDictionary* dict = TDictionary::Create(ls);
+        dict->DeclareFunction(gc,"LoadNativePlugin","Load a native plugin, requires a dynamic linker and shared build of libcrosslang",{"path"},[gc,env](GCList& ls, std::vector<TObject> args)->TObject {
+            Tesses::Framework::Filesystem::VFSPath path;
+            if(GetArgumentAsPath(args,0,path))
+            {
+                LoadPlugin(gc,env,path);
+            }
+            return nullptr;
+        });
         gc->BarrierBegin();
         env->SetVariable("Reflection",dict);
         gc->BarrierEnd();

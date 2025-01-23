@@ -13,6 +13,7 @@
 #include <memory>
 #include <cstring>
 #include <TessesFramework/TessesFramework.hpp>
+#include <regex>
 #define TVM_MAJOR 1
 #define TVM_MINOR 0
 #define TVM_PATCH 0
@@ -650,7 +651,7 @@ class Parser {
     class MethodInvoker {
 
     };
-using TObject = std::variant<int64_t,double,char,bool,std::string,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder>;
+using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder>;
 class TRootEnvironment;
 class GC;
 class GC {
@@ -842,7 +843,6 @@ class GC {
             bool canRegisterDictionary;
             bool canRegisterJSON;
             bool canRegisterCrypto;
-            bool canRegisterSDL2;
             bool canRegisterRoot;
             bool canRegisterProcess;
             bool canRegisterPath;
@@ -889,7 +889,6 @@ class GC {
             static void RegisterDictionary(GC* gc, TRootEnvironment* env);
             static void RegisterJson(GC* gc, TRootEnvironment* env);
             static void RegisterCrypto(GC* gc,TRootEnvironment* env);
-            static void RegisterSDL2(GC* gc, TRootEnvironment* env);
             static void RegisterRoot(GC* gc, TRootEnvironment* env);
             static void RegisterPath(GC* gc, TRootEnvironment* env);
             static void RegisterOGC(GC* gc, TRootEnvironment* env);
@@ -1436,6 +1435,13 @@ class GC {
     }
     bool GetObjectAsPath(TObject& obj, Tesses::Framework::Filesystem::VFSPath& path, bool allowString=true);
     bool GetArgumentAsPath(std::vector<TObject>& args, size_t index, Tesses::Framework::Filesystem::VFSPath& path,bool allowString=true);
-    
-   
+    typedef void (*PluginFunction)(GC* gc,TRootEnvironment* env);
+    #if !defined(_WIN32)
+    #define DLLEXPORT
+    #else
+    #define DLLEXPORT __declspec(dllexport)
+    #endif
+    #define CROSSLANG_PLUGIN(plugin) DLLEXPORT extern "C" void CrossLangPluginInit(GC* gc, TRootEnvironment* env) { plugin(gc,env); }
+
+    void LoadPlugin(GC* gc, TRootEnvironment* env, Tesses::Framework::Filesystem::VFSPath sharedObjectPath);
 };

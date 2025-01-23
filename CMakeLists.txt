@@ -14,9 +14,9 @@ option(CROSSLANG_ENABLE_THREADING "Enable Tesses CrossLang threading" ON)
 option(CROSSLANG_ENABLE_SQLITE "Enable sqlite (Embedded database, supports Wii)" ON)
 option(CROSSLANG_ENABLE_JSON "Enable JSON" ON)
 option(CROSSLANG_ENABLE_PROCESS "Enable process" ON)
-option(CROSSLANG_ENABLE_SDL2 "Enable SDL2 (For Drawing)" ON)
 option(CROSSLANG_ENABLE_TERMIOS "Enable termios (For changing terminal options)" ON)
 option(CROSSLANG_ENABLE_PLATFORM_FOLDERS "Enable platform folders" ON)
+option(CROSSLANG_SHARED_EXECUTABLES "Link with libcrosslang_shared" ON)
 
 option(CROSSLANG_CUSTOM_CONSOLE "Enable custom Console" OFF)
 
@@ -59,22 +59,9 @@ endif()
 if(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
 target_compile_definitions(${CROSSLANG_TARGET_NAME} PUBLIC CROSSLANG_ENABLE_PLATFORM_FOLDERS)
 endif()
+if(CROSSLANG_ENABLE_SHARED)
+target_compile_definitions(${CROSSLANG_TARGET_NAME} PUBLIC CROSSLANG_ENABLE_SHARED)
 
-if(CROSSLANG_ENABLE_SDL2)
-target_compile_definitions(${CROSSLANG_TARGET_NAME} PUBLIC CROSSLANG_ENABLE_SDL2)
-find_package(SDL2 REQUIRED)
-find_package(SDL2_ttf REQUIRED)
-
-
-target_include_directories(${CROSSLANG_TARGET_NAME} PUBLIC ${SDL2_INCLUDE_DIRS})
-target_link_libraries(${CROSSLANG_TARGET_NAME} PUBLIC SDL2::SDL2)
-if("${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoWii" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoGameCube")
-target_link_libraries(${CROSSLANG_TARGET_NAME} PUBLIC SDL2_image png jpeg z)
-else()
-find_package(SDL2_image REQUIRED)
-target_link_libraries(${CROSSLANG_TARGET_NAME} PUBLIC ${SDL2_image_LIBRARIES})
-endif()
-target_link_libraries(${CROSSLANG_TARGET_NAME} PUBLIC ${SDL2_ttf_LIBRARIES})
 endif()
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoWii" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoGameCube")
 target_link_libraries(${CROSSLANG_TARGET_NAME} PUBLIC fat)
@@ -89,12 +76,11 @@ target_include_directories(${CROSSLANG_TARGET_NAME}
 )
 endfunction()
 
-list(APPEND CROSSLANG_SOURCE 
+list(APPEND CROSSLANG_SOURCE
 src/compiler/codegen.cpp
 src/compiler/lexer.cpp
 src/compiler/parser.cpp
 src/compiler/ast.cpp
-src/runtime_methods/sdl2.cpp
 src/runtime_methods/console.cpp
 src/runtime_methods/io.cpp
 src/runtime_methods/std.cpp
@@ -204,7 +190,7 @@ endif()
 
 
 if(CROSSLANG_ENABLE_BINARIES)
-if(CROSSLANG_ENABLE_SHARED)
+if(CROSSLANG_ENABLE_SHARED AND CROSSLANG_SHARED_EXECUTABLES)
 set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 add_executable(crossc src/crosslangcompiler.cpp ${CROSSLANG_WIN32_EXE_SRC})

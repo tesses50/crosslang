@@ -451,8 +451,7 @@ namespace Tesses::CrossLang
                     }
                     else
                     {
-                        Flush();
-                        Symbol({read});
+                        buffer.push_back('$');
                     }
                     break;
                 case '\"':
@@ -529,7 +528,6 @@ namespace Tesses::CrossLang
                         while(true)
                         {
                             int r = Read();
-                            std::cout << r <<std::endl;
                             lineInfo.Add(r);
                             if(r == -1) 
                             {

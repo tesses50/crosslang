@@ -39,7 +39,6 @@ namespace Tesses::CrossLang {
             std::string name = p.ToString();
             
             sqlite3* sqlite;
-            std::cout << name << std::endl;
             int rc =sqlite3_open(name.c_str(),&sqlite);
             if(rc)
             {

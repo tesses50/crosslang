@@ -206,7 +206,59 @@ namespace Tesses::CrossLang
             return nullptr;
         });
 //        dict->DeclareFunction(gc,"getUrlWithQuery","Get original path with query parameters",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {return ctx->GetUrlWithQuery();});
-        
+        dict->DeclareFunction(gc,"StartWebSocketSession","Start websocket session",{"dict"}, [ctx](GCList& ls,std::vector<TObject> args)->TObject {
+            TDictionary* dict;
+            if(GetArgumentHeap(args,0,dict))
+            {
+                
+            
+                ctx->StartWebSocketSession([dict,&ls](std::function<void(WebSocketMessage&)> sendMessage,std::function<void()> ping)->void{
+                    GCList ls2(ls.GetGC());
+                    dict->CallMethod(ls2,"Open",{
+                        TExternalMethod::Create(ls2,"Send a message",{"messageTextOrByteArray"},[sendMessage](GCList& ls,std::vector<TObject> args)->TObject{
+                            std::string str;
+                            TByteArray* bArray;
+                            if(GetArgument(args,0,str))
+                            {
+                                WebSocketMessage msg(str);
+                                sendMessage(msg);
+                            }
+                            else if(GetArgumentHeap(args,0,bArray))
+                            {
+                                WebSocketMessage msg(bArray->data);
+                                sendMessage(msg);
+                            }
+                            return nullptr;
+                        }),
+                        TExternalMethod::Create(ls2, "Ping client", {},[ping](GCList& ls,std::vector<TObject> args)->TObject {
+                            ping();
+                            return nullptr;
+                        })
+                    });
+                }, [dict,&ls](WebSocketMessage& msg)->void {
+                    GCList ls2(ls.GetGC());
+
+                    TObject v;
+
+                    if(msg.isBinary)
+                    {
+                        auto r = TByteArray::Create(ls2);
+                        r->data = msg.data;
+                        v = r;
+                    }
+                    else
+                    {
+                        v = msg.ToString();
+                    }
+                    
+                    dict->CallMethod(ls2,"Receive",{v});
+                }, [dict,&ls](bool close)->void {
+                    GCList ls2(ls.GetGC());
+                    dict->CallMethod(ls2,"Close",{close});
+                });
+            }
+            return nullptr;
+        });      
         
         //dict->DeclareFunction(gc,"getOriginalPathWithQuery","Get original path with query parameters",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {return ctx->GetOriginalPathWithQuery();});
         dict->DeclareFunction(gc,"getPath","Get path",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {return ctx->path;});
@@ -247,6 +299,7 @@ namespace Tesses::CrossLang
     TObjectHttpServer::TObjectHttpServer(GC* gc,TObject obj)
     {
         this->ls=new GCList(gc);
+        this->ls->Add(obj);
         this->obj = obj;
     }
  
@@ -550,7 +603,28 @@ namespace Tesses::CrossLang
         //http->DeclareFunction(gc, "ProcessServer","Process HTTP server connection",{"networkstream","server","ip","port","encrypted"},, Net_ProcessServer);
         http->DeclareFunction(gc, "MakeRequest", "Create an http request", {"url","$extra"}, Net_Http_MakeRequest);
         http->DeclareFunction(gc, "ListenSimpleWithLoop", "Listen (creates application loop)", {"server","port"},Net_Http_ListenSimpleWithLoop);
-        
+        //FileServer svr()
+        http->DeclareFunction(gc, "FileServer","Create a file server",{"path","allowlisting","spa"}, [](GCList& ls, std::vector<TObject> args)->TObject{
+            
+            bool allowlisting;
+            bool spa;
+            if(GetArgument(args,1,allowlisting) && GetArgument(args,2,spa))
+            {
+                auto fserver = new FileServer(new TObjectVFS(ls.GetGC(),args[0]),true,allowlisting,spa);
+                return TServerHeapObject::Create(ls,fserver);
+            }
+            return nullptr;
+        });
+        http->DeclareFunction(gc, "MountableServer","Create a server you can mount to, must mount parents before child",{"root"}, [](GCList& ls, std::vector<TObject> args)->TObject{
+            if(args.size() > 0)
+            {
+                auto svr = new TObjectHttpServer(ls.GetGC(), args[0]);
+                auto svr2 = new MountableServer(svr,true);
+                
+                return TServerHeapObject::Create(ls,svr2);
+            }
+            return nullptr;
+        });
         dict->DeclareFunction(gc, "NetworkStream","Create a network stream",{"ipv6","datagram"},Net_NetworkStream);
         gc->BarrierBegin();
         dict->SetValue("Http", http);

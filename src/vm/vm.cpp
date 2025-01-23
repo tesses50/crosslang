@@ -1372,7 +1372,42 @@ namespace Tesses::CrossLang {
         if(!cse.empty())
         {
             GCList ls(gc);
-            if(std::holds_alternative<bool>(instance))
+            std::regex regex;
+            if(GetObject(instance,regex))
+            {
+                if(key == "Search")
+                {
+                    std::string str;
+                    if(GetArgument(args,0,str))
+                    {
+                        std::smatch m;
+                        if(std::regex_search(str,m,regex))
+                        {
+                            auto myLs = TList::Create(ls);
+                            gc->BarrierBegin();
+                            for(auto item : m)
+                            {
+                                auto itm = TDictionary::Create(ls);
+                                itm->SetValue("Offset", (int64_t)(item.first-str.begin()));
+                                itm->SetValue("Length",(int64_t)item.length());
+                                itm->SetValue("Matched",item.matched);
+                                itm->SetValue("Text",item.str());
+                                myLs->Add(itm);
+                            }
+
+
+                            cse.back()->Push(gc, myLs);
+                            gc->BarrierEnd();
+                            return false;
+                        }
+                        
+                    }
+                }
+
+                cse.back()->Push(gc, nullptr);
+                return false;
+            }
+            else if(std::holds_alternative<bool>(instance))
             {
                 bool flag = std::get<bool>(instance);
                 if(key == "ToString")
@@ -1709,8 +1744,23 @@ namespace Tesses::CrossLang {
                 std::string str = std::get<std::string>(instance);
                 if(key == "IndexOf")
                 {   
-                    char c;
-                    if(GetArgument<char>(args,0,c))
+                    std::string str2;
+                     char c;
+                    if(GetArgument(args,0,str2))
+                    {
+
+                        int64_t index = str.size();
+                        GetArgument(args,1,index);
+                        
+                        auto res = str.find(str2,(std::size_t)index);
+                        if(res == std::string::npos)
+                            cse.back()->Push(gc, (int64_t)-1);
+                        else
+                            cse.back()->Push(gc, (int64_t)res);
+                        return false;
+                    }
+                    
+                    else if(GetArgument<char>(args,0,c))
                     {
                         int64_t index = 0;
                         GetArgument(args,1,index);
@@ -1727,8 +1777,22 @@ namespace Tesses::CrossLang {
                 }
                 if(key == "LastIndexOf")
                 {
+                    std::string str2;
                      char c;
-                    if(GetArgument<char>(args,0,c))
+                    if(GetArgument(args,0,str2))
+                    {
+
+                        int64_t index = str.size();
+                        GetArgument(args,1,index);
+                        
+                        auto res = str.rfind(str2,(std::size_t)index);
+                        if(res == std::string::npos)
+                            cse.back()->Push(gc, (int64_t)-1);
+                        else
+                            cse.back()->Push(gc, (int64_t)res);
+                        return false;
+                    }
+                    else if(GetArgument<char>(args,0,c))
                     {
                         int64_t index = str.size();
                         GetArgument(args,1,index);
@@ -1914,7 +1978,71 @@ namespace Tesses::CrossLang {
                 auto env = dynamic_cast<TEnvironment*>(obj);
                 auto rootEnv = dynamic_cast<TRootEnvironment*>(obj);
                 auto callable = dynamic_cast<TCallable*>(obj);
-
+                auto svr = dynamic_cast<TServerHeapObject*>(obj);
+                
+                if(svr != nullptr)
+                {
+                    auto mountable = dynamic_cast<Tesses::Framework::Http::MountableServer*>(svr->server);
+                    if(mountable != nullptr)
+                    {
+                        if(key == "Mount")
+                        {
+                            Tesses::Framework::Filesystem::VFSPath p;
+                            
+                            if(args.size() > 1 && GetArgumentAsPath(args,0,p))
+                            {
+                                mountable->Mount(p.ToString(),new TObjectHttpServer(gc,args[1]),true);
+                                cse.back()->Push(gc,nullptr);
+                                return false;
+                            }
+                        }
+                        if(key == "Unmount")
+                        {
+                            Tesses::Framework::Filesystem::VFSPath p;
+                            
+                            if(GetArgumentAsPath(args,0,p))
+                            {
+                                mountable->Unmount(p.ToString());
+                                cse.back()->Push(gc,nullptr);
+                                return false;
+                            }
+                        }
+                    }
+                    if(key == "Handle")
+                    {
+                       
+                        if(GetArgumentHeap(args,0,dict))
+                        {
+                            gc->BarrierBegin();
+                            auto nat = dict->GetValue("native");
+                            gc->BarrierEnd();
+                            TNative* nat2;
+                            if(GetObjectHeap(nat,nat2))
+                            {
+                                if(!nat2->GetDestroyed()) 
+                                {
+                                    auto ctx = static_cast<Tesses::Framework::Http::ServerContext*>(nat2->GetPointer());
+                                    if(ctx != nullptr)
+                                    {
+                                        cse.back()->Push(gc,svr->server->Handle(*ctx));
+                                        return false;
+                                    }
+                                    
+                                }
+                            }
+                        }
+                        cse.back()->Push(gc,false);
+                        return false;
+                    }
+                    if(key == "Close")
+                    {
+                        svr->Close();
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    cse.back()->Push(gc,Undefined());
+                    return false;
+                }
                 if(rootEnv != nullptr)
                 {
                     //TStd::RegisterCrypto
@@ -1968,8 +2096,6 @@ namespace Tesses::CrossLang {
                         if(myEnv->permissions.canRegisterRoot && !rootEnv->permissions.locked)
                         TStd::RegisterRoot(gc, rootEnv);
 
-                        if(myEnv->permissions.canRegisterSDL2 && !rootEnv->permissions.locked)
-                        TStd::RegisterSDL2(gc, rootEnv);
 
                         if(myEnv->permissions.canRegisterSqlite && !rootEnv->permissions.locked)
                         TStd::RegisterSqlite(gc, rootEnv);
@@ -2066,13 +2192,6 @@ namespace Tesses::CrossLang {
                         return false;
                     }
 
-                    if(key == "RegisterSDL2")
-                    {
-                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterSDL2) && !rootEnv->permissions.locked)
-                        TStd::RegisterSDL2(gc, rootEnv);
-                        cse.back()->Push(gc,nullptr);
-                        return false;
-                    }
                     if(key == "RegisterSqlite")
                     {
                         if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterSqlite) && !rootEnv->permissions.locked)
@@ -4457,10 +4576,57 @@ namespace Tesses::CrossLang {
         }
         else 
         {
-            for(size_t i = 0; i < std::min(args.size(),closure->closure->args.size()); i++)
+            auto requiredArguments = [closure]()->size_t
             {
-                cse->env->DeclareVariable(closure->closure->args[i], args[i]);
+                for(size_t i =0;i<closure->closure->args.size();i++)
+                {
+                    if(closure->closure->args[i].find("$") == 0)
+                    {
+                        return i;
+                    }
+                }
+                return closure->closure->args.size();
+            };
+            auto optionalArguments = [closure](size_t argLen)->size_t 
+            {
+                for(size_t i =0;i<closure->closure->args.size();i++)
+                {
+                    if(closure->closure->args[i].find("$$") == 0)
+                    {
+                        return std::min(argLen,i);
+                    }
+                }
+                return std::min(argLen,closure->closure->args.size());
+            };
+            auto trimStart = [](std::string txt)->std::string {
+                if(txt.empty()) return {};
+                if(txt[0] != '$') return txt;
+                auto idx = txt.find_first_not_of('$');
+                if(idx == std::string::npos) return {};
+                return txt.substr(idx);
+            };
+            size_t required = requiredArguments();
+
+            if(args.size() < requiredArguments())
+            {
+                throw VMException("Called a function that expected at least " + std::to_string(required) + " args but got " + std::to_string(args.size()));
             }
+
+            size_t i;
+            for( i = 0; i < optionalArguments(args.size()); i++)
+            {
+                cse->env->DeclareVariable(trimStart(closure->closure->args[i]), args[i]);
+            }
+            if(i == closure->closure->args.size()-1)
+            {
+                auto lsArgs = TList::Create(ls);
+                for(;i<args.size(); i++)
+                    lsArgs->Add(args[i]);
+                cse->env->DeclareVariable(trimStart(closure->closure->args[i]), lsArgs);
+                i = args.size();
+            }
+            if(i<args.size())
+                throw VMException("Too many arguments");
         }
         
         current_function = cse;
