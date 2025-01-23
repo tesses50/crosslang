@@ -72,7 +72,7 @@ namespace Tesses::CrossLang
                 for(auto item : dict->items)
                 {
                     if(IsValidForJson(item.second))
-                    json_object_setn_new(obj, item.first.c_str(), item.first.size(),JsonSerialize(item.second));
+                    json_object_set_new(obj, item.first.c_str(),JsonSerialize(item.second));
                 }   
                 return obj;
             }
@@ -130,11 +130,11 @@ namespace Tesses::CrossLang
             size_t len;
             json_t* value;
             
-            json_object_keylen_foreach_safe(json,n,key,len,value)
+            json_object_foreach_safe(json,n,key,value)
             {
                 auto itemRes = JsonDeserialize(ls2,value);       
                 ls2.GetGC()->BarrierBegin();
-                dict->SetValue(std::string(key,len),itemRes);
+                dict->SetValue(std::string(key),itemRes);
                 ls2.GetGC()->BarrierEnd();
             }
             return dict;

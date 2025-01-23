@@ -4,9 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/include",
-                "${workspaceFolder}/build/_deps/json-src/include/nlohmann",
-                "${workspaceFolder}/build/_deps/json-src/include"
+                "${workspaceFolder}/include"
             ],
             "defines": ["CROSSLANG_ENABLE_JSON=1","CROSSLANG_ENABLE_THREADING=1","CROSSLANG_ENABLE_FILE_IO=1","CROSSLANG_ENABLE_NETWORK=1","CROSSLANG_ENABLE_TERMIOS=1","CROSSLANG_ENABLE_MBED=1","CROSSLANG_ENABLE_SQLITE=1","CROSSLANG_ENABLE_SDL2=1","-DCROSSLANG_ENABLE_PROCESS=1"],
             "compilerPath": "/usr/bin/gcc",
