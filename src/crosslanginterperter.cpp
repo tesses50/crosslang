@@ -66,7 +66,7 @@ int main(int argc, char** argv)
 
             Tesses::Framework::Streams::MemoryStream strm2(true);
 
-            if(source.starts_with("loadfile "))
+            if(source.find("loadfile ") == 0)
             {
                 std::string filename = source.substr(9);
 

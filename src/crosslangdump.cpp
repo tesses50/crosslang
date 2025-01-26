@@ -132,7 +132,7 @@ void DumpFile(std::filesystem::path p)
 
             for(size_t i = 1; i < closures.size(); i++)
             {
-                if(funs.contains((uint32_t)i))
+                if(funs.count((uint32_t)i) > 0)
                 {
                     std::cout << "Func: ";
                     auto res = funs[(uint32_t)i];

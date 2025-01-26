@@ -26,7 +26,7 @@ namespace Tesses::CrossLang
             T Resolve(std::string name)
             {
                 #if defined(_WIN32)
-                return (T)GetProcAddress(handle,name.c_str());
+                return (T)GetProcAddress((HMODULE)handle,name.c_str());
                 #else
                 return (T)dlsym(handle,name.c_str());
                 
@@ -35,7 +35,7 @@ namespace Tesses::CrossLang
             ~DL()
             {
                 #if defined(_WIN32)
-                FreeLibrary(handle);
+                FreeLibrary((HMODULE)handle);
                 #else
                 dlclose(handle);
                 #endif

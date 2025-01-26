@@ -4,12 +4,5 @@ include("${CMAKE_CURRENT_LIST_DIR}/TessesCrossLangTargets.cmake")
 
 check_required_components(TessesCrossLang)
 find_package(TessesFramework REQUIRED)
-if(@CROSSLANG_ENABLE_SDL2@)
-find_package(SDL2 REQUIRED)
-find_package(SDL2_ttf REQUIRED)
-if("${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoWii" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoGameCube")
 
-else()
-find_package(SDL2_image REQUIRED)
-endif()
 endif()
