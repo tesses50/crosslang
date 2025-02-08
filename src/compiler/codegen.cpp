@@ -430,6 +430,117 @@ namespace Tesses::CrossLang
             TWO_EXPR(NotEqualsExpression, NEQ)
             TWO_EXPR(EqualsExpression, EQ)
             TWO_EXPR(XOrExpression, XOR)
+            if(adv.nodeName == SwitchStatement && adv.nodes.size() == 2)
+            {
+                //THIS CODE WORKED FIRST TRY, I DON'T SEE THAT EVERY DAY, PRAISE GOD!!!!!!!
+                auto expr = adv.nodes[0];
+
+                std::vector<SyntaxNode> nodes_before;
+            
+                SyntaxNode currentCase = nullptr;
+                std::vector<SyntaxNode> currentNodes;
+                std::string defaultJmp = {};
+
+                std::vector<std::pair<std::pair<std::string,AdvancedSyntaxNode>,std::vector<SyntaxNode>>> snodes;
+
+                
+
+                if(std::holds_alternative<AdvancedSyntaxNode>(adv.nodes[1]))
+                {
+                    auto body = std::get<AdvancedSyntaxNode>(adv.nodes[1]);
+                    if(body.nodeName == ScopeNode)
+                    {
+                        for(auto item : body.nodes)
+                        {
+                            if(std::holds_alternative<AdvancedSyntaxNode>(item))
+                            {
+                                auto no = std::get<AdvancedSyntaxNode>(item);
+                                if(no.nodeName == CaseStatement || no.nodeName == DefaultStatement)
+                                {
+                                    if(std::holds_alternative<AdvancedSyntaxNode>(currentCase))
+                                    {
+                                         
+                                        uint32_t jmpId = NewId();
+                                        std::string jmpIdStr = "__compGenJmp";
+                                        jmpIdStr.append(std::to_string(jmpId));
+                                        snodes.push_back(std::pair<std::pair<std::string,AdvancedSyntaxNode>,std::vector<SyntaxNode>>(std::pair<std::string,AdvancedSyntaxNode>(jmpIdStr,std::get<AdvancedSyntaxNode>(currentCase)),currentNodes));
+                                        currentNodes={};
+                                    }
+                                    currentCase = no;
+                                    continue;
+                                }
+                                
+                            }
+
+                            if(std::holds_alternative<AdvancedSyntaxNode>(currentCase))
+                            {
+                                currentNodes.push_back(item);
+                            }
+                            else
+                            {
+                                nodes_before.push_back(item);
+                            }
+
+                        }
+                        if(std::holds_alternative<AdvancedSyntaxNode>(currentCase))
+                        {
+                                         
+                            uint32_t jmpId = NewId();
+                            std::string jmpIdStr = "__compGenJmp";
+                            jmpIdStr.append(std::to_string(jmpId));
+                            snodes.push_back(std::pair<std::pair<std::string,AdvancedSyntaxNode>,std::vector<SyntaxNode>>(std::pair<std::string,AdvancedSyntaxNode>(jmpIdStr,std::get<AdvancedSyntaxNode>(currentCase)),currentNodes));
+                            currentNodes={};
+                        }
+
+                        uint32_t endId = NewId();
+                        std::string endIdStr = "__compGenBrk";
+                        endIdStr.append(std::to_string(endId));
+                        for(auto item : nodes_before)
+                        {
+                            GenNode(instructions,item,scope,contscope,brkscope,contI,brkI);
+                        }
+                        
+                        for(auto item : snodes)
+                        {
+                            if(item.first.second.nodeName == CaseStatement)
+                            {
+                                auto eq = AdvancedSyntaxNode::Create(EqualsExpression,true,{
+                                    item.first.second.nodes[0],
+                                    adv.nodes[0]
+                                });
+                                GenNode(instructions,eq,scope,contscope,brkscope,contI,brkI);
+                                instructions.push_back(new JumpStyleInstruction(JMPC,item.first.first));
+                            }
+                            if(item.first.second.nodeName == DefaultStatement)
+                            {
+                                if(!defaultJmp.empty()) std::cout << "ERROR: multiple default in switch statement will cause undefined behaviour, this is not an exception due to not allowing exceptions in codegen stage (the compilation shouldn't fail)" << std::endl;
+                                defaultJmp = item.first.first;
+                            }
+                        }
+
+                        if(defaultJmp.empty())
+                        {
+                            instructions.push_back(new JumpStyleInstruction(JMP,endIdStr));
+                        }
+                        else
+                        {
+                            instructions.push_back(new JumpStyleInstruction(JMP,defaultJmp));
+                        }
+
+                        for(auto item : snodes)
+                        {
+                            instructions.push_back(new LabelInstruction(item.first.first));
+                            for(auto item2 : item.second)
+                            {
+                                GenNode(instructions,item2,scope,contscope,scope,contI,endId);
+                            }
+                        }
+
+                        instructions.push_back(new LabelInstruction(endIdStr));
+                    }
+                }
+                return;
+            }
             if(adv.nodeName == TernaryExpression && adv.nodes.size() == 3)
             {
                  uint32_t ifId = NewId();
@@ -910,6 +1021,11 @@ namespace Tesses::CrossLang
                 GenNode(instructions,adv.nodes[0],scope,contscope,brkscope,contI,brkI);
                 instructions.push_back(new SimpleInstruction(RET));
             }
+            else if(adv.nodeName == YieldStatement && adv.nodes.size() == 1)
+            {
+                GenNode(instructions,adv.nodes[0],scope,contscope,brkscope,contI,brkI);
+                instructions.push_back(new SimpleInstruction(YIELD));
+            }
             else if(adv.nodeName == ParenthesesExpression && adv.nodes.size() == 1)
             {
                 GenNode(instructions,adv.nodes[0],scope,contscope,brkscope,contI,brkI);
@@ -1032,6 +1148,20 @@ namespace Tesses::CrossLang
                 this->chunks[fnindex] = std::pair<std::vector<uint32_t>,std::vector<ByteCodeInstruction*>>(args, fnInstructions);
                 instructions.push_back(new ClosureInstruction((uint32_t)fnindex));
             }
+            else if(adv.nodeName == EnumerableStatement && adv.nodes.size() == 2 && std::holds_alternative<AdvancedSyntaxNode>(adv.nodes[0]))
+            {
+                SyntaxNode n = AdvancedSyntaxNode::Create(FunctionStatement,false,{
+                    adv.nodes[0],
+                    AdvancedSyntaxNode::Create(ReturnStatement,false,{
+                        AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                            AdvancedSyntaxNode::Create(GetVariableExpression,true,{"YieldEmumerable"}),
+                            AdvancedSyntaxNode::Create(ClosureExpression,true,{AdvancedSyntaxNode::Create(ParenthesesExpression,true,{}), adv.nodes[1]})
+                        })
+                    })
+                });
+                GenNode(instructions,n,scope,contscope,brkscope,contI,brkI);
+
+            }
             else if(adv.nodeName == FunctionStatement && adv.nodes.size() == 2 && std::holds_alternative<AdvancedSyntaxNode>(adv.nodes[0])) 
             {
                 //func NAME(ARGS) {}
@@ -1152,13 +1282,24 @@ namespace Tesses::CrossLang
                                 {
                                     documentation = std::get<std::string>(res2.nodes[0]);
                                     auto j = std::get<AdvancedSyntaxNode>(res2.nodes[1]);
-                                    if(j.nodeName == FunctionStatement) {
+                                    if(j.nodeName == FunctionStatement || j.nodeName == EnumerableStatement) {
                                         res2 = j;
                                     }
                                 }
                             }
                         }
-
+                        if(res2.nodeName == EnumerableStatement)
+                        {
+                            res2 = AdvancedSyntaxNode::Create(FunctionStatement,false,{
+                                res2.nodes[0],
+                                AdvancedSyntaxNode::Create(ReturnStatement,false,{
+                                    AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                                        AdvancedSyntaxNode::Create(GetVariableExpression,true,{"YieldEmumerable"}),
+                                        AdvancedSyntaxNode::Create(ClosureExpression,true,{AdvancedSyntaxNode::Create(ParenthesesExpression,true,{}), res2.nodes[1]})
+                                     })
+                                })
+                            });
+                        }
                         if(res2.nodeName == FunctionStatement)
                         {
                             if(res2.nodes.size()==2)

@@ -2,6 +2,7 @@
 #include <chrono>
 #include <iostream>
 #include <unistd.h>
+#include <time.h>
 
 #if defined(CROSSLANG_ENABLE_SQLITE) 
 extern "C" {
@@ -27,6 +28,7 @@ namespace Tesses::CrossLang
     }
     GC::GC()
     {
+        tzset();
         #if defined(CROSSLANG_ENABLE_SQLITE)
            sqlite3_initialize();
             #if defined(GEKKO)
@@ -112,12 +114,12 @@ namespace Tesses::CrossLang
 
                 last_frame = this_frame;
                 this->Collect();
-                usleep(1000000);
+                
 
             }
 
             
-            usleep(10000);
+            usleep(100000);
         }
         GC::Collect();
         });

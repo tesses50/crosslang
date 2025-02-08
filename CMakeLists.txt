@@ -20,6 +20,7 @@ option(CROSSLANG_SHARED_EXECUTABLES "Link with libcrosslang_shared" ON)
 
 option(CROSSLANG_CUSTOM_CONSOLE "Enable custom Console" OFF)
 
+
 if(CROSSLANG_CUSTOM_CONSOLE)
 set(CROSSLANG_ENABLE_BINARIES OFF)
 set(CROSSLANG_ENABLE_SHARED OFF)
@@ -74,6 +75,7 @@ target_include_directories(${CROSSLANG_TARGET_NAME}
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
+
 endfunction()
 
 list(APPEND CROSSLANG_SOURCE
@@ -94,6 +96,7 @@ src/runtime_methods/ogc.cpp
 src/runtime_methods/path.cpp
 src/runtime_methods/env.cpp
 src/runtime_methods/process.cpp
+src/runtime_methods/time.cpp
 src/types/ittr.cpp
 src/types/closure.cpp
 src/types/dictionary.cpp

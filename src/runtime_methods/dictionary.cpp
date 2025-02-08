@@ -12,7 +12,7 @@ namespace Tesses::CrossLang
             TDictionary* enumerableItem = TDictionary::Create(ls);
             ls.GetGC()->BarrierBegin();
 
-            auto fn = TExternalMethod::Create(ls,"Get Enumerator for Dictionary",{"dict"},[dynDict](GCList& ls2, std::vector<TObject> args)->TObject {
+            auto fn = TExternalMethod::Create(ls,"Get Enumerator for Dictionary",{},[dynDict](GCList& ls2, std::vector<TObject> args)->TObject {
                 return dynDict->GetEnumerator(ls2);
             });
             fn->watch.push_back(dynDict);

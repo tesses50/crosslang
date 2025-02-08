@@ -8,6 +8,11 @@ Tesses Cross Language
 - Jansson (but can be turned off but is strongly recommended otherwise many programs will not work)
 - CMake
 
+## What libraries have I embeaded from other people
+- [HodwardHinnart's date]() (in folder src/HodwardHinnart_date, modified tz.cpp to point to correct header)
+- [Sqlite]() (in folder src/sqlite also uses demo VFS (at least on Wii))
+- [Sago's platform_folders]() (in folder src/sago)
+- [subprocess](https://github.com/sheredom/subprocess.h) (as file src/runtime_methods/subprocess.h)
 ## Use in docker (use my container)
 ```bash
     sudo docker pull -t onedev.site.tesses.net/crosslang/crosslang:latest

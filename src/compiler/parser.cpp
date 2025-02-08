@@ -471,6 +471,16 @@ namespace Tesses::CrossLang
 
             return AdvancedSyntaxNode::Create(IfStatement, false, {cond, truthy,falsey});
         }
+        if(IsIdentifier("switch"))
+        {
+            EnsureSymbol("(");
+            SyntaxNode cond = ParseExpression();
+            EnsureSymbol(")");
+
+            SyntaxNode body = ParseNode();
+            
+            return AdvancedSyntaxNode::Create(SwitchStatement,false,{cond,body});
+        }
         if(IsIdentifier("while"))
         {
             EnsureSymbol("(");
@@ -547,6 +557,19 @@ namespace Tesses::CrossLang
             }
             return AdvancedSyntaxNode::Create(EachStatement,false,{item,list,body});
         }
+        if(IsIdentifier("enumerable"))
+        {
+            auto nameAndArgs = ParseExpression();
+            
+            if(IsSymbol("{",false))
+            {
+                return AdvancedSyntaxNode::Create(EnumerableStatement,false,{nameAndArgs,ParseNode()});
+            }
+            else
+            {   
+                throw SyntaxException(tokens[i].lineInfo, "expected the symbol \"{\" on enumerable but got the symbol or other token \"" + tokens[i].text + "\"");
+            }
+        }
         if(IsIdentifier("func"))
         {
             auto nameAndArgs = ParseExpression();
@@ -573,11 +596,38 @@ namespace Tesses::CrossLang
             EnsureSymbol(";");
             return AdvancedSyntaxNode::Create(ContinueStatement,false,{});
         }
+        if(IsIdentifier("case"))
+        {
+            auto r = AdvancedSyntaxNode::Create(CaseStatement,false,{ParseExpression()});
+            EnsureSymbol(":");
+            return r;
+        }
+        if(IsIdentifier("default"))
+        {
+            auto r = AdvancedSyntaxNode::Create(DefaultStatement,false,{});
+            EnsureSymbol(":");
+            return r;
+        }
         if(IsIdentifier("return"))
         {
-            auto v = ParseExpression();
-            EnsureSymbol(";");
+            SyntaxNode v = Undefined();
+            if(!IsSymbol(";",true))
+            {
+                v = ParseExpression();
+                EnsureSymbol(";");
+            }
             return AdvancedSyntaxNode::Create(ReturnStatement,false,{v});
+        }
+
+        if(IsIdentifier("yield"))
+        {
+            SyntaxNode v = Undefined();
+            if(!IsSymbol(";",true))
+            {
+                v = ParseExpression();
+                EnsureSymbol(";");
+            }
+            return AdvancedSyntaxNode::Create(YieldStatement,false,{v});
         }
         if(IsIdentifier("throw"))
         {

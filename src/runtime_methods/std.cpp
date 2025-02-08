@@ -130,6 +130,7 @@ namespace Tesses::CrossLang
         if(std::holds_alternative<char>(args[0])) return "Char";
         if(std::holds_alternative<MethodInvoker>(args[0])) return "MethodInvoker";
         if(std::holds_alternative<std::string>(args[0])) return "String";
+        
         if(std::holds_alternative<Tesses::Framework::Filesystem::VFSPath>(args[0])) return "Path";
         if(std::holds_alternative<THeapObjectHolder>(args[0]))
         {
@@ -147,6 +148,8 @@ namespace Tesses::CrossLang
             auto vfs = dynamic_cast<TVFSHeapObject*>(obj);
             auto strm = dynamic_cast<TStreamHeapObject*>(obj);
             auto svr = dynamic_cast<TServerHeapObject*>(obj);
+            auto cse = dynamic_cast<CallStackEntry*>(obj);
+            if(cse != nullptr) return "YieldedClosure";
             if(dynDict != nullptr) return "DynamicDictionary";
             if(dynList != nullptr) return "DynamicList";
             if(strm != nullptr)
@@ -300,12 +303,37 @@ namespace Tesses::CrossLang
     
     }
 
+    static TObject YieldEnumerableFunc(GCList& ls, std::vector<TObject> args)
+    {
+        TClosure* closure;
+        if(GetArgumentHeap(args,0,closure))
+        {
+            TDictionary* enumerableItem = TDictionary::Create(ls);
+            ls.GetGC()->BarrierBegin();
+
+            auto fn = TExternalMethod::Create(ls,"Get Enumerator for yield",{},[closure](GCList& ls2, std::vector<TObject> args)->TObject {
+                return TYieldEnumerator::Create(ls2,closure);
+            });
+            fn->watch.push_back(closure);
+                
+            enumerableItem->SetValue("GetEnumerator", fn);
+                
+            ls.GetGC()->BarrierEnd();
+
+            return enumerableItem;
+            
+        }
+
+        return Undefined();
+    }
+
     void TStd::RegisterRoot(GC* gc, TRootEnvironment* env)
     {
 
         env->permissions.canRegisterRoot=true;
         env->DeclareFunction(gc, "ParseLong","Parse Long from String",{"arg","$base"},ParseLong);
         env->DeclareFunction(gc, "ParseDouble","Parse Double from String",{"arg"},ParseDouble);
+        env->DeclareFunction(gc, "YieldEmumerable","Turn yield in function into enumerable",{"closure"},YieldEnumerableFunc);
         env->DeclareFunction(gc, "TypeOf","Get type of object",{"object"},TypeOf);
         env->DeclareFunction(gc, "TypeIsDefined","Get whether object is not null or undefined",{"object"},TypeIsDefined);
         env->DeclareFunction(gc, "TypeIsHeap","Get whether object is susceptible to garbage collection",{"object"},TypeIsHeap);
@@ -406,6 +434,7 @@ namespace Tesses::CrossLang
         RegisterCrypto(gc,env);
         RegisterOGC(gc, env);
         RegisterProcess(gc,env);
+        RegisterTime(gc, env);
 
         gc->RegisterEverything(env);
 

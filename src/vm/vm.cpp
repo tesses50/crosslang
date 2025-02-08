@@ -6,6 +6,7 @@
 namespace Tesses::CrossLang {
     
      thread_local CallStackEntry* current_function=nullptr;
+
     bool ToBool(TObject obj)
     {
         if(std::holds_alternative<Tesses::Framework::Filesystem::VFSPath>(obj))
@@ -1639,6 +1640,7 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc, -number);
                     else
                         cse.back()->Push(gc, number);
+                    return false;
                 }
                 if(key == "ToDouble")
                 {
@@ -1978,8 +1980,34 @@ namespace Tesses::CrossLang {
                 auto env = dynamic_cast<TEnvironment*>(obj);
                 auto rootEnv = dynamic_cast<TRootEnvironment*>(obj);
                 auto callable = dynamic_cast<TCallable*>(obj);
+                auto callstackEntry = dynamic_cast<CallStackEntry*>(obj);
+                
                 auto svr = dynamic_cast<TServerHeapObject*>(obj);
                 
+                if(callstackEntry != nullptr)
+                {
+                    if(key == "Resume")
+                    {
+                        gc->BarrierBegin();
+                        cse.push_back(callstackEntry);
+                        gc->BarrierEnd();
+                        return true;
+                    }
+                    if(key == "Push")
+                    {
+                        if(!args.empty())
+                        callstackEntry->Push(gc, args[0]);
+                        else
+                        callstackEntry->Push(gc,Undefined());
+                        return false;
+                    }
+                    if(key == "Pop")
+                    {
+                        cse.back()->Push(gc, callstackEntry->Pop(ls));
+                        return false;
+                    }
+                }
+
                 if(svr != nullptr)
                 {
                     auto mountable = dynamic_cast<Tesses::Framework::Http::MountableServer*>(svr->server);
@@ -2196,6 +2224,13 @@ namespace Tesses::CrossLang {
                     {
                         if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterSqlite) && !rootEnv->permissions.locked)
                         TStd::RegisterSqlite(gc, rootEnv);
+                        cse.back()->Push(gc,nullptr);
+                        return false;
+                    }
+                    if(key == "RegisterTime")
+                    {
+                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterTime) && !rootEnv->permissions.locked)
+                        TStd::RegisterTime(gc, rootEnv);
                         cse.back()->Push(gc,nullptr);
                         return false;
                     }
@@ -3353,6 +3388,19 @@ namespace Tesses::CrossLang {
 
         return false;
     }
+    bool InterperterThread::Yield(GC* gc)
+    {
+        GCList ls(gc);
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        if(!cse.empty())
+        {
+            gc->BarrierBegin();
+            cse.back()->mustReturn=true;
+            cse.back()->Push(gc, cse.back());
+            gc->BarrierEnd();
+        }
+        return false;
+    }
     bool InterperterThread::ExecuteMethod(GC* gc)
     {
          GCList ls(gc);
@@ -3439,6 +3487,33 @@ namespace Tesses::CrossLang {
                 auto ittr = dynamic_cast<TEnumerator*>(obj);
                 auto strm = dynamic_cast<TStreamHeapObject*>(obj);
                 auto vfs = dynamic_cast<TVFSHeapObject*>(obj);
+                auto callstackEntry = dynamic_cast<CallStackEntry*>(obj);
+
+                if(callstackEntry != nullptr)
+                {
+                    if(key == "IP") 
+                    {
+                        cse.back()->Push(gc, (int64_t)callstackEntry->ip);
+                        return false;
+                    }
+                    if(key == "IsDone")
+                    {
+                        cse.back()->Push(gc, callstackEntry->ip >= callstackEntry->callable->closure->code.size());
+                        return false;
+                    }
+                    if(key == "Closure")
+                    {
+                        cse.back()->Push(gc, callstackEntry->callable);
+                        return false;
+                    }
+                    if(key == "StackEmpty")
+                    {
+                        cse.back()->Push(gc, callstackEntry->stack.empty());
+                        return false;
+                    }
+                    cse.back()->Push(gc,Undefined());
+                    return false;
+                }
             
                 if(strm != nullptr)
                 {
@@ -3491,7 +3566,7 @@ namespace Tesses::CrossLang {
                             return false;
                         }
 
-                        cse.back()->Push(gc, nullptr);
+                        cse.back()->Push(gc, Undefined());
 
                         return false;
                     }
@@ -3512,7 +3587,7 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc, ittr->GetCurrent(ls));
                         return false;
                     }
-                    cse.back()->Push(gc, nullptr);
+                    cse.back()->Push(gc, Undefined());
                     return false;
                 }
                 if(closure != nullptr)
@@ -4312,11 +4387,31 @@ namespace Tesses::CrossLang {
 
                 if(((*this).*(opcodes[stk->callable->closure->code[ip]]))(gc))
                     goto execute;
+
+                if(stk->mustReturn) {
+
+                    stk->mustReturn=false;
+                    if(cse.size() > 1)
+                    {
+                        GCList ls(gc);
+                         TObject o = cse[cse.size()-1]->Pop(ls);
+                 cse[cse.size()-2]->Push(gc,o);
+            
+                cse.erase(cse.end()-1);
+                current_function = cse.back();
+                gc->BarrierEnd();
+                goto execute;
+                    } else {
+                        return;
+                    }
+                }
                
 
                 if(gc->UsingNullThreads()) gc->Collect();
                 
             }
+
+            stk->mustReturn=false;
             }
              catch(VMByteCodeException& ex)
             {
@@ -4516,6 +4611,20 @@ namespace Tesses::CrossLang {
         this->stack.push_back(o);
         gc->BarrierEnd();
     }
+    TObject CallStackEntry::Resume(GCList& ls)
+    {
+        auto cse = current_function;
+        InterperterThread* thrd=InterperterThread::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        thrd->call_stack_entries.push_back(this);
+        ls.GetGC()->BarrierEnd();
+
+        thrd->Execute(ls.GetGC());
+
+        TObject v= thrd->call_stack_entries[0]->Pop(ls);
+        current_function = cse;
+        return v;
+    }
     TObject CallStackEntry::Pop(GCList& gc)
     {
         if(this->stack.empty()) return Undefined();
@@ -4546,6 +4655,7 @@ namespace Tesses::CrossLang {
     CallStackEntry* CallStackEntry::Create(GCList& ls)
     {
         CallStackEntry* cse = new CallStackEntry();
+        cse->mustReturn=false;
         GC* _gc = ls.GetGC();
         ls.Add(cse);
         _gc->Watch(cse);
@@ -4555,6 +4665,7 @@ namespace Tesses::CrossLang {
     CallStackEntry* CallStackEntry::Create(GCList* ls)
     {
         CallStackEntry* cse = new CallStackEntry();
+        cse->mustReturn=false;
         GC* _gc = ls->GetGC();
         ls->Add(cse);
         _gc->Watch(cse);

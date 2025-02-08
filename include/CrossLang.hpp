@@ -14,6 +14,7 @@
 #include <cstring>
 #include <TessesFramework/TessesFramework.hpp>
 #include <regex>
+#include <time.h>
 #define TVM_MAJOR 1
 #define TVM_MINOR 0
 #define TVM_PATCH 0
@@ -363,7 +364,8 @@ typedef enum {
     DEFER,
     TRYCATCH,
     THROW,
-    PUSHSCOPELESSCLOSURE
+    PUSHSCOPELESSCLOSURE,
+    YIELD
 } Instruction;
 
 class ByteCodeInstruction {
@@ -568,6 +570,11 @@ constexpr std::string_view ParenthesesExpression = "parenthesesExpression";
 constexpr std::string_view ThrowStatement = "throwStatement";
 constexpr std::string_view TryStatement = "tryStatement";
 constexpr std::string_view DeferStatement = "deferStatement";
+constexpr std::string_view YieldStatement = "yieldStatement";
+constexpr std::string_view EnumerableStatement = "enumerableStatement";
+constexpr std::string_view SwitchStatement = "switchStatement";
+constexpr std::string_view CaseStatement = "caseStatement";
+constexpr std::string_view DefaultStatement = "defaultStatement";
 class AdvancedSyntaxNode {
     public:
         std::string nodeName;
@@ -634,6 +641,7 @@ class Parser {
 
         
     };
+    
         class THeapObjectHolder
     {
         public:
@@ -771,6 +779,7 @@ class GC {
             virtual void Mark();
 
     };
+    
 
     class TDictionary : public THeapObject
     {
@@ -848,6 +857,7 @@ class GC {
             bool canRegisterPath;
             bool canRegisterOGC;
             bool canRegisterEnv;
+            bool canRegisterTime;
             bool sqlite3Scoped;
             bool locked;
     };
@@ -894,8 +904,10 @@ class GC {
             static void RegisterOGC(GC* gc, TRootEnvironment* env);
             static void RegisterEnv(GC* gc, TRootEnvironment* env);
             static void RegisterProcess(GC* gc, TRootEnvironment* env);
+            static void RegisterTime(GC* gc, TRootEnvironment* env);
 
     };
+
     class TSubEnvironment : public TEnvironment
     {
         TEnvironment* env;
@@ -970,6 +982,20 @@ class GC {
             void Mark();
             static TCustomEnumerator* Create(GCList& ls,TDictionary* dict);
             static TCustomEnumerator* Create(GCList* ls,TDictionary* dict);
+            
+    };
+
+    class TYieldEnumerator : public TEnumerator
+    {
+        bool hasStarted;
+        TObject enumerator;
+        TObject current;
+        public:
+            bool MoveNext(GC* ls);
+            TObject GetCurrent(GCList& ls);
+            void Mark();
+            static TYieldEnumerator* Create(GCList& ls,TObject v);
+            static TYieldEnumerator* Create(GCList* ls,TObject v);
             
     };
     
@@ -1193,10 +1219,13 @@ class GC {
             TClosure* callable;
             uint32_t ip;
             uint32_t scopes; 
+            bool mustReturn;
             
             void Mark();
             void Push(GC* gc,TObject v);
             TObject Pop(GCList& gcl);
+
+            TObject Resume(GCList& ls);
     };
     extern thread_local CallStackEntry* current_function;
     
@@ -1246,6 +1275,7 @@ class GC {
             bool PushResource(GC* gc);
             bool Illegal(GC* gc);
             bool Throw(GC* gc);
+            bool Yield(GC* gc);
             bool Jump(GC* gc);
             bool JumpConditional(GC* gc);
             bool JumpUndefined(GC* gc);

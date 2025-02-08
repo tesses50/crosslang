@@ -2,6 +2,78 @@
 
 namespace Tesses::CrossLang
 {
+    bool TYieldEnumerator::MoveNext(GC* ls)
+    {
+        CallStackEntry* ent;
+        GCList ls2(ls);
+        if(!this->hasStarted)
+        {
+            TClosure* clos;
+            if(!GetObjectHeap(this->enumerator,clos)) return false;
+            auto _enumerator= clos->Call(ls2,{});
+            ls->BarrierBegin();
+            this->enumerator = _enumerator;
+            this->hasStarted=true;
+            ls->BarrierEnd();
+        }
+        else {
+            
+            if(GetObjectHeap(this->enumerator,ent))
+            {
+                auto _enumerator= ent->Resume(ls2);
+                ls->BarrierBegin();
+                this->enumerator = _enumerator;
+                ls->BarrierEnd();
+                
+            } else return false;
+        }
+        
+        if(GetObjectHeap(this->enumerator,ent))
+        {
+            ls->BarrierBegin();
+            this->current = ent->Pop(ls2);
+            ls->BarrierEnd();
+            return true;
+        }
+        return false;
+    }
+    TObject TYieldEnumerator::GetCurrent(GCList& ls)
+    {
+        ls.Add(this->current);
+        return this->current;
+    }
+    void TYieldEnumerator::Mark()
+    {
+        if(this->marked) return;
+        this->marked=true;
+        GC::Mark(this->current);
+        GC::Mark(this->enumerator);
+    }
+    TYieldEnumerator* TYieldEnumerator::Create(GCList& ls,TObject v)
+    {
+        TYieldEnumerator* yieldEnum = new TYieldEnumerator();
+        yieldEnum->current=nullptr;
+        yieldEnum->hasStarted=false;
+        yieldEnum->enumerator = v;
+        
+        GC* _gc = ls.GetGC();
+        ls.Add(yieldEnum);
+        _gc->Watch(yieldEnum);
+        return yieldEnum;
+    }
+    TYieldEnumerator* TYieldEnumerator::Create(GCList* ls,TObject v)
+    {
+
+        TYieldEnumerator* yieldEnum = new TYieldEnumerator();
+        yieldEnum->current=nullptr;
+        yieldEnum->hasStarted=false;
+        yieldEnum->enumerator = v;
+        
+        GC* _gc = ls->GetGC();
+        ls->Add(yieldEnum);
+        _gc->Watch(yieldEnum);
+        return yieldEnum;
+    }
     
     bool TCustomEnumerator::MoveNext(GC* ls)
     {   
