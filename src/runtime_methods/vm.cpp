@@ -1,4 +1,3 @@
-
 #include "CrossLang.hpp"
 #include <iostream>
 #include <fstream>
@@ -6,6 +5,79 @@
 
 namespace Tesses::CrossLang
 {
+    static TObject AstToTObject(GCList& ls,SyntaxNode node)
+    {
+        if(std::holds_alternative<std::nullptr_t>(node))
+        return nullptr;
+    if(std::holds_alternative<int64_t>(node))
+    {
+        return std::get<int64_t>(node);
+    }
+    if(std::holds_alternative<double>(node))
+    {
+        return std::get<double>(node);
+    }
+    if(std::holds_alternative<bool>(node))
+    {
+        return std::get<bool>(node);
+    }
+    if(std::holds_alternative<std::string>(node))
+    {
+        std::string str = std::get<std::string>(node);
+        return str;
+    }
+    if(std::holds_alternative<char>(node))
+    {
+        char c = std::get<char>(node);
+        return c;
+    }
+    if(std::holds_alternative<Undefined>(node))
+    {
+        auto r = TDictionary::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        r->SetValue("Type",std::string(UndefinedExpression));
+        ls.GetGC()->BarrierEnd();
+        return r;
+        
+    }
+
+
+    if(std::holds_alternative<AdvancedSyntaxNode>(node))
+    {
+        auto asn = std::get<AdvancedSyntaxNode>(node);
+        auto r = TDictionary::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        r->SetValue("Type",asn.nodeName);
+        r->SetValue("IsExpression",asn.isExpression);
+        TList* ls2 = TList::Create(ls);
+        for(auto item : asn.nodes)
+        {
+            ls2->Add(AstToTObject(ls,item));
+        }
+        r->SetValue("Arguments", ls2);
+        ls.GetGC()->BarrierEnd();
+        return r;
+    }
+        return nullptr;
+    }
+    static TObject VM_SourceToAst(GCList& ls, std::vector<TObject> args)
+    {
+        std::string str;
+        if(GetArgument(args,0,str))
+        {
+            std::stringstream strm(str);
+            std::vector<LexToken> tokens;
+            int res = Lex("memory.tcross",strm,tokens);
+            if(res != 0)
+            {
+                throw VMException("Lex error at line: " + std::to_string(res));
+            }
+            Parser p(tokens);
+            auto res2 =p.ParseRoot();
+            return AstToTObject(ls,res2);
+        }
+        return nullptr;
+    }
     static TObject VM_Eval(GCList& ls, std::vector<TObject> args)
     {
         std::string str;
@@ -201,7 +273,7 @@ namespace Tesses::CrossLang
         dict->DeclareFunction(gc, "Eval", "Eval source code",{"source"}, VM_Eval);
         dict->DeclareFunction(gc, "Compile", "Compile Source",{"dict"},VM_Compile);
         
-        
+        dict->DeclareFunction(gc, "SourceToAst", "Convert source to ast", {"source"}, VM_SourceToAst);
         
         gc->BarrierBegin();
         env->DeclareVariable("VM", dict);

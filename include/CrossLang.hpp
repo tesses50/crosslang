@@ -480,6 +480,16 @@ class CharInstruction : public ByteCodeInstruction {
 
 using SyntaxNode = std::variant<int64_t, double, std::string, char, bool, std::nullptr_t, Undefined, AdvancedSyntaxNode>;
 
+class ObjectEntry {
+    public:
+        std::vector<std::string> name;
+        std::string doc;
+        std::vector<std::pair<std::string,SyntaxNode>> variables;
+        std::vector<std::pair<std::pair<std::string,std::string>,uint32_t>> funcs;
+        std::vector<std::pair<std::pair<std::string,std::string>,uint32_t>> static_funcs;
+
+};
+
 class CodeGen {
     uint32_t id;
     uint32_t NewId();
@@ -494,6 +504,7 @@ class CodeGen {
     std::vector<std::string> res;
     std::vector<std::pair<std::vector<uint32_t>, std::vector<ByteCodeInstruction*>>> chunks;
     std::vector<std::pair<std::vector<uint32_t>,uint32_t>> funcs;
+    std::vector<ObjectEntry> objectEntries;
     void GenNode(std::vector<ByteCodeInstruction*>& instructions, SyntaxNode n,int32_t scope, int32_t contscope, int32_t brkscope, int32_t contI, int32_t brkI);
     void GenPop(std::vector<ByteCodeInstruction*>& instrs,SyntaxNode n);
     public:
@@ -575,6 +586,11 @@ constexpr std::string_view EnumerableStatement = "enumerableStatement";
 constexpr std::string_view SwitchStatement = "switchStatement";
 constexpr std::string_view CaseStatement = "caseStatement";
 constexpr std::string_view DefaultStatement = "defaultStatement";
+constexpr std::string_view ObjectStatement = "objectStatement";
+constexpr std::string_view StaticStatement = "staticStatement";
+constexpr std::string_view MethodDeclaration = "methodDeclaration";
+
+
 class AdvancedSyntaxNode {
     public:
         std::string nodeName;
@@ -659,7 +675,7 @@ class Parser {
     class MethodInvoker {
 
     };
-using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder>;
+using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder,Tesses::Framework::Graphics::Color>;
 class TRootEnvironment;
 class GC;
 class GC {

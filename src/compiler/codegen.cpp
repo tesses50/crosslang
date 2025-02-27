@@ -911,7 +911,7 @@ namespace Tesses::CrossLang
                 contscope = old_contscope;
                 brkscope = old_brkscope; 
             }
-            else if(adv.nodeName == CommaExpression && adv.nodeName.size() == 2)
+            else if(adv.nodeName == CommaExpression && adv.nodes.size() == 2)
             {
                 GenNode(instructions,adv.nodes[0],scope,contscope,brkscope,contI,brkI);
                 GenPop(instructions,adv.nodes[0]);

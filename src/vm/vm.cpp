@@ -158,10 +158,9 @@ namespace Tesses::CrossLang {
                 }
                 return true;
             }
-            else {
-                this->call_stack_entries.back()->Push(ls.GetGC(),Undefined());
-            }
+            
         }
+        this->call_stack_entries.back()->Push(ls.GetGC(),Undefined());
         return false;
     }
     bool InterperterThread::Sub(GC* gc)

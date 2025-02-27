@@ -165,6 +165,14 @@ namespace Tesses::CrossLang
             node = AdvancedSyntaxNode::Create(GetVariableExpression, true,{"operator"+variable.text});
             
         }
+        else if(IsIdentifier("new"))
+        {
+            if(i >= tokens.size()) throw std::out_of_range("End of file");
+            auto variable = tokens[i];
+            i++;
+            if(variable.type != LexTokenType::Identifier && variable.type != LexTokenType::Symbol) throw SyntaxException(variable.lineInfo, "Expected an identifier or a symbol got a " + LexTokenType_ToString(variable.type) + " \"" + variable.text + "\"");
+            node = AdvancedSyntaxNode::Create(GetFieldExpression, true, {AdvancedSyntaxNode::Create(GetVariableExpression,true,{"New"}), variable.text});
+        }
         else if(IsIdentifier("embed"))
         {
             EnsureSymbol("(");
@@ -339,6 +347,7 @@ namespace Tesses::CrossLang
         {
             return AdvancedSyntaxNode::Create(PrefixDecrementExpression,true,{ParseUnary()});
         }
+        
         return ParseValue();
     }
 
@@ -556,6 +565,10 @@ namespace Tesses::CrossLang
                 body = ParseNode();
             }
             return AdvancedSyntaxNode::Create(EachStatement,false,{item,list,body});
+        }
+        if(IsIdentifier("object"))
+        {
+            //TODO: complete this
         }
         if(IsIdentifier("enumerable"))
         {

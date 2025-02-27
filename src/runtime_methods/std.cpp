@@ -118,6 +118,18 @@ namespace Tesses::CrossLang
         TVFSHeapObject* vfs;
         return GetArgumentHeap(args,0,vfs);
     }
+    static TObject New_Color(GCList& ls, std::vector<TObject> args)
+    {
+        int64_t r,g,b,a;
+        if(GetArgument(args,0,r) && GetArgument(args,1,g) && GetArgument(args,2,b))
+        {
+            if(!GetArgument(args,3,a)) {
+                a = 255;
+            }
+            return Tesses::Framework::Graphics::Color((uint8_t)r,(uint8_t)g,(uint8_t)b,(uint8_t)a);
+        }
+        return Tesses::Framework::Graphics::Colors::Black;
+    }
     static TObject TypeOf(GCList& ls, std::vector<TObject> args)
     {
         if(args.size() < 1) return "Undefined";
@@ -329,8 +341,10 @@ namespace Tesses::CrossLang
 
     void TStd::RegisterRoot(GC* gc, TRootEnvironment* env)
     {
-
+        GCList ls(gc);        
+        
         env->permissions.canRegisterRoot=true;
+        TDictionary* newTypes = TDictionary::Create(ls);
         env->DeclareFunction(gc, "ParseLong","Parse Long from String",{"arg","$base"},ParseLong);
         env->DeclareFunction(gc, "ParseDouble","Parse Double from String",{"arg"},ParseDouble);
         env->DeclareFunction(gc, "YieldEmumerable","Turn yield in function into enumerable",{"closure"},YieldEnumerableFunc);
@@ -414,8 +428,10 @@ namespace Tesses::CrossLang
             return Undefined();
         });
         env->DeclareFunction(gc,"ByteArray","Create bytearray, with optional either size (to size it) or string argument (to fill byte array)",{"$data"},ByteArray);
+        newTypes->DeclareFunction(gc,"Color","Create a new color",{"red","green","blue","$alpha"},New_Color);
         gc->BarrierBegin();
         env->DeclareVariable("InvokeMethod",MethodInvoker());
+        env->DeclareVariable("New", newTypes);
         gc->BarrierEnd();
     }
     void TStd::RegisterStd(GC* gc, TRootEnvironment* env)
