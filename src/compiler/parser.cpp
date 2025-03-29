@@ -1,5 +1,6 @@
 #include "CrossLang.hpp"
 #include <iostream>
+#include <stdexcept>
 namespace Tesses::CrossLang
 {
     std::string LexTokenType_ToString(LexTokenType t)
@@ -135,24 +136,25 @@ namespace Tesses::CrossLang
         else if(IsSymbol("{"))
         {
             if(IsSymbol("}",false))
-            node = AdvancedSyntaxNode::Create(DictionaryExpression,true,{});
+                node = AdvancedSyntaxNode::Create(DictionaryExpression,true,{});
             else
-            node = AdvancedSyntaxNode::Create(DictionaryExpression,true,{ParseExpression()});
+                node = AdvancedSyntaxNode::Create(DictionaryExpression,true,{ParseExpression()});
+            
             EnsureSymbol("}");
         }
         else if(IsSymbol("("))
         {
             if(IsSymbol(")",false))
-            node = AdvancedSyntaxNode::Create(ParenthesesExpression,true,{});
+                node = AdvancedSyntaxNode::Create(ParenthesesExpression,true,{});
             else
-            node = AdvancedSyntaxNode::Create(ParenthesesExpression,true,{ParseExpression()});
+                node = AdvancedSyntaxNode::Create(ParenthesesExpression,true,{ParseExpression()});
             EnsureSymbol(")");
         }
         else if(IsIdentifier("var"))
         {
             if(i >= tokens.size()) throw std::out_of_range("End of file");
-             auto variable = tokens[i];
-             i++;
+            auto variable = tokens[i];
+            i++;
             if(variable.type != LexTokenType::Identifier) throw SyntaxException(variable.lineInfo, "Expected an identifier got a " + LexTokenType_ToString(variable.type) + " \"" + variable.text + "\"");
             node = AdvancedSyntaxNode::Create(DeclareExpression,true,{variable.text});
         }
@@ -346,6 +348,23 @@ namespace Tesses::CrossLang
         else if(IsSymbol("--"))
         {
             return AdvancedSyntaxNode::Create(PrefixDecrementExpression,true,{ParseUnary()});
+        }
+        else if(IsSymbol("/"))
+        {
+            if(this->i < this->tokens.size() && (this->tokens[this->i].type == LexTokenType::String || this->tokens[this->i].type == LexTokenType::Identifier))
+            {
+                return AdvancedSyntaxNode::Create(DivideExpression,true,{
+                    AdvancedSyntaxNode::Create(RootPathExpression,true,{}),
+                    ParseValue()
+                }); 
+            }
+            else {
+                return AdvancedSyntaxNode::Create(RootPathExpression,true,{});
+            }
+        }
+        else if(IsSymbol("."))
+        {
+            return AdvancedSyntaxNode::Create(RelativePathExpression, true, {});
         }
         
         return ParseValue();
@@ -569,6 +588,98 @@ namespace Tesses::CrossLang
         if(IsIdentifier("object"))
         {
             //TODO: complete this
+            if(i < tokens.size())
+            {
+                std::string name = tokens[i++].text;
+                EnsureSymbol("{");
+                std::vector<SyntaxNode> name_and_methods;
+                name_and_methods.push_back(name);
+
+                while(!IsSymbol("}",false) && i < tokens.size())
+                {
+                    std::string documentation = "";
+                    bool hasDocumentation=false;
+
+                    
+
+                    if(tokens[i].type == LexTokenType::Documentation)
+                    {
+                        hasDocumentation=true;
+                        documentation = tokens[i++].text;
+                    }
+
+                    if(i < tokens.size())
+                    {
+                        if(IsIdentifier("method")) 
+                        {
+                            auto nameAndArgs = ParseExpression();
+            
+                            if(IsSymbol("{",false))
+                            {
+                                auto r = AdvancedSyntaxNode::Create(MethodDeclaration,false,{nameAndArgs,ParseNode()});
+                                if(hasDocumentation)
+                                {
+                                    name_and_methods.push_back(AdvancedSyntaxNode::Create(DocumentationStatement,false,{documentation,r}));
+                                }
+                                else 
+                                {
+                                    name_and_methods.push_back(r);    
+                                }
+                            }
+                            else
+                            {
+                                auto v = ParseExpression();
+
+                                EnsureSymbol(";");
+                                auto r= AdvancedSyntaxNode::Create(MethodDeclaration,false,{nameAndArgs,AdvancedSyntaxNode::Create(ReturnStatement,false,{v})});
+                                if(hasDocumentation)
+                                {
+                                    name_and_methods.push_back(AdvancedSyntaxNode::Create(DocumentationStatement,false,{documentation,r}));
+                                }
+                                else 
+                                {
+                                    name_and_methods.push_back(r);    
+                                }
+                            }
+                        }
+                        else if(IsIdentifier("static")) 
+                        {
+                            auto nameAndArgs = ParseExpression();
+            
+                            if(IsSymbol("{",false))
+                            {
+                                auto r = AdvancedSyntaxNode::Create(StaticStatement,false,{nameAndArgs,ParseNode()});
+                                if(hasDocumentation)
+                                {
+                                    name_and_methods.push_back(AdvancedSyntaxNode::Create(DocumentationStatement,false,{documentation,r}));
+                                }
+                                else 
+                                {
+                                    name_and_methods.push_back(r);    
+                                }
+                            }
+                            else
+                            {
+                                auto v = ParseExpression();
+
+                                EnsureSymbol(";");
+                                auto r= AdvancedSyntaxNode::Create(StaticStatement,false,{nameAndArgs,AdvancedSyntaxNode::Create(ReturnStatement,false,{v})});
+                                if(hasDocumentation)
+                                {
+                                    name_and_methods.push_back(AdvancedSyntaxNode::Create(DocumentationStatement,false,{documentation,r}));
+                                }
+                                else 
+                                {
+                                    name_and_methods.push_back(r);    
+                                }
+                            }
+                        }
+                    }
+                }
+                EnsureSymbol("}");
+                return AdvancedSyntaxNode::Create(ObjectStatement, false, name_and_methods);
+            }
+            else throw std::out_of_range("End of file");
         }
         if(IsIdentifier("enumerable"))
         {

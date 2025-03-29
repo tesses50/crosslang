@@ -10,6 +10,7 @@ namespace Tesses::CrossLang
     TFile* TFile::Create(GCList& ls)
     {
         TFile* f = new TFile();
+        f->icon = -1;
         GC* _gc = ls.GetGC();
         ls.Add(f);
         _gc->Watch(f);
@@ -18,6 +19,7 @@ namespace Tesses::CrossLang
     TFile* TFile::Create(GCList* ls)
     {
         TFile* f = new TFile();
+        f->icon=-1;
         GC* _gc = ls->GetGC();
         ls->Add(f);
         _gc->Watch(f);
@@ -91,13 +93,13 @@ namespace Tesses::CrossLang
     std::string TFile::GetString(Tesses::Framework::Streams::Stream* stream)
     {
         uint32_t index=EnsureInt(stream);
-        if(index > this->strings.size()) throw VMException("String does not exist in TCrossVM file, expected string index: " + std::to_string(index) + ", total strings: " + std::to_string(this->strings.size()));
+        if(index >= this->strings.size()) throw VMException("String does not exist in TCrossVM file, expected string index: " + std::to_string(index) + ", total strings: " + std::to_string(this->strings.size()));
         return this->strings[index];
     }
 
     void TFile::Load(GC* gc, Tesses::Framework::Streams::Stream* stream)
     {
-        GCList ls(gc);
+        
         uint8_t main_header[18];
         Ensure(stream,main_header,sizeof(main_header));
         if(strncmp((const char*)main_header,"TCROSSVM",8) != 0) throw VMException("Invalid TCrossVM image.");
@@ -133,6 +135,14 @@ namespace Tesses::CrossLang
                 TVMVersion depVersion(version_bytes);
                 this->dependencies.push_back(std::pair<std::string,TVMVersion>(name, depVersion));
             }
+            else if(strncmp(table_name,"TOOL",4) == 0) //compile tools (for package manager)
+            {
+                std::string name = GetString(stream);
+                uint8_t version_bytes[5];
+                Ensure(stream,version_bytes,sizeof(version_bytes));
+                TVMVersion depVersion(version_bytes);
+                this->tools.push_back(std::pair<std::string,TVMVersion>(name, depVersion));
+            }
             else if(strncmp(table_name,"RESO",4) == 0) //resources (using embed)
             {
                 std::vector<uint8_t> data;
@@ -140,11 +150,13 @@ namespace Tesses::CrossLang
                 Ensure(stream,data.data(), tableLen);
                 this->resources.push_back(data);
             }
-            else if(strncmp(table_name,"CHKS",4) == 0) //chunks
+            else if(strncmp(table_name,"CHKS",4) == 0 && gc != nullptr) //chunks
             {
+                GCList ls(gc);
                 size_t chunkCount = (size_t)EnsureInt(stream);
                 for(size_t j = 0; j < chunkCount; j++)
                 {
+                    
                     auto chunk = TFileChunk::Create(ls);
                     chunk->file = this;
                     size_t argCount = (size_t)EnsureInt(stream);
@@ -159,6 +171,7 @@ namespace Tesses::CrossLang
 
                     this->chunks.push_back(chunk);
                 }
+                
             }
             else if(strncmp(table_name,"FUNS",4) == 0) //functions
             {
@@ -186,6 +199,10 @@ namespace Tesses::CrossLang
                 {
                     this->strings.push_back(EnsureString(stream));
                 }
+            }
+            else if(strncmp(table_name,"ICON",4) == 0) //icon
+            {
+                this->icon = (int32_t)EnsureInt(stream);
             }
             else
             {

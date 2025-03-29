@@ -42,14 +42,28 @@ namespace Tesses::CrossLang
         uint32_t sections=5;
         uint32_t name = GetString(this->name);
         uint32_t info = GetString(this->info);
+
         for(auto& dep : this->dependencies)
         {
             GetString(dep.first);
             sections++;
         }
+        for(auto& tool : this->tools)
+        {
+            GetString(tool.first);
+            sections++;
+        }
+        if(!this->icon.empty())
+        {
+            this->GetResource(this->icon);
+            
+        }
         for(auto& res : this->res)
             sections++;
         
+        if(!this->icon.empty())
+            sections++;
+       
        
         WriteInt(stream,sections);
         uint32_t strSz=4;
@@ -79,6 +93,15 @@ namespace Tesses::CrossLang
             WriteInt(stream,9); //even though its ignored
             WriteInt(stream,GetString(dep.first));
             dep.second.ToArray(buffer);
+            Write(stream,buffer,5);
+        }
+        for(auto& tool : this->tools)
+        {
+            memcpy(buffer,"TOOL",4);
+            Write(stream,buffer,4);
+            WriteInt(stream,9); //even though its ignored
+            WriteInt(stream,GetString(tool.first));
+            tool.second.ToArray(buffer);
             Write(stream,buffer,5);
         }
 
@@ -155,7 +178,7 @@ namespace Tesses::CrossLang
             WriteInt(stream,(uint32_t)buffer.size());
             Write(stream,buffer.data(),buffer.size());
         }
-    
+        
         for(auto& reso : res)
         {
             memcpy(buffer,"RESO",4);
@@ -185,6 +208,14 @@ namespace Tesses::CrossLang
             {
                 WriteInt(stream,0);
             }
+        }
+        if(!this->icon.empty())
+        {
+            memcpy(buffer,"ICON",4);
+            Write(stream,buffer,4);
+            WriteInt(stream,4);
+            WriteInt(stream,this->GetResource(this->icon));
+            
         }
     }
 
@@ -430,7 +461,15 @@ namespace Tesses::CrossLang
             TWO_EXPR(NotEqualsExpression, NEQ)
             TWO_EXPR(EqualsExpression, EQ)
             TWO_EXPR(XOrExpression, XOR)
-            if(adv.nodeName == SwitchStatement && adv.nodes.size() == 2)
+            if(adv.nodeName == RelativePathExpression)
+            {
+                instructions.push_back(new SimpleInstruction(Instruction::PUSHRELATIVEPATH));
+            }
+            else if(adv.nodeName == RootPathExpression)
+            {
+                instructions.push_back(new SimpleInstruction(Instruction::PUSHROOTPATH));
+            }
+            else if(adv.nodeName == SwitchStatement && adv.nodes.size() == 2)
             {
                 //THIS CODE WORKED FIRST TRY, I DON'T SEE THAT EVERY DAY, PRAISE GOD!!!!!!!
                 auto expr = adv.nodes[0];

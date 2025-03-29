@@ -10,8 +10,10 @@ void Help(const char* filename)
     printf("OPTIONS:\n");
     printf("  -o:  Output directory (OUTDIR, defaults to ./bin)\n");
     printf("  -i:  Set info (ex {\"maintainer\": \"Mike Nolan\", \"repo\": \"https://example.com/\", \"homepage\": \"https://example.com/\",\"license\":\"MIT\"})\n");
+    printf("  -I:  Set icon resource name (in the resource folder), should be a 128x128 png\n");
     printf("  -v:  Set version (1.0.0.0-prod defaults to 1.0.0.0-dev)\n");
     printf("  -d:  Add dependency (DependencyName-1.0.0.0-prod)\n");
+    printf("  -t:  Declare a tool (ToolName-1.0.0.0-prod)\n");
     printf("  -n:  Set name (MyAppOrLibName defaults to out)\n");
     printf("  -r:  Set resource directory (RESDIR defaults to res)\n");
     printf("  -h, --help:  Prints help\n");
@@ -37,8 +39,10 @@ int main(int argc, char** argv)
    std::vector<std::filesystem::path> source;
    std::filesystem::path resourceDir = std::filesystem::current_path() / "res";
    std::vector<std::pair<std::string, TVMVersion>> dependencies;
+   std::vector<std::pair<std::string, TVMVersion>> tools;
    std::string name="out";
    std::string info="{}";
+   std::string icon="";
    TVMVersion version;
    
 
@@ -72,6 +76,14 @@ int main(int argc, char** argv)
                 info = argv[i];
             }
         }
+        else if(strcmp(argv[i],"-I") == 0)
+        {
+            i++;
+            if(i < argc)
+            {
+                icon = argv[i];
+            }
+        }
         else if(strcmp(argv[i], "-d") == 0)
         {
             i++;
@@ -102,6 +114,40 @@ int main(int argc, char** argv)
                 else
                 {
                     printf("ERROR: Dependency must have version\n");
+                    exit(1);
+                }
+            }
+        }
+        else if(strcmp(argv[i], "-t") == 0)
+        {
+            i++;
+            if(i < argc)
+            {
+                std::string str = argv[i];
+                auto lastDash = str.find_last_of('-');
+                if(lastDash < str.size())
+                {
+                    std::string str2 = str.substr(lastDash+1);
+                    if(str2 == "dev" || str2 == "alpha" || str2 == "beta" || str2 == "prod")
+                    {
+                        lastDash = str.find_last_of('-',lastDash-1);
+                    }
+                    std::string str1 = str.substr(0,lastDash);
+                    str2 = str.substr(lastDash+1);
+                    
+                    TVMVersion v2;
+                    if(!TVMVersion::TryParse(str2,v2))
+                    {
+                        printf("ERROR: Invalid syntax for version\n");
+                        printf("Expected MAJOR[.MINOR[.PATCH[.BUILD[-dev,-alpha,-beta,-prod]]]]\n");
+                        exit(1);
+                    }
+                    tools.push_back(std::pair<std::string,TVMVersion>(str1,v2));
+                    
+                }
+                else
+                {
+                    printf("ERROR: Tool must have version\n");
                     exit(1);
                 }
             }
@@ -154,10 +200,16 @@ int main(int argc, char** argv)
     gen.name = name;
     gen.version = version;
     gen.info = info;
+    gen.icon = icon;
     for(auto deps : dependencies)
     {
         gen.dependencies.push_back(deps);
     }
+    for(auto tool : tools)
+    {
+        gen.tools.push_back(tool);
+    }
+    
     std::filesystem::create_directory(outputDir);
 
     {

@@ -82,11 +82,13 @@ namespace Tesses::CrossLang
         std::string name;
         std::string version;
         std::string info;
+        std::string icon="";
         TVMVersion version2;
 
-        if(GetArgumentHeap(args,0,vfs) && GetArgumentHeap(args,1,strm) && GetArgument(args,2,name) && GetArgument(args,3,version) && GetArgument(args,4,info) && TVMVersion::TryParse(version,version2))
+        if(GetArgumentHeap(args,0,vfs) && GetArgumentHeap(args,1,strm) && GetArgument(args,2,name)  && GetArgument(args,4,info) && ((GetArgument(args,3,version) && TVMVersion::TryParse(version,version2)) || GetArgument(args,3,version2)))
         {
-            CrossArchiveCreate(vfs->vfs,strm->stream,name,version2,info);
+            GetArgument(args,5,icon);
+            CrossArchiveCreate(vfs->vfs,strm->stream,name,version2,info,icon);
         }
         return nullptr;
     }

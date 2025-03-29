@@ -75,5 +75,8 @@
         "thread": "cpp",
         "bitset": "cpp",
         "regex": "cpp"
-    }
+    },
+    "clangd.fallbackFlags": [
+        "-Iinclude"
+    ]
 }

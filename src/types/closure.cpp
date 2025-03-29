@@ -32,6 +32,13 @@ namespace Tesses::CrossLang {
         if(this->marked) return;
         this->marked = true;
         this->callable->Mark();
+        GC::Mark(this->tag);
+    }
+    void TCallable::Mark()
+    {
+        if(this->marked) return;
+        this->marked=true;
+        GC::Mark(this->tag);
     }
     void TClosure::Mark()
     {
@@ -40,7 +47,7 @@ namespace Tesses::CrossLang {
         this->file->Mark();
         this->env->Mark();
         this->closure->Mark();
-        
+        GC::Mark(this->tag);
     }
     TClosure* TClosure::Create(GCList& ls,TEnvironment* env,TFile* file,uint32_t chunkId,bool ownScope)
     {

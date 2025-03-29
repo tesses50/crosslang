@@ -103,14 +103,14 @@ static json_t* Serialize2(SyntaxNode node)
     {
         char c = std::get<char>(node);
         json_t* json = json_object();
-        json_object_set_new(json,"type",json_string(CharExpression.begin()));
+        json_object_set_new(json,"type",json_string((const char*)CharExpression.data()));
         json_object_set_new(json, "value", json_integer((uint8_t)c));
         return json;
     }
     if(std::holds_alternative<Undefined>(node))
     {
         json_t* json = json_object();
-        json_object_set_new(json,"type",json_string(UndefinedExpression.begin()));
+        json_object_set_new(json,"type",json_string((const char*)UndefinedExpression.data()));
         return json;
     }
 

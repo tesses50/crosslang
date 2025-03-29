@@ -1,8 +1,11 @@
 #include "CrossLang.hpp"
+#include <TessesFramework/Filesystem/VFS.hpp>
+#include <cstddef>
 #include <iostream>
 #include <cmath>
 #include <cstring>
 #include <sstream>
+#include <variant>
 namespace Tesses::CrossLang {
     
      thread_local CallStackEntry* current_function=nullptr;
@@ -12,6 +15,11 @@ namespace Tesses::CrossLang {
         if(std::holds_alternative<Tesses::Framework::Filesystem::VFSPath>(obj))
         {
             return true;
+        }
+        if(std::holds_alternative<TVMVersion>(obj))
+        {
+            auto v = std::get<TVMVersion>(obj);
+            return v.AsLong() != 0;
         }
         if(std::holds_alternative<std::string>(obj))
         {
@@ -192,6 +200,7 @@ namespace Tesses::CrossLang {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
+
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
@@ -568,7 +577,13 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc,std::get<int64_t>(left) < std::get<double>(right));
         }
-
+        else if(std::holds_alternative<TVMVersion>(left) && std::holds_alternative<TVMVersion>(right))
+        {
+            auto lver= std::get<TVMVersion>(left);
+            auto rver = std::get<TVMVersion>(right);
+            auto r = lver.CompareTo(rver);
+            cse.back()->Push(gc, r < 0);
+        }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
@@ -624,7 +639,13 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc,std::get<int64_t>(left) > std::get<double>(right));
         }
-
+        else if(std::holds_alternative<TVMVersion>(left) && std::holds_alternative<TVMVersion>(right))
+        {
+            auto lver= std::get<TVMVersion>(left);
+            auto rver = std::get<TVMVersion>(right);
+            auto r = lver.CompareTo(rver);
+            cse.back()->Push(gc, r > 0);
+        }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
@@ -680,7 +701,13 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc,std::get<int64_t>(left) <= std::get<double>(right));
         }
-
+        else if(std::holds_alternative<TVMVersion>(left) && std::holds_alternative<TVMVersion>(right))
+        {
+            auto lver= std::get<TVMVersion>(left);
+            auto rver = std::get<TVMVersion>(right);
+            auto r = lver.CompareTo(rver);
+            cse.back()->Push(gc, r <= 0);
+        }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
@@ -736,7 +763,14 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc,std::get<int64_t>(left) >= std::get<double>(right));
         }
-
+        else if(std::holds_alternative<TVMVersion>(left) && std::holds_alternative<TVMVersion>(right))
+        {
+            auto lver= std::get<TVMVersion>(left);
+            auto rver = std::get<TVMVersion>(right);
+            auto r = lver.CompareTo(rver);
+            cse.back()->Push(gc, r >= 0);
+        }
+        
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
@@ -816,7 +850,13 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc,std::get<char>(left) == std::get<char>(right));
         }
-
+        else if(std::holds_alternative<TVMVersion>(left) && std::holds_alternative<TVMVersion>(right))
+        {
+            auto lver= std::get<TVMVersion>(left);
+            auto rver = std::get<TVMVersion>(right);
+            auto r = lver.CompareTo(rver);
+            cse.back()->Push(gc, r == 0);
+        }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
@@ -903,7 +943,13 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc,std::get<char>(left) != std::get<char>(right));
         }
-
+        else if(std::holds_alternative<TVMVersion>(left) && std::holds_alternative<TVMVersion>(right))
+        {
+            auto lver= std::get<TVMVersion>(left);
+            auto rver = std::get<TVMVersion>(right);
+            auto r = lver.CompareTo(rver);
+            cse.back()->Push(gc, r != 0);
+        }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
@@ -1373,7 +1419,26 @@ namespace Tesses::CrossLang {
         {
             GCList ls(gc);
             std::regex regex;
-            if(GetObject(instance,regex))
+            TVMVersion version;
+            if(GetObject(instance, version))
+            {
+                if(key == "ToString")
+                {
+                    cse.back()->Push(gc, version.ToString());
+                    return false;
+                }
+                if(key == "ToByteArray")
+                {
+                    TByteArray* ba = TByteArray::Create(ls);
+                    ba->data.resize(5);
+                    version.ToArray(ba->data.data());
+                    cse.back()->Push(gc,ba);
+                    return false;
+                }
+                cse.back()->Push(gc, Undefined());
+                return false;
+            }
+            else if(GetObject(instance,regex))
             {
                 if(key == "Search")
                 {
@@ -1682,9 +1747,9 @@ namespace Tesses::CrossLang {
                     {
                         size_t idx = (size_t)idx;
                         if(idx < path.path.size())
-                        cse.back()->Push(gc, path.path[idx]);
+                            cse.back()->Push(gc, path.path[idx]);
                         else
-                        cse.back()->Push(gc, nullptr);
+                            cse.back()->Push(gc, nullptr);
                         return false;
                     }
                 }
@@ -1726,11 +1791,6 @@ namespace Tesses::CrossLang {
                 if(key == "CollapseRelativeParents")
                 {
                     cse.back()->Push(gc, path.CollapseRelativeParents());
-                    return false;
-                }
-                if(key == "RelativeCurrentDirectory")
-                {
-                    cse.back()->Push(gc, path.RelativeCurrentDirectory());
                     return false;
                 }
                 if(key == "IsRelative")
@@ -3230,12 +3290,20 @@ namespace Tesses::CrossLang {
                 }
                 else if(list != nullptr)
                 {
+                    
                     if(key == "GetEnumerator")
                     {
                         cse.back()->Push(gc, TListEnumerator::Create(ls,list));
                         return false;
                     }
-                    if(key == "Insert")
+                    else if(key == "ToString")
+                    {
+                        
+                        cse.back()->Push(gc,Json_Encode(list));
+                        return false;
+                    
+                    }
+                    else if(key == "Insert")
                     {
                         if(args.size() != 2)
                         {
@@ -3344,9 +3412,15 @@ namespace Tesses::CrossLang {
                 }
                 else if(dict != nullptr)
                 {
+                    if(key == "ToString" && !dict->MethodExists(ls, key) && args.empty())
+                    {
+                        cse.back()->Push(gc,Json_Encode(dict));
+                        return false;
+                    }
                     gc->BarrierBegin();
                     auto o = dict->GetValue(key);
                     gc->BarrierEnd();
+                   
 
                     return InvokeMethod(ls,o,dict,args);
                 }
@@ -3473,7 +3547,57 @@ namespace Tesses::CrossLang {
                 cse.back()->Push(gc, Undefined());
                 return false;
             }
-
+            if(std::holds_alternative<TVMVersion>(instance))
+            {
+                TVMVersion& version = std::get<TVMVersion>(instance);
+                if(key == "Major")
+                {
+                    stk->Push(gc, (int64_t)version.Major());
+                    return false;
+                }
+                if(key == "Minor")
+                {
+                    stk->Push(gc, (int64_t)version.Minor());
+                    return false;
+                }
+                if(key == "Patch")
+                {
+                    stk->Push(gc, (int64_t)version.Patch());
+                    return false;
+                }
+                if(key == "Build")
+                {
+                    stk->Push(gc, (int64_t)version.Build());
+                    return false;
+                }
+                if(key == "VersionInt")
+                {
+                    stk->Push(gc,(int64_t)version.AsLong());
+                    return false;
+                }
+                if(key == "Stage")
+                {
+                    switch(version.VersionStage())
+                    {
+                        case TVMVersionStage::DevVersion:
+                            stk->Push(gc,"dev");
+                            break;
+                        case TVMVersionStage::AlphaVersion:
+                            stk->Push(gc,"alpha");
+                            break;
+                        case TVMVersionStage::BetaVersion:
+                            stk->Push(gc,"beta");
+                            break;
+                        case TVMVersionStage::ProductionVersion:
+                            stk->Push(gc,"prod");
+                            break;
+                    }
+                    return false;
+                }
+                
+                stk->Push(gc, Undefined());
+                return false;
+            }
             if(std::holds_alternative<THeapObjectHolder>(instance))
             {
                 auto obj = std::get<THeapObjectHolder>(instance).obj;
@@ -3487,6 +3611,123 @@ namespace Tesses::CrossLang {
                 auto strm = dynamic_cast<TStreamHeapObject*>(obj);
                 auto vfs = dynamic_cast<TVFSHeapObject*>(obj);
                 auto callstackEntry = dynamic_cast<CallStackEntry*>(obj);
+                auto file = dynamic_cast<TFile*>(obj);
+                auto chunk = dynamic_cast<TFileChunk*>(obj);
+               
+                if(file != nullptr)
+                {
+                    if(key == "Version")
+                    {
+                        cse.back()->Push(gc,file->version);
+                        return false;
+                    }
+                    else if(key == "Name")
+                    {
+                        cse.back()->Push(gc,file->name);
+                        return false;
+                    }
+                    else if(key == "Info")
+                    {
+                        cse.back()->Push(gc, file->info);
+                        return false;
+                    }
+                    else if(key == "Dependencies")
+                    {
+                        auto list = TList::Create(ls);
+                        gc->BarrierBegin();
+                        for(auto item : file->dependencies)
+                        {
+                            auto res = TDictionary::Create(ls);
+                            res->SetValue("Name", item.first);
+                            res->SetValue("Version", item.second);
+                            list->Add(res);
+                        }
+                        gc->BarrierEnd();
+                        cse.back()->Push(gc, list);
+                        return false;
+                    }
+                    else if(key == "Tools")
+                    {
+                        auto list = TList::Create(ls);
+                        gc->BarrierBegin();
+                        for(auto item : file->tools)
+                        {
+                            auto res = TDictionary::Create(ls);
+                            res->SetValue("Name", item.first);
+                            res->SetValue("Version", item.second);
+                            list->Add(res);
+                        }
+                        gc->BarrierEnd();
+                        cse.back()->Push(gc, list);
+                        return false;
+                    }
+                    else if(key == "Strings")
+                    {
+                        auto list = TList::Create(ls);
+                        gc->BarrierBegin();
+                        for(auto item : file->name)
+                        {
+                            list->Add(item);
+                        }
+                        gc->BarrierEnd();
+
+                        cse.back()->Push(gc, list);
+                        return false;
+                    }
+                    else if(key == "Chunks")
+                    {
+                        auto list = TList::Create(ls);
+                        gc->BarrierBegin();
+                        for(auto item : file->chunks)
+                        {
+                            list->Add(item);
+                        }
+
+                        gc->BarrierEnd();
+
+                        cse.back()->Push(gc, list);
+                        return false;
+                    }
+                    else if(key == "Functions")
+                    {
+                        auto list = TList::Create(ls);
+                        gc->BarrierBegin();
+                        for(auto item : file->functions)
+                        {
+                            TDictionary* dict = TDictionary::Create(ls);
+                            if(!item.first.empty())
+                                dict->SetValue("Documentation", item.first[0]);
+                            TList* nameParts = TList::Create(ls);
+                            for(size_t i = 1; i < item.first.size(); i++)
+                            {
+                                nameParts->Add(item.first[i]);
+                            }
+                            dict->SetValue("NameParts", nameParts);
+                            dict->SetValue("ChunkId", (int64_t)item.second);
+
+                            list->Add(dict);
+                        }
+                        
+                        cse.back()->Push(gc, list);
+                        gc->BarrierEnd();
+                        return false;
+                    }
+                    else if(key == "Icon")
+                    {
+                        if(file->icon >= 0 && file->icon < file->resources.size())
+                        {
+                            TByteArray* ba = TByteArray::Create(ls);
+                            ba->data = file->resources[file->icon];
+                            cse.back()->Push(gc, ba);
+                            return false;
+                        }
+                        else {
+                            cse.back()->Push(gc, nullptr);
+                        }
+                    }
+                    cse.back()->Push(gc, Undefined());
+                    return false;
+                }
 
                 if(callstackEntry != nullptr)
                 {
@@ -3591,7 +3832,7 @@ namespace Tesses::CrossLang {
                 }
                 if(closure != nullptr)
                 {
-                    if(key == "args")
+                    if(key == "Arguments")
                     {
                         GCList ls2(gc);
                         TList* ls = TList::Create(ls2);
@@ -3602,10 +3843,15 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc,ls);
                         return false;
                     }
+                    if(key == "File")
+                    {
+                        cse.back()->Push(gc,closure->file);   
+                        return false;                 
+                    }
                 }
                 if(externalMethod != nullptr)
                 {
-                    if(key == "args")
+                    if(key == "Arguments")
                     {
                         GCList ls2(gc);
                         TList* ls = TList::Create(ls2);
@@ -3620,9 +3866,16 @@ namespace Tesses::CrossLang {
 
                 if(tcallable != nullptr)
                 {
-                    if(key == "documentation")
+                    if(key == "Documentation")
                     {
                         cse.back()->Push(gc, tcallable->documentation);
+                        return false;
+                    }
+                    if(key == "Tag")
+                    {
+                        gc->BarrierBegin();
+                        cse.back()->Push(gc, tcallable->tag);
+                        gc->BarrierEnd();
                         return false;
                     }
                     cse.back()->Push(gc,Undefined());
@@ -3703,7 +3956,18 @@ namespace Tesses::CrossLang {
                 auto vfs = dynamic_cast<TVFSHeapObject*>(obj);
                 auto strm = dynamic_cast<TStreamHeapObject*>(obj);
                 auto dict = dynamic_cast<TDictionary*>(obj);
-            
+                auto tcallable = dynamic_cast<TCallable*>(obj);
+                if(tcallable != nullptr)
+                {
+                    if(key == "Tag")
+                    {
+                        gc->BarrierBegin();
+                        tcallable->tag = value;
+                        gc->BarrierEnd();
+                        cse.back()->Push(gc,nullptr);
+                        return false;
+                    }
+                }
                 if(strm != nullptr)
                 {
                     auto netStrm = dynamic_cast<Tesses::Framework::Streams::NetworkStream*>(strm->stream);
@@ -4347,6 +4611,28 @@ namespace Tesses::CrossLang {
         
         return false;
     }
+    bool InterperterThread::PushRelativePath(GC* gc)
+    {
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+
+        auto stk = cse.back();
+        auto p = Framework::Filesystem::VFSPath();
+        p.relative=true;
+        p.path={};
+        stk->Push(gc, p);
+        return false;
+    }
+    bool InterperterThread::PushRootPath(GC* gc)
+    {
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+
+        auto stk = cse.back();
+        auto p = Framework::Filesystem::VFSPath();
+        p.relative=false;
+        p.path={};
+        stk->Push(gc, p);
+        return false;
+    }
     bool InterperterThread::Illegal(GC* gc)
     {
 
@@ -4373,7 +4659,7 @@ namespace Tesses::CrossLang {
         if(!cse.empty())
         {
             auto stk = cse.back();
-
+            current_function = stk;
 
             
 
@@ -4675,7 +4961,7 @@ namespace Tesses::CrossLang {
         ls.GetGC()->BarrierBegin();
         CallStackEntry* cse = CallStackEntry::Create(ls);
         cse->callable = closure;
-        cse->env = closure->chunkId == 0 ? closure->env : closure->env->GetSubEnvironment(ls);
+        cse->env = closure->chunkId == 0 ? closure->env : closure->ownScope ? closure->env->GetSubEnvironment(ls) : closure->env;
         cse->ip = 0;
         if(closure->closure->args.empty() && closure->chunkId != 0)
         {
@@ -4717,7 +5003,7 @@ namespace Tesses::CrossLang {
             };
             size_t required = requiredArguments();
 
-            if(args.size() < requiredArguments())
+            if(args.size() < required)
             {
                 throw VMException("Called a function that expected at least " + std::to_string(required) + " args but got " + std::to_string(args.size()));
             }
@@ -4729,10 +5015,11 @@ namespace Tesses::CrossLang {
             }
             if(i == closure->closure->args.size()-1)
             {
+                auto argName = closure->closure->args[i];
                 auto lsArgs = TList::Create(ls);
                 for(;i<args.size(); i++)
                     lsArgs->Add(args[i]);
-                cse->env->DeclareVariable(trimStart(closure->closure->args[i]), lsArgs);
+                cse->env->DeclareVariable(trimStart(argName), lsArgs);
                 i = args.size();
             }
             if(i<args.size())
@@ -4754,6 +5041,10 @@ namespace Tesses::CrossLang {
         if(std::holds_alternative<std::string>(o))
         {
             return std::get<std::string>(o);
+        }
+        if(std::holds_alternative<TVMVersion>(o))
+        {
+            return std::get<TVMVersion>(o).ToString();
         }
         if(std::holds_alternative<int64_t>(o))
         {
@@ -4786,11 +5077,25 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(o).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+            auto list = dynamic_cast<TList*>(obj);
+            auto bArray = dynamic_cast<TByteArray*>(obj);
             if(dict != nullptr)
             {
-                    GCList ls(gc);
+                GCList ls(gc);
+                if(dict->MethodExists(ls,"ToString"))
                     return ToString(gc,dict->CallMethod(ls,"ToString",{}));
-                
+                else
+                {
+                    return Json_Encode(dict);
+                }
+            }
+            else if(bArray != nullptr)
+            {
+                return std::string(bArray->data.begin(),bArray->data.end());
+            }
+            else if(list != nullptr) 
+            {
+                return Json_Encode(list);
             }
       }
 

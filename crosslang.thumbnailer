@@ -1,0 +1,4 @@
+[Thumbnailer Entry]
+TryExec=crossthumbnailer
+Exec=crossthumbnailer %i %o
+MimeType=application/crvm;

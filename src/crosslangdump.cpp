@@ -53,13 +53,18 @@ void DumpFile(std::filesystem::path p)
             
 
             char table_name[4];
+            bool hasIcon=false;
 
             for(size_t i = 0; i < _len; i++)
             {
                 Ensure(strm,(uint8_t*)table_name,sizeof(table_name));
                 size_t tableLen = (size_t)EnsureInt(strm);
                 std::string tableName(table_name,4);
-                if(tableName == "STRS")
+                if(tableName == "ICON")
+                {
+                    hasIcon=true;
+                }
+                else if(tableName == "STRS")
                 {
                     size_t strsLen = (size_t)EnsureInt(strm);
                     for(size_t j = 0;j < strsLen;j++)
@@ -129,6 +134,10 @@ void DumpFile(std::filesystem::path p)
                     strm.Seek((int64_t)tableLen,Tesses::Framework::Streams::SeekOrigin::Current);
                 }
             }
+            if(hasIcon)
+                std::cout << "Has Icon: yes" << std::endl;
+            else
+                std::cout << "Has Icon: no" << std::endl;
 
             for(size_t i = 1; i < closures.size(); i++)
             {

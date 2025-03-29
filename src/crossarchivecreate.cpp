@@ -8,6 +8,7 @@ void Help(const char* filename)
     printf("USAGE: %s [OPTIONS] <dirasroot> <archive.crvm>\n", filename);
     printf("OPTIONS:\n");
     printf("  -i:  Set info (ex {\"maintainer\": \"Mike Nolan\", \"repo\": \"https://example.com/\", \"homepage\": \"https://example.com/\",\"license\":\"MIT\"})\n");
+    printf("  -I:  Set icon name (relative to dirasroot), should be a 128x128 png\n");
     printf("  -v:  Set version (1.0.0.0-prod defaults to 1.0.0.0-dev)\n");
     printf("  -n:  Set name (MyAppOrLibName defaults to out)\n");
     printf("  -h, --help:  Prints help\n");
@@ -19,6 +20,7 @@ int main(int argc, char** argv)
     std::string name="out";
    std::string info="{}";
    TVMVersion version;
+   std::string icon="";
    std::vector<std::string> args;
     for(int i = 1; i < argc; i++)
    {
@@ -32,6 +34,14 @@ int main(int argc, char** argv)
             if(i < argc)
             {
                 info = argv[i];
+            }
+        }
+        else if(strcmp(argv[i], "-I") == 0)
+        {
+            i++;
+            if(i < argc)
+            {
+                icon = argv[i];
             }
         }
         else if(strcmp(argv[i], "-n") == 0)
@@ -77,7 +87,7 @@ int main(int argc, char** argv)
     }
 
     FileStream strm(f,true,"wb",true);
-    CrossArchiveCreate(&sdfs,&strm,name,version,info);
+    CrossArchiveCreate(&sdfs,&strm,name,version,info,icon);
 
     return 0;
 }

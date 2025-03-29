@@ -80,7 +80,7 @@ namespace Tesses::CrossLang
 
         return json_null();
     }
-    static TObject Json_Encode(GCList& ls2, std::vector<TObject> args)
+    static TObject JsonEncode(GCList& ls2, std::vector<TObject> args)
     {
         if(args.size() >= 1)
         {
@@ -141,7 +141,7 @@ namespace Tesses::CrossLang
         }
         return Undefined();
     }
-    static TObject Json_Decode(GCList& ls2,std::vector<TObject> args)
+    static TObject JsonDecode(GCList& ls2,std::vector<TObject> args)
     {
         if(args.size() > 0 && std::holds_alternative<std::string>(args[0]))
         {
@@ -155,6 +155,31 @@ namespace Tesses::CrossLang
         return Undefined();
     }
     #endif
+    std::string Json_Encode(TObject o,bool indent)
+    {
+        #if defined(CROSSLANG_ENABLE_JSON)
+        auto json = JsonSerialize(o);
+        char* txt = json_dumps(json, indent ? JSON_INDENT(4) : 0);
+        std::string str = txt;
+        free(txt);
+        json_decref(json);
+        return str;
+        #else
+        return "";
+        #endif
+
+    }
+    TObject Json_Decode(GCList ls,std::string str)
+    {
+        #if defined(CROSSLANG_ENABLE_JSON)
+        json_t* json = json_loadb(str.c_str(), str.size(),0,NULL);
+        auto res = JsonDeserialize(ls,json);
+        json_decref(json);
+        return res;
+        #else
+        return nullptr;
+        #endif
+    }
     void TStd::RegisterJson(GC* gc,TRootEnvironment* env)
     {
 
@@ -162,8 +187,8 @@ namespace Tesses::CrossLang
         #if defined(CROSSLANG_ENABLE_JSON)
         GCList ls(gc);
         TDictionary* dict = TDictionary::Create(ls);
-        dict->DeclareFunction(gc, "Decode","Deserialize Json",{"Json string"},Json_Decode);   
-        dict->DeclareFunction(gc, "Encode","Serialize Json",{"any","$indent"},Json_Encode);   
+        dict->DeclareFunction(gc, "Decode","Deserialize Json",{"Json string"},JsonDecode);   
+        dict->DeclareFunction(gc, "Encode","Serialize Json",{"any","$indent"},JsonEncode);   
         
         
         gc->BarrierBegin();

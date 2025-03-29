@@ -3,7 +3,7 @@
 namespace Tesses::CrossLang 
 {
     
-    void CrossArchiveCreate(Tesses::Framework::Filesystem::VFS* vfs,Tesses::Framework::Streams::Stream* strm,std::string name, TVMVersion version, std::string info)
+    void CrossArchiveCreate(Tesses::Framework::Filesystem::VFS* vfs,Tesses::Framework::Streams::Stream* strm,std::string name, TVMVersion version, std::string info, std::string icon)
     {
         std::vector<std::string> ignored_files;
         std::string file = "/.crossarchiveignore";
@@ -125,6 +125,8 @@ namespace Tesses::CrossLang
         };
 
         walkFS(std::string("/"));
+        if(!icon.empty())
+            ensureResource(icon);
 
         uint8_t main_header[18];
         memcpy(main_header,"TCROSSVM",8);
@@ -132,7 +134,7 @@ namespace Tesses::CrossLang
         rtVersion.ToArray(main_header+8);
         version.ToArray(main_header+13);
         strm->WriteBlock(main_header,sizeof(main_header));
-        writeInt(strm,(uint32_t)(5+resources.size()));
+        writeInt(strm,(uint32_t)((icon.empty() ? 5 : 6)+resources.size()));
         strm->WriteBlock((const uint8_t*)"STRS",4);
         uint32_t sz=4;
         for(auto str : strs)

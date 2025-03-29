@@ -78,29 +78,7 @@ namespace Tesses::CrossLang
         int64_t msec;
         if(GetArgument(args,0,msec))
         {
-            if((msec % 100) == 0)
-            {
-                msec /= 100;
-                for(int64_t i = 0; i < msec; i++)
-                {
-                    usleep(100000);
-                }
-            }
-            else if((msec % 10) == 0)
-            {
-                msec /= 10;
-                for(int64_t i = 0; i < msec; i++)
-                {
-                    usleep(10000);
-                }
-            }
-            else
-            {
-                for(int64_t i = 0; i < msec; i++)
-                {
-                    usleep(1000);
-                }
-            }
+            usleep(1000*msec);   
         }
         return nullptr;
     }

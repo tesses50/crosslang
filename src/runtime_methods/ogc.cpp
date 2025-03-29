@@ -65,5 +65,8 @@ namespace Tesses::CrossLang
         gc->BarrierEnd();
         #endif
         env->permissions.canRegisterOGC=true;
+     
+
+    
     }
 }

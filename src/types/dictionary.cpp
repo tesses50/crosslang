@@ -72,6 +72,15 @@ namespace Tesses::CrossLang  {
 
         return TEnumerator::CreateFromObject(ls,cb->Call(ls,{dict}));
     }
+    bool TDictionary::MethodExists(GCList& ls,std::string method)
+    {
+        ls.GetGC()->BarrierBegin();
+        auto r = this->GetValue(method);
+        TCallable* callable;
+        bool res = GetObjectHeap(r,callable);
+        ls.GetGC()->BarrierEnd();
+        return res;
+    }
     bool TDynamicDictionary::MethodExists(GCList& ls,std::string name)
     {
         auto dict = TDictionary::Create(ls);

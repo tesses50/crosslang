@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <initializer_list>
 #include <vector>
 #include <cstdint>
 #include <string>
@@ -144,6 +145,15 @@ namespace Tesses::CrossLang {
                 if(this->build < version.build) return -1;
                 return 0;
             }
+
+            uint64_t AsLong()
+            {
+                uint64_t v = (uint64_t)major << 32;
+                v |= (uint64_t)minor << 24;
+                v |= (uint64_t)patch << 16;
+                v |= (uint64_t)build;
+                return v;
+            }
             int CompareToRuntime()
             {
                 TVMVersion version(TVM_MAJOR,TVM_MINOR,TVM_PATCH,TVM_BUILD,TVM_VERSIONSTAGE);
@@ -268,7 +278,7 @@ namespace Tesses::CrossLang {
     };
 
 
-    void CrossArchiveCreate(Tesses::Framework::Filesystem::VFS* vfs,Tesses::Framework::Streams::Stream* strm,std::string name,TVMVersion version,std::string info);
+    void CrossArchiveCreate(Tesses::Framework::Filesystem::VFS* vfs,Tesses::Framework::Streams::Stream* strm,std::string name,TVMVersion version,std::string info, std::string icon="");
     std::pair<std::pair<std::string,TVMVersion>,std::string> CrossArchiveExtract(Tesses::Framework::Streams::Stream* strm,Tesses::Framework::Filesystem::VFS* vfs);
 
 
@@ -365,7 +375,9 @@ typedef enum {
     TRYCATCH,
     THROW,
     PUSHSCOPELESSCLOSURE,
-    YIELD
+    YIELD,
+    PUSHROOTPATH,
+    PUSHRELATIVEPATH
 } Instruction;
 
 class ByteCodeInstruction {
@@ -502,6 +514,7 @@ class CodeGen {
     uint32_t GetResource(std::string res);
     std::vector<std::string> strs;
     std::vector<std::string> res;
+    
     std::vector<std::pair<std::vector<uint32_t>, std::vector<ByteCodeInstruction*>>> chunks;
     std::vector<std::pair<std::vector<uint32_t>,uint32_t>> funcs;
     std::vector<ObjectEntry> objectEntries;
@@ -509,9 +522,11 @@ class CodeGen {
     void GenPop(std::vector<ByteCodeInstruction*>& instrs,SyntaxNode n);
     public:
         std::vector<std::pair<std::string, TVMVersion>> dependencies;
+        std::vector<std::pair<std::string, TVMVersion>> tools;
         TVMVersion version;
         std::string name;
         std::string info;
+        std::string icon;
         void GenRoot(SyntaxNode n);
         void Save(Tesses::Framework::Filesystem::VFS* embedFS,Tesses::Framework::Streams::Stream* output);
         ~CodeGen();
@@ -589,7 +604,8 @@ constexpr std::string_view DefaultStatement = "defaultStatement";
 constexpr std::string_view ObjectStatement = "objectStatement";
 constexpr std::string_view StaticStatement = "staticStatement";
 constexpr std::string_view MethodDeclaration = "methodDeclaration";
-
+constexpr std::string_view RootPathExpression = "rootPathExpression";
+constexpr std::string_view RelativePathExpression = "relativePathExpression";
 
 class AdvancedSyntaxNode {
     public:
@@ -675,7 +691,7 @@ class Parser {
     class MethodInvoker {
 
     };
-using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder,Tesses::Framework::Graphics::Color>;
+using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder,TVMVersion>;
 class TRootEnvironment;
 class GC;
 class GC {
@@ -739,7 +755,6 @@ class GC {
             TFile* file;
             std::vector<uint8_t> code;
             std::vector<std::string> args;
-            std::string name;
             void Mark();
     };
     
@@ -764,10 +779,12 @@ class GC {
             std::vector<std::string> strings;
             std::vector<std::pair<std::vector<std::string>, uint32_t>> functions;
             std::vector<std::pair<std::string,TVMVersion>> dependencies;
+            std::vector<std::pair<std::string,TVMVersion>> tools;
             std::vector<std::vector<uint8_t>> resources;
             std::string name;
             TVMVersion version;
             std::string info;
+            int32_t icon;
         
             void Load(GC* gc, Tesses::Framework::Streams::Stream* strm);
             void Skip(Tesses::Framework::Streams::Stream* strm,size_t len);
@@ -785,6 +802,32 @@ class GC {
             std::vector<TObject> items;
             static TList* Create(GCList* gc);
             static TList* Create(GCList& gc);
+            template<typename Itterator>
+            static TList* Create(GCList* gc, Itterator begin, Itterator end)
+            {
+                auto list = Create(gc);
+                gc->GetGC()->BarrierBegin();
+                for(Itterator i = begin; i != end; ++i)
+                {
+                    TObject item = *i;
+                    list->Add(item);
+                }
+                gc->GetGC()->BarrierEnd();
+                return list;
+            }
+            template<typename Itterator>
+            static TList* Create(GCList& gc, Itterator begin, Itterator end)
+            {
+                return Create(&gc,begin,end);
+            }
+            static TList* Create(GCList* gc, std::initializer_list<TObject> il)
+            {
+                return Create(gc,il.begin(),il.end());
+            }
+            static TList* Create(GCList& gc, std::initializer_list<TObject> il)
+            {
+                return Create(gc,il.begin(),il.end());
+            }
             virtual int64_t Count();
             virtual TObject Get(int64_t index);
             virtual void Set(int64_t index, TObject value);
@@ -795,7 +838,7 @@ class GC {
             virtual void Mark();
 
     };
-    
+    using TDItem = std::pair<std::string, TObject>;
 
     class TDictionary : public THeapObject
     {
@@ -803,8 +846,38 @@ class GC {
             std::unordered_map<std::string,TObject> items;
             static TDictionary* Create(GCList* gc);
             static TDictionary* Create(GCList& gc);
+            template<typename Itterator>
+            static TDictionary* Create(GCList* gc, Itterator begin, Itterator end)
+            {
+                auto dict = Create(gc);
+                gc->GetGC()->BarrierBegin();
+                for(Itterator i = begin; i != end; ++i)
+                {
+                    TDItem item = *i;
+                    dict->SetValue(item.first, item.second);
+                }
+                gc->GetGC()->BarrierEnd();
+                return dict;
+            }
+            template<typename Itterator>
+            static TDictionary* Create(GCList& gc, Itterator begin, Itterator end)
+            {
+                return Create(&gc,begin,end);
+            }
+
+            static TDictionary* Create(GCList* gc, std::initializer_list<TDItem> il)
+            {
+                return Create(gc,il.begin(),il.end());
+            }
+            static TDictionary* Create(GCList& gc, std::initializer_list<TDItem> il)
+            {
+                return Create(gc, il.begin(),il.end());
+            }
+            
+
           
             virtual bool HasValue(std::string key);
+            virtual bool MethodExists(GCList& ls,std::string key);
             virtual TObject GetValue(std::string key);
             virtual void SetValue(std::string key, TObject value);
             virtual void Mark();
@@ -823,8 +896,10 @@ class GC {
     class TCallable : public THeapObject
     {
         public:
+            TObject tag;
             std::string documentation;
             virtual TObject Call(GCList& ls,std::vector<TObject> args)=0;
+            virtual void Mark();
     };
 
     
@@ -978,6 +1053,7 @@ class GC {
                 this->marked=true;
                 for(auto item : watch)
                     GC::Mark(item);
+                    GC::Mark(this->tag);
             }
             
     };
@@ -1309,6 +1385,8 @@ class GC {
             bool CreateArray(GC* gc);
             bool AppendList(GC* gc);
             bool AppendDictionary(GC* gc);
+            bool PushRootPath(GC* gc);
+            bool PushRelativePath(GC* gc);
             bool Pop(GC* gc);
             bool Dup(GC* gc);
             bool Nop(GC* gc);
@@ -1490,4 +1568,6 @@ class GC {
     #define CROSSLANG_PLUGIN(plugin) DLLEXPORT extern "C" void CrossLangPluginInit(GC* gc, TRootEnvironment* env) { plugin(gc,env); }
 
     void LoadPlugin(GC* gc, TRootEnvironment* env, Tesses::Framework::Filesystem::VFSPath sharedObjectPath);
+    std::string Json_Encode(TObject o,bool indent=false);
+    TObject Json_Decode(GCList ls,std::string str);
 };

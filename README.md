@@ -1,7 +1,7 @@
 Tesses Cross Language
 =====================
 
-![CrossImage](logo.png)
+![CrossImage](crosslang.png)
 
 ## What is required to build this project
 - [TessesFramework](https://onedev.site.tesses.net/tesses-framework)

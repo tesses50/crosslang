@@ -1,4 +1,10 @@
 #include "CrossLang.hpp"
+#include <TessesFramework/Crypto/ClientTLSStream.hpp>
+#include <TessesFramework/Http/HttpClient.hpp>
+#include <TessesFramework/Mail/Smtp.hpp>
+#include <TessesFramework/Streams/MemoryStream.hpp>
+#include <TessesFramework/Streams/NetworkStream.hpp>
+#include <TessesFramework/Streams/Stream.hpp>
 #include <sys/types.h>
 #include <csignal>
 #include <iostream>
@@ -6,8 +12,33 @@
 #include <cstring>
 using namespace Tesses::Framework::Streams;
 using namespace Tesses::Framework::Http;
+using namespace Tesses::Framework::Mail;
 namespace Tesses::CrossLang
 {
+    static SMTPBody* TObjectToSMTPBody(GCList& ls,std::string mimeType, TObject obj)
+    {
+        SMTPBody* body = nullptr;
+        std::string text;
+        TByteArray* ba;
+        TStreamHeapObject* sho;
+        if(GetObject(obj,text))
+        {
+            body = new SMTPStringBody(text,mimeType);
+        }
+        else if(GetObjectHeap(obj,ba)) {
+            MemoryStream* ms = new MemoryStream(true);
+            ms->WriteBlock(ba->data.data(), ba->data.size());
+            ms->Seek(0L, SeekOrigin::Begin);
+            
+            body = new SMTPStreamBody(mimeType,ms,true);
+        }
+        else if(GetObjectHeap(obj,sho))
+        {
+            ls.Add(sho);
+            body = new SMTPStreamBody(mimeType,sho->stream,false);
+        }
+        return body;
+    }
      TServerHeapObject* TServerHeapObject::Create(GCList& ls, Tesses::Framework::Http::IHttpServer* svr)
     {
         TServerHeapObject* ho = new TServerHeapObject();
@@ -157,7 +188,17 @@ namespace Tesses::CrossLang
         dict->DeclareFunction(gc,"OpenResponseStream","Open Response Stream",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
             return TStreamHeapObject::Create(ls2, ctx->OpenResponseStream());
         });
-
+        dict->DeclareFunction(gc, "ParseFormData","Parse the form data",{},[ctx](GCList& ls, std::vector<TObject> args)->TObject {
+            TCallable* callable;
+            if(GetArgumentHeap(args, 0, callable))
+            {
+                ctx->ParseFormData([callable,&ls](std::string a,std::string b, std::string c)->Tesses::Framework::Streams::Stream*{
+                    auto res = callable->Call(ls,{a,b,c});
+                    return new Tesses::CrossLang::TObjectStream(ls.GetGC(),res);
+                });
+            }
+            return nullptr;
+        });
         dict->DeclareFunction(gc,"getNeedToParseFormData","Check if Need to parse form data",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
             return ctx->NeedToParseFormData();
         });
@@ -169,13 +210,13 @@ namespace Tesses::CrossLang
         dict->DeclareFunction(gc,"SendText","Send response text",{"text"},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
             std::string text;
             if(GetArgument(args2,0,text))
-            ctx->SendText(text);
+                ctx->SendText(text);
             return nullptr;
         });
         dict->DeclareFunction(gc,"WithMimeType","Set mime type",{"mimeType"},[ctx,dict](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
             std::string text;
             if(GetArgument(args2,0,text))
-            ctx->WithMimeType(text);
+                ctx->WithMimeType(text);
             return dict;
         });
         dict->DeclareFunction(gc,"WithContentDisposition","Set content disposition",{"filename","inline"},[ctx,dict](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
@@ -205,6 +246,11 @@ namespace Tesses::CrossLang
                 ctx->SendBytes(ba->data);
             return nullptr;
         });
+        dict->DeclareFunction(gc,"WriteHeaders","Send the headers",{},[ctx](GCList& ls, std::vector<TObject> args)->TObject{
+            ctx->WriteHeaders();
+            return nullptr;
+        });
+        
 //        dict->DeclareFunction(gc,"getUrlWithQuery","Get original path with query parameters",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {return ctx->GetUrlWithQuery();});
         dict->DeclareFunction(gc,"StartWebSocketSession","Start websocket session",{"dict"}, [ctx](GCList& ls,std::vector<TObject> args)->TObject {
             TDictionary* dict;
@@ -582,6 +628,143 @@ namespace Tesses::CrossLang
         
         return nullptr;
     }
+
+    static TObject Net_Smtp_Send(GCList& ls, std::vector<TObject> args)
+    {
+        TDictionary* dict;
+        if(GetArgumentHeap(args,0,dict))
+        {
+            //the body should be either type text/plain or text/html
+            //the body and attachment data can also point to bytearray of stream
+            //server can also be a stream
+            //as of right now the email is fire and forget (ie no error checking)
+            //check function return type just in case (this function returns a empty string if no error)
+            //we rolled our own smtp client
+            
+            /*
+                dict looks like this from crosslang's point of view
+                {
+                    server = { 
+                        host = "smtp.example.com",
+                        tls = true
+                    },
+                    auth = {
+                        username = "from",
+                        password = "THEPASSWORD"
+                    },
+                    domain = "example.com",
+                    from = {
+                        name = "The name shown in the mail where it is from",
+                        email = "from@example.com"
+                    },
+                    to = "to@example.com",
+                    subject = "My little message",
+                    body = {
+                        type = "text/html",
+                        data = "<h1>Hello, world</h1>"
+                    },
+                    attachments = [
+                        {
+                            name = "myimg.png",
+                            type = "image/png",
+                            data = embed("myimg.png")
+                        }
+                    ]
+                }
+            */
+            ls.GetGC()->BarrierBegin();
+            auto server = dict->GetValue("server");
+            TDictionary* dict2;
+            Tesses::Framework::Streams::Stream* strm=nullptr;
+            bool ownsStream=true;
+            TStreamHeapObject* objStrm;
+            if(GetObjectHeap(server,dict2))
+            {
+                auto tlsO = dict2->GetValue("tls");
+                auto hostO = dict2->GetValue("host");
+                auto portO = dict2->GetValue("port");
+                std::string host;
+                bool tls=false;
+                int64_t port;
+                GetObject(tlsO,tls);
+                
+                if(!GetObject(portO, port)) port = tls ? 465 : 25;
+                
+                GetObject(hostO,host);
+                strm = new NetworkStream(host,(uint16_t)port,false,false,false);
+                if(tls)
+                {
+                    strm = new Framework::Crypto::ClientTLSStream(strm,true,true,host);
+                }
+
+            }
+            else if (GetObjectHeap(server, objStrm)) {
+                ownsStream=false;
+                strm = objStrm->stream;    
+            }
+
+            Tesses::Framework::Mail::SMTPClient client(strm,ownsStream);
+            auto o = dict->GetValue("domain");
+            
+            GetObject(o,client.domain);
+            o = dict->GetValue("to");
+            GetObject(o,client.to);
+            o = dict->GetValue("subject");
+            GetObject(o,client.subject);
+            o = dict->GetValue("auth");
+            if(GetObjectHeap(o, dict2))
+            {
+                o = dict2->GetValue("username");
+                GetObject(o,client.username);
+                o = dict2->GetValue("password");
+                GetObject(o, client.password);
+            }
+            o = dict->GetValue("from");
+            if(GetObjectHeap(o, dict2))
+            {
+                o = dict2->GetValue("email");
+                GetObject(o,client.from);
+                o = dict2->GetValue("name");
+                GetObject(o, client.from_name);
+            }
+            o = dict->GetValue("body");
+            if(GetObjectHeap(o, dict2))
+            {
+                //type, data
+                std::string type = "text/plain";
+                o = dict2->GetValue("type");
+                GetObject(o,type);
+                o = dict2->GetValue("data");
+                client.body =  TObjectToSMTPBody(ls,type,o);
+            }
+            o = dict->GetValue("attachments");
+            TList* als;
+            if(GetObjectHeap(o,als))
+            {
+                for(int64_t i = 0; i < als->Count(); i++)
+                {
+                    auto item = als->Get(i);
+                    if(GetObjectHeap(item, dict2))
+                    {
+                        o = dict2->GetValue("name");
+                        std::string name;
+                        GetObject(o,name);
+                        std::string type = "text/plain";
+                        o = dict2->GetValue("type");
+                        GetObject(o,type);
+                        o = dict2->GetValue("data");
+
+                        client.attachments.push_back(std::pair<std::string,SMTPBody*>(name,TObjectToSMTPBody(ls, type, o)));
+                    }
+                }
+            }
+
+            ls.GetGC()->BarrierEnd();
+            client.Send();
+            return "";
+        }
+        return nullptr;
+    }
     
     void TStd::RegisterNet(GC* gc, TRootEnvironment* env)
     {
@@ -591,6 +774,7 @@ namespace Tesses::CrossLang
         TDictionary* dict = TDictionary::Create(ls);
         
         TDictionary* http = TDictionary::Create(ls);
+        TDictionary* smtp = TDictionary::Create(ls);
         http->DeclareFunction(gc, "HtmlEncode","Html encode",{"param"}, Net_HtmlEncode);
        
         http->DeclareFunction(gc, "UrlEncode","Url encode query param",{"param"}, Net_UrlEncode);
@@ -601,6 +785,29 @@ namespace Tesses::CrossLang
 
        
         //http->DeclareFunction(gc, "ProcessServer","Process HTTP server connection",{"networkstream","server","ip","port","encrypted"},, Net_ProcessServer);
+        http->DeclareFunction(gc, "StreamHttpRequestBody","Create a stream request body",{"stream","mimeType"},[](GCList& ls, std::vector<TObject> args)->TObject {
+            std::string mimeType;
+            if(GetArgument(args, 1, mimeType))
+            {
+                auto res = TNative::Create(ls,new StreamHttpRequestBody(new TObjectStream(ls.GetGC(),args[0]), true, mimeType),[](void* ptr)->void {
+                    delete static_cast<StreamHttpRequestBody*>(ptr);
+                });
+                return res;
+            }
+            return nullptr;
+        });
+        http->DeclareFunction(gc, "TextHttpRequestBody","Create a text request body",{"text","mimeType"},[](GCList& ls, std::vector<TObject> args)->TObject {
+            std::string text;
+            std::string mimeType;
+            if(GetArgument(args, 0, text) && GetArgument(args, 1, mimeType))
+            {
+                auto res = TNative::Create(ls,new TextHttpRequestBody(text, mimeType),[](void* ptr)->void {
+                    delete static_cast<TextHttpRequestBody*>(ptr);
+                });
+                return res;
+            }
+            return nullptr;
+        });
         http->DeclareFunction(gc, "MakeRequest", "Create an http request", {"url","$extra"}, Net_Http_MakeRequest);
         http->DeclareFunction(gc, "ListenSimpleWithLoop", "Listen (creates application loop)", {"server","port"},Net_Http_ListenSimpleWithLoop);
         //FileServer svr()
@@ -626,8 +833,10 @@ namespace Tesses::CrossLang
             return nullptr;
         });
         dict->DeclareFunction(gc, "NetworkStream","Create a network stream",{"ipv6","datagram"},Net_NetworkStream);
+        smtp->DeclareFunction(gc, "Send","Send email via smtp server",{"messageStruct"},Net_Smtp_Send);
         gc->BarrierBegin();
         dict->SetValue("Http", http);
+        dict->SetValue("Smtp", smtp);
         env->DeclareVariable("Net", dict);
         gc->BarrierEnd();
     }

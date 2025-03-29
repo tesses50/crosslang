@@ -134,7 +134,9 @@ namespace Tesses::CrossLang
         std::vector<std::pair<std::string,std::string>> sources;
         TVMVersion version(TVM_MAJOR,TVM_MINOR,TVM_PATCH,TVM_BUILD,TVM_VERSIONSTAGE);
         std::vector<std::pair<std::string,TVMVersion>> dependencies;
+        std::vector<std::pair<std::string,TVMVersion>> tools;
         std::string info;
+        std::string icon;
         TVFSHeapObject* vfsHO =nullptr;
 
         ls.GetGC()->BarrierBegin();
@@ -142,17 +144,23 @@ namespace Tesses::CrossLang
         TObject _version = dict->GetValue("Version");
         TObject _sources = dict->GetValue("Sources");
         TObject _dependencies = dict->GetValue("Dependencies");
+        TObject _tools = dict->GetValue("Tools");
         TObject _info = dict->GetValue("Info");
+        TObject _icon = dict->GetValue("Icon");
         TObject _resourceFileSystem = dict->GetValue("ResourceFileSystem");
         
         TObject _out = dict->GetValue("Output");
+        TList* _toolList;
         TList* _depList; TList* srcLst;
         GetObject<std::string>(_name,name);
         GetObject<std::string>(_info,info);
+        GetObject<std::string>(_icon,icon);
         GetObjectHeap(_resourceFileSystem, vfsHO);
         std::string v2;
         if(GetObject<std::string>(_version,v2))
             TVMVersion::TryParse(v2, version);
+        else
+            GetObject(_version,version);
 
         if(GetObjectHeap<TList*>(_dependencies,_depList))
         {
@@ -171,6 +179,36 @@ namespace Tesses::CrossLang
                     if(GetObject<std::string>(_name2,name2) && GetObject<std::string>(_version2,version2) && TVMVersion::TryParse(version2,version02))
                     {
                         dependencies.push_back(std::pair<std::string,TVMVersion>(name2, version02));
+                    }
+                    else if(GetObject<std::string>(_name2,name2) && GetObject(_version2,version02))
+                    {
+                        dependencies.push_back(std::pair<std::string,TVMVersion>(name2, version02));
+                    }
+                }
+            }
+            
+        }
+        if(GetObjectHeap<TList*>(_tools,_toolList))
+        {
+            for(int64_t i = 0; i < _toolList->Count(); i++)
+            {
+                TObject _dep = _toolList->Get(i);
+                TDictionary* _depD;
+                if(GetObjectHeap<TDictionary*>(_dep, _depD))
+                {
+                    TObject _name2 = _depD->GetValue("Name");
+                    TObject _version2 = _depD->GetValue("Version");
+                    std::string name2;
+                    std::string version2;
+                    TVMVersion version02;
+
+                    if(GetObject<std::string>(_name2,name2) && GetObject<std::string>(_version2,version2) && TVMVersion::TryParse(version2,version02))
+                    {
+                        tools.push_back(std::pair<std::string,TVMVersion>(name2, version02));
+                    }
+                    else if(GetObject<std::string>(_name2,name2) && GetObject(_version2,version02))
+                    {
+                        tools.push_back(std::pair<std::string,TVMVersion>(name2, version02));
                     }
                 }
             }
@@ -220,9 +258,11 @@ namespace Tesses::CrossLang
         CodeGen gen;
         gen.GenRoot(n);
         gen.dependencies = dependencies;
+        gen.tools = tools;
         gen.info = info;
         gen.name = name;
         gen.version = version;
+        gen.icon = icon;
         std::string outpath;
         TStreamHeapObject* stream;
         if(GetObjectHeap<TStreamHeapObject*>(_out, stream))
@@ -274,7 +314,9 @@ namespace Tesses::CrossLang
         dict->DeclareFunction(gc, "Compile", "Compile Source",{"dict"},VM_Compile);
         
         dict->DeclareFunction(gc, "SourceToAst", "Convert source to ast", {"source"}, VM_SourceToAst);
-        
+        dict->DeclareFunction(gc, "getRuntimeVersion","Get the runtime version",{},[](GCList& ls,std::vector<TObject> args)->TObject {
+            return TVMVersion(TVM_MAJOR,TVM_MINOR,TVM_PATCH,TVM_BUILD,TVM_VERSIONSTAGE);
+        });
         gc->BarrierBegin();
         env->DeclareVariable("VM", dict);
         gc->BarrierEnd();

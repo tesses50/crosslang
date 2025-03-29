@@ -118,18 +118,7 @@ namespace Tesses::CrossLang
         TVFSHeapObject* vfs;
         return GetArgumentHeap(args,0,vfs);
     }
-    static TObject New_Color(GCList& ls, std::vector<TObject> args)
-    {
-        int64_t r,g,b,a;
-        if(GetArgument(args,0,r) && GetArgument(args,1,g) && GetArgument(args,2,b))
-        {
-            if(!GetArgument(args,3,a)) {
-                a = 255;
-            }
-            return Tesses::Framework::Graphics::Color((uint8_t)r,(uint8_t)g,(uint8_t)b,(uint8_t)a);
-        }
-        return Tesses::Framework::Graphics::Colors::Black;
-    }
+    
     static TObject TypeOf(GCList& ls, std::vector<TObject> args)
     {
         if(args.size() < 1) return "Undefined";
@@ -345,6 +334,30 @@ namespace Tesses::CrossLang
         
         env->permissions.canRegisterRoot=true;
         TDictionary* newTypes = TDictionary::Create(ls);
+    
+        newTypes->DeclareFunction(gc,"Version","Create a version object",{"$major","$minor","$patch","$build","$stage"},[](GCList& ls, std::vector<TObject> args)->TObject{
+            int64_t major=1;
+            int64_t minor=0;
+            int64_t patch=0;
+            int64_t build=0;
+            std::string stageS="prod";
+            TVMVersionStage stage=TVMVersionStage::ProductionVersion;
+            GetArgument(args, 0,major);
+            GetArgument(args, 1,minor);
+            GetArgument(args, 2,patch);
+            GetArgument(args, 3,build);
+            GetArgument(args, 4,stageS);
+            if(stageS == "dev")
+                stage = TVMVersionStage::DevVersion;
+            else if(stageS == "alpha")
+                stage = TVMVersionStage::AlphaVersion;
+            else if(stageS == "beta")
+                stage = TVMVersionStage::BetaVersion;
+
+            return TVMVersion((uint8_t)major,(uint8_t)minor,(uint8_t)patch,(uint16_t)build,stage);
+        });
+        
+       
         env->DeclareFunction(gc, "ParseLong","Parse Long from String",{"arg","$base"},ParseLong);
         env->DeclareFunction(gc, "ParseDouble","Parse Double from String",{"arg"},ParseDouble);
         env->DeclareFunction(gc, "YieldEmumerable","Turn yield in function into enumerable",{"closure"},YieldEnumerableFunc);
@@ -428,8 +441,35 @@ namespace Tesses::CrossLang
             return Undefined();
         });
         env->DeclareFunction(gc,"ByteArray","Create bytearray, with optional either size (to size it) or string argument (to fill byte array)",{"$data"},ByteArray);
-        newTypes->DeclareFunction(gc,"Color","Create a new color",{"red","green","blue","$alpha"},New_Color);
         gc->BarrierBegin();
+        env->DeclareVariable("Version", TDictionary::Create(ls,{
+            TDItem("Parse",TExternalMethod::Create(ls,"Parse version from string",{"versionStr"},[](GCList& ls, std::vector<TObject> args)->TObject{
+                std::string str;
+                if(GetArgument(args, 0, str))
+                {
+                    TVMVersion version;
+                    if(TVMVersion::TryParse(str,version))
+                    {
+                        return version;
+                    }
+                }
+                return nullptr;
+            })),
+            TDItem("FromByteArray",TExternalMethod::Create(ls,"Create from ByteArray",{"byteArray","$offset"},[](GCList& ls,std::vector<TObject> args)->TObject {
+                TByteArray* ba;
+                if(GetArgumentHeap(args,0, ba))
+                {
+                    int64_t offset=0;
+                    GetArgument(args, 1, offset);
+                    if(ba->data.size() < 5) throw VMException("ByteArray too small");
+                    size_t o = (size_t)offset;
+                    if((o + 5) > ba->data.size() || (o + 5) < 5) throw VMException("ByteArray too small");
+                    
+                    return TVMVersion(ba->data.data()+o);
+                }
+                return nullptr;
+            }))
+        }));
         env->DeclareVariable("InvokeMethod",MethodInvoker());
         env->DeclareVariable("New", newTypes);
         gc->BarrierEnd();
