@@ -577,6 +577,15 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc,std::get<int64_t>(left) < std::get<double>(right));
         }
+
+        else if(std::holds_alternative<char>(left) && std::holds_alternative<int64_t>(right))
+        {
+            cse.back()->Push(gc,std::get<char>(left) < std::get<int64_t>(right));
+        }
+        else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<char>(right))
+        {
+            cse.back()->Push(gc,std::get<int64_t>(left) < std::get<char>(right));
+        }
         else if(std::holds_alternative<TVMVersion>(left) && std::holds_alternative<TVMVersion>(right))
         {
             auto lver= std::get<TVMVersion>(left);
@@ -638,6 +647,15 @@ namespace Tesses::CrossLang {
         else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<double>(right))
         {
             cse.back()->Push(gc,std::get<int64_t>(left) > std::get<double>(right));
+        }
+
+        else if(std::holds_alternative<char>(left) && std::holds_alternative<int64_t>(right))
+        {
+            cse.back()->Push(gc,std::get<char>(left) > std::get<int64_t>(right));
+        }
+        else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<char>(right))
+        {
+            cse.back()->Push(gc,std::get<int64_t>(left) > std::get<char>(right));
         }
         else if(std::holds_alternative<TVMVersion>(left) && std::holds_alternative<TVMVersion>(right))
         {
@@ -701,6 +719,15 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc,std::get<int64_t>(left) <= std::get<double>(right));
         }
+
+        else if(std::holds_alternative<char>(left) && std::holds_alternative<int64_t>(right))
+        {
+            cse.back()->Push(gc,std::get<char>(left) <= std::get<int64_t>(right));
+        }
+        else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<char>(right))
+        {
+            cse.back()->Push(gc,std::get<int64_t>(left) <= std::get<char>(right));
+        }
         else if(std::holds_alternative<TVMVersion>(left) && std::holds_alternative<TVMVersion>(right))
         {
             auto lver= std::get<TVMVersion>(left);
@@ -762,6 +789,15 @@ namespace Tesses::CrossLang {
         else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<double>(right))
         {
             cse.back()->Push(gc,std::get<int64_t>(left) >= std::get<double>(right));
+        }
+
+        else if(std::holds_alternative<char>(left) && std::holds_alternative<int64_t>(right))
+        {
+            cse.back()->Push(gc,std::get<char>(left) >= std::get<int64_t>(right));
+        }
+        else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<char>(right))
+        {
+            cse.back()->Push(gc,std::get<int64_t>(left) >= std::get<char>(right));
         }
         else if(std::holds_alternative<TVMVersion>(left) && std::holds_alternative<TVMVersion>(right))
         {
@@ -849,6 +885,14 @@ namespace Tesses::CrossLang {
         else if(std::holds_alternative<char>(left) && std::holds_alternative<char>(right))
         {
             cse.back()->Push(gc,std::get<char>(left) == std::get<char>(right));
+        }
+        else if(std::holds_alternative<char>(left) && std::holds_alternative<int64_t>(right))
+        {
+            cse.back()->Push(gc,std::get<char>(left) == std::get<int64_t>(right));
+        }
+        else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<char>(right))
+        {
+            cse.back()->Push(gc,std::get<int64_t>(left) == std::get<char>(right));
         }
         else if(std::holds_alternative<TVMVersion>(left) && std::holds_alternative<TVMVersion>(right))
         {
@@ -942,6 +986,14 @@ namespace Tesses::CrossLang {
         else if(std::holds_alternative<char>(left) && std::holds_alternative<char>(right))
         {
             cse.back()->Push(gc,std::get<char>(left) != std::get<char>(right));
+        }
+        else if(std::holds_alternative<char>(left) && std::holds_alternative<int64_t>(right))
+        {
+            cse.back()->Push(gc,std::get<char>(left) != std::get<int64_t>(right));
+        }
+        else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<char>(right))
+        {
+            cse.back()->Push(gc,std::get<int64_t>(left) != std::get<char>(right));
         }
         else if(std::holds_alternative<TVMVersion>(left) && std::holds_alternative<TVMVersion>(right))
         {
