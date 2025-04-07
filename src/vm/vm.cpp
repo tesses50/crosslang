@@ -195,6 +195,18 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc,std::get<int64_t>(left) - std::get<double>(right));
         }
+        else if(std::holds_alternative<char>(left) && std::holds_alternative<char>(right))
+        {
+            cse.back()->Push(gc, (int64_t)(std::get<char>(left) - std::get<char>(right)));
+        }
+        else if(std::holds_alternative<char>(left) && std::holds_alternative<int64_t>(right))
+        {
+            cse.back()->Push(gc, (int64_t)(std::get<char>(left) - std::get<int64_t>(right)));
+        }
+        else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<char>(right))
+        {
+            cse.back()->Push(gc, (int64_t)(std::get<int64_t>(left) - std::get<char>(right)));
+        }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
@@ -582,6 +594,10 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc,std::get<char>(left) < std::get<int64_t>(right));
         }
+        else if(std::holds_alternative<char>(left) && std::holds_alternative<char>(right))
+        {
+            cse.back()->Push(gc,std::get<char>(left) < std::get<char>(right));
+        }
         else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<char>(right))
         {
             cse.back()->Push(gc,std::get<int64_t>(left) < std::get<char>(right));
@@ -653,6 +669,10 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc,std::get<char>(left) > std::get<int64_t>(right));
         }
+        else if(std::holds_alternative<char>(left) && std::holds_alternative<char>(right))
+        {
+            cse.back()->Push(gc,std::get<char>(left) > std::get<char>(right));
+        }
         else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<char>(right))
         {
             cse.back()->Push(gc,std::get<int64_t>(left) > std::get<char>(right));
@@ -719,7 +739,10 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc,std::get<int64_t>(left) <= std::get<double>(right));
         }
-
+        else if(std::holds_alternative<char>(left) && std::holds_alternative<char>(right))
+        {
+            cse.back()->Push(gc,std::get<char>(left) <= std::get<char>(right));
+        }
         else if(std::holds_alternative<char>(left) && std::holds_alternative<int64_t>(right))
         {
             cse.back()->Push(gc,std::get<char>(left) <= std::get<int64_t>(right));
@@ -794,6 +817,10 @@ namespace Tesses::CrossLang {
         else if(std::holds_alternative<char>(left) && std::holds_alternative<int64_t>(right))
         {
             cse.back()->Push(gc,std::get<char>(left) >= std::get<int64_t>(right));
+        }
+        else if(std::holds_alternative<char>(left) && std::holds_alternative<char>(right))
+        {
+            cse.back()->Push(gc,std::get<char>(left) >= std::get<char>(right));
         }
         else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<char>(right))
         {
@@ -1307,8 +1334,18 @@ namespace Tesses::CrossLang {
             cse.back()->Push(gc,std::get<std::string>(left) + std::get<Tesses::Framework::Filesystem::VFSPath>(right));
         
         }
-
-
+        else if(std::holds_alternative<char>(left) && std::holds_alternative<char>(right))
+        {
+            cse.back()->Push(gc,std::get<char>(left) + std::get<char>(right));
+        }
+        else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<char>(right))
+        {
+            cse.back()->Push(gc, (char)(std::get<int64_t>(left) + std::get<char>(right)));
+        }
+        else if(std::holds_alternative<char>(left) && std::holds_alternative<int64_t>(right))
+        {
+            cse.back()->Push(gc, (char)(std::get<char>(left) + std::get<int64_t>(right)));
+        }
         else if(std::holds_alternative<Tesses::Framework::Filesystem::VFSPath>(left) && std::holds_alternative<std::string>(right))
         {
             cse.back()->Push(gc,std::get<Tesses::Framework::Filesystem::VFSPath>(left) + std::get<std::string>(right));
