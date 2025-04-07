@@ -50,6 +50,8 @@ bool Download(Tesses::Framework::Filesystem::VFSPath filename,Tesses::Framework:
 int main(int argc, char** argv)
 {
     TF_Init();
+
+    
     
     Tesses::Framework::Filesystem::VFSPath dir = sago::getConfigHome();
     dir = dir / "Tesses" / "CrossLang";
@@ -59,6 +61,29 @@ int main(int argc, char** argv)
     Tesses::Framework::Filesystem::LocalFilesystem fs;
 
     auto p = GetRealExecutablePath(fs.SystemToVFSPath(argv[0])).GetParent().GetParent() / "share" / "Tesses" / "CrossLang" / "Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm";
+
+    if(argc > 1 && strcmp(argv[1],"update-shell") == 0)
+    {
+
+        Tesses::Framework::Filesystem::SubdirFilesystem subdir(&fs,dir,false);
+        HttpRequest req;
+            req.url = "https://downloads.tesses.net/ShellPackage.crvm";
+            req.method = "GET";
+            HttpResponse resp(req);
+            if(resp.statusCode == StatusCode::OK)
+            {
+                auto strm = resp.ReadAsStream();
+                CrossArchiveExtract(strm, &subdir);
+                delete strm;
+                return 0;
+            }
+            else
+            {
+                std::cout << "Error when fetching the script error: " << std::to_string(resp.statusCode) << " " << HttpUtils::StatusCodeString(resp.statusCode) << std::endl;
+                return 1;
+            }
+        return 0;
+    }
 
     if(!fs.RegularFileExists(filename))
     {
@@ -80,6 +105,7 @@ int main(int argc, char** argv)
         else
         {
             if(!Download(filename,&subdir)) return 1;
+            return 0;
         }
     }
     
