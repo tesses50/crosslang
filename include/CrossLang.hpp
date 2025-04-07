@@ -27,6 +27,7 @@ namespace Tesses::CrossLang {
     std::string EscapeString(std::string text,bool quote);
 
     Tesses::Framework::Filesystem::VFSPath GetRealExecutablePath(Tesses::Framework::Filesystem::VFSPath realPath);
+    Tesses::Framework::Filesystem::VFSPath GetCrossLangConfigDir();
 
     enum TVMVersionStage : uint8_t
     {

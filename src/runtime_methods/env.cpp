@@ -14,6 +14,17 @@ namespace Tesses::CrossLang
     static char EnvPathSeperator=':';
     #endif
 
+    Tesses::Framework::Filesystem::VFSPath GetCrossLangConfigDir()
+    {
+        Tesses::Framework::Filesystem::VFSPath p;
+        #if defined(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
+        p=sago::getConfigHome();
+        #else
+        p = GetHomeFolder() + "/Config";
+        #endif
+        return p / "Tesses" / "CrossLang";
+    }
+
     Tesses::Framework::Filesystem::VFSPath GetRealExecutablePath(Tesses::Framework::Filesystem::VFSPath realPath)
     {
         using namespace Tesses::Framework::Filesystem;
@@ -56,6 +67,10 @@ namespace Tesses::CrossLang
         #else
         return "/CrossLangProfile";
         #endif
+    }
+    static TObject Env_getCrossLangConfig(GCList& ls, std::vector<TObject> args)
+    {
+        return GetCrossLangConfigDir();
     }
     static TObject Env_getPlatform(GCList& ls, std::vector<TObject> args)
     {
@@ -249,6 +264,7 @@ namespace Tesses::CrossLang
         dict->DeclareFunction(gc,"getState","Get state folder",{},Env_getState);
         dict->DeclareFunction(gc,"getCache","Get cache folder",{},Env_getCache);
         dict->DeclareFunction(gc,"getConfig","Get config folder",{},Env_getConfig);
+        dict->DeclareFunction(gc,"getCrossLangConfig","Get crosslang configuration folder",{}, Env_getCrossLangConfig);
         dict->DeclareFunction(gc,"getData","Get data folder",{},Env_getData);
         dict->DeclareFunction(gc,"getUser","Get user folder",{},Env_getUser);
         dict->DeclareFunction(gc,"getPlatform","Get platform name",{},Env_getPlatform);
