@@ -844,7 +844,7 @@ class GC {
     class TDictionary : public THeapObject
     {
         public:
-            std::unordered_map<std::string,TObject> items;
+            std::map<std::string,TObject> items;
             static TDictionary* Create(GCList* gc);
             static TDictionary* Create(GCList& gc);
             template<typename Itterator>
@@ -1237,7 +1237,7 @@ class GC {
     class TDictionaryEnumerator : public TEnumerator 
     {
         bool hasStarted;
-        std::unordered_map<std::string, Tesses::CrossLang::TObject>::iterator ittr;
+        std::map<std::string, Tesses::CrossLang::TObject>::iterator ittr;
         TDictionary* dict;
         public:
             static TDictionaryEnumerator* Create(GCList& ls, TDictionary* dict);

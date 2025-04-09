@@ -1,17 +1,10 @@
-/*
-
-*/
 
 #include "CrossLang.hpp"
-
-#if defined(CROSSLANG_ENABLE_JSON)
-#include <jansson.h>
-#endif
+using namespace Tesses::Framework::Serialization::Json;
 
 namespace Tesses::CrossLang
 {
 
-#if defined(CROSSLANG_ENABLE_JSON)
     static bool IsValidForJson(TObject v)
     {
         if(std::holds_alternative<std::nullptr_t>(v)) return true;
@@ -37,17 +30,13 @@ namespace Tesses::CrossLang
         }
         return false;
     }
-    static json_t* JsonSerialize(TObject v)
+    static JToken JsonSerialize(TObject v)
     {
-        if(std::holds_alternative<std::nullptr_t>(v)) return json_null();
-        if(std::holds_alternative<int64_t>(v)) return json_integer(std::get<int64_t>(v));
-        if(std::holds_alternative<double>(v)) return json_real(std::get<double>(v));
-        if(std::holds_alternative<bool>(v)) return json_boolean(std::get<bool>(v));
-        if(std::holds_alternative<std::string>(v)) 
-        { 
-            std::string txt = std::get<std::string>(v); 
-            return json_stringn(txt.c_str(),txt.size());
-        }
+        if(std::holds_alternative<std::nullptr_t>(v)) return nullptr;
+        if(std::holds_alternative<int64_t>(v)) return std::get<int64_t>(v);
+        if(std::holds_alternative<double>(v)) return std::get<double>(v);
+        if(std::holds_alternative<bool>(v)) return std::get<bool>(v);
+        if(std::holds_alternative<std::string>(v)) return std::get<std::string>(v);
         if(std::holds_alternative<THeapObjectHolder>(v))
         {
             auto obj = std::get<THeapObjectHolder>(v).obj;
@@ -56,29 +45,29 @@ namespace Tesses::CrossLang
 
             if(ls != nullptr)
             {
-                json_t* items=json_array();
+                JArray items;
                 for(int64_t i = 0; i < ls->Count(); i++)
                 {
                     auto val = ls->Get(i);
                     if(IsValidForJson(val))
-                    json_array_append_new(items,JsonSerialize(val));
+                        items.Add(JsonSerialize(val));
                 }
                 return items;
             }
 
             if(dict != nullptr)
             {
-                json_t* obj = json_object();
+                JObject obj;
                 for(auto item : dict->items)
                 {
                     if(IsValidForJson(item.second))
-                    json_object_set_new(obj, item.first.c_str(),JsonSerialize(item.second));
+                        obj.SetValue(item.first,JsonSerialize(item.second));
                 }   
                 return obj;
             }
         }
 
-        return json_null();
+        return nullptr;
     }
     static TObject JsonEncode(GCList& ls2, std::vector<TObject> args)
     {
@@ -87,32 +76,30 @@ namespace Tesses::CrossLang
             bool indent = (args.size() == 2 && std::holds_alternative<bool>(args[1]) && std::get<bool>(args[1]));
             
             auto json = JsonSerialize(args[0]);
-            char* txt = json_dumps(json, indent ? JSON_INDENT(4) : 0);
-            std::string str = txt;
-            free(txt);
-            json_decref(json);
-            return str;
+
+            return Json::Encode(json,indent);
         }
         return "null";
     }
-    static TObject JsonDeserialize(GCList& ls2,json_t* json)
+    static TObject JsonDeserialize(GCList& ls2,JToken json)
     {
-        if(json == nullptr) return nullptr;
-        if(json_is_null(json)) return nullptr;
-        if(json_is_true(json)) return true;
-        if(json_is_false(json)) return false;
-        if(json_is_integer(json)) return (int64_t)json_integer_value(json);
-        if(json_is_real(json)) return json_real_value(json);
-        if(json_is_string(json))
-        {
-            return std::string(json_string_value(json),json_string_length(json));
-        }
-        if(json_is_array(json))
+        if(std::holds_alternative<JUndefined>(json)) return nullptr;
+        if(std::holds_alternative<std::nullptr_t>(json)) return nullptr;
+        bool b;
+        int64_t _i64;
+        double _f64;
+        std::string str;
+        JArray arr;
+        JObject obj;
+        if(TryGetJToken(json,b)) return b;
+        if(TryGetJToken(json,_i64)) return _i64;
+        if(TryGetJToken(json,_f64)) return _f64;
+        if(TryGetJToken(json,str)) return str;
+        if(TryGetJToken(json,arr))
         {
             TList* ls = TList::Create(ls2);
-            json_t* item;
-            size_t index;
-            json_array_foreach(json,index, item)
+           
+            for(auto& item : arr)
             {
                 auto itemRes = JsonDeserialize(ls2,item);
                 ls2.GetGC()->BarrierBegin();
@@ -121,20 +108,18 @@ namespace Tesses::CrossLang
             }
             return ls;
         }
-        if(json_is_object(json))
+        if(TryGetJToken(json,obj))
         {
 
             TDictionary* dict = TDictionary::Create(ls2);
-            void* n;
-            const char* key;
-            size_t len;
-            json_t* value;
+      
             
-            json_object_foreach_safe(json,n,key,value)
+            for(auto& item : obj)
             {
-                auto itemRes = JsonDeserialize(ls2,value);       
+                
+                auto itemRes = JsonDeserialize(ls2,item.second);       
                 ls2.GetGC()->BarrierBegin();
-                dict->SetValue(std::string(key),itemRes);
+                dict->SetValue(item.first,itemRes);
                 ls2.GetGC()->BarrierEnd();
             }
             return dict;
@@ -145,46 +130,26 @@ namespace Tesses::CrossLang
     {
         if(args.size() > 0 && std::holds_alternative<std::string>(args[0]))
         {
-            std::string jsonText = std::get<std::string>(args[0]);
-            json_t* json = json_loadb(jsonText.c_str(), jsonText.size(),0,NULL);
             
-            auto res = JsonDeserialize(ls2, json);
-            json_decref(json);
-            return res;
+            
+           return JsonDeserialize(ls2, Json::Decode(std::get<std::string>(args[0])));
+            
+            
         }
         return Undefined();
     }
-    #endif
     std::string Json_Encode(TObject o,bool indent)
     {
-        #if defined(CROSSLANG_ENABLE_JSON)
-        auto json = JsonSerialize(o);
-        char* txt = json_dumps(json, indent ? JSON_INDENT(4) : 0);
-        std::string str = txt;
-        free(txt);
-        json_decref(json);
-        return str;
-        #else
-        return "";
-        #endif
-
+        return Json::Encode(JsonSerialize(o),indent);
     }
     TObject Json_Decode(GCList ls,std::string str)
     {
-        #if defined(CROSSLANG_ENABLE_JSON)
-        json_t* json = json_loadb(str.c_str(), str.size(),0,NULL);
-        auto res = JsonDeserialize(ls,json);
-        json_decref(json);
-        return res;
-        #else
-        return nullptr;
-        #endif
+        return JsonDeserialize(ls,Json::Decode(str));
     }
     void TStd::RegisterJson(GC* gc,TRootEnvironment* env)
     {
 
         env->permissions.canRegisterJSON=true;
-        #if defined(CROSSLANG_ENABLE_JSON)
         GCList ls(gc);
         TDictionary* dict = TDictionary::Create(ls);
         dict->DeclareFunction(gc, "Decode","Deserialize Json",{"Json string"},JsonDecode);   
@@ -194,7 +159,6 @@ namespace Tesses::CrossLang
         gc->BarrierBegin();
         env->DeclareVariable("Json", dict);
         gc->BarrierEnd();
-        #endif
     }
     
 }

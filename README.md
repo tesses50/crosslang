@@ -4,11 +4,10 @@ Tesses Cross Language
 ![CrossImage](crosslang.png)
 
 ## What is required to build this project
-- [TessesFramework](https://onedev.site.tesses.net/tesses-framework)
-- Jansson (but can be turned off but is strongly recommended otherwise many programs will not work)
+- [TessesFramework](https://onedev.site.tesses.net/tesses-framework) (if you turn CROSSLANG_FETCHCONTENT off otherwise it will be grabbed automaticly)
 - CMake
 
-## What libraries have I embeaded from other people
+## What libraries have I embeded from other people
 - [HodwardHinnart's date]() (in folder src/HodwardHinnart_date, modified tz.cpp to point to correct header)
 - [Sqlite]() (in folder src/sqlite also uses demo VFS (at least on Wii))
 - [Sago's platform_folders]() (in folder src/sago)
@@ -26,7 +25,7 @@ Tesses Cross Language
 ```
 
 ## To Install
-- [Follow TessesFramework setup](https://onedev.site.tesses.net/tesses-framework)
+- Install [mbedtls](https://github.com/Mbed-TLS/mbedtls) (use sudo apt install libmbedtls-dev on debian) for TessesFramework
 - Follow the commands bellow
 
 ## Run these commands to install crosslang (or use binaries from [here](https://crosslang.tesseslanguage.com/download/))
