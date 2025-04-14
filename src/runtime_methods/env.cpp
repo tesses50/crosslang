@@ -13,7 +13,16 @@ namespace Tesses::CrossLang
     #else
     static char EnvPathSeperator=':';
     #endif
-
+    static std::string GetHomeFolder()
+    {
+        #if defined(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
+        return sago::getHomeDir();
+        #elif defined(__EMSCRIPTEN__)
+        return "/home/web_user";
+        #else
+        return "/CrossLangProfile";
+        #endif
+    }
     Tesses::Framework::Filesystem::VFSPath GetCrossLangConfigDir()
     {
         Tesses::Framework::Filesystem::VFSPath p;
@@ -58,16 +67,7 @@ namespace Tesses::CrossLang
         #endif
     }
 
-    static std::string GetHomeFolder()
-    {
-        #if defined(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
-        return sago::getHomeDir();
-        #elif defined(__EMSCRIPTEN__)
-        return "/home/web_user";
-        #else
-        return "/CrossLangProfile";
-        #endif
-    }
+    
     static TObject Env_getCrossLangConfig(GCList& ls, std::vector<TObject> args)
     {
         return GetCrossLangConfigDir();

@@ -1,6 +1,6 @@
 #include "CrossLang.hpp"
 
-#if defined(GEKKO)
+#if defined(GEKKO) || defined(__SWITCH__)
 #undef CROSSLANG_ENABLE_PROCESS
 #endif
 

@@ -53,8 +53,7 @@ int main(int argc, char** argv)
 
     
     
-    Tesses::Framework::Filesystem::VFSPath dir = sago::getConfigHome();
-    dir = dir / "Tesses" / "CrossLang";
+    Tesses::Framework::Filesystem::VFSPath dir = GetCrossLangConfigDir();
 
     Tesses::Framework::Filesystem::VFSPath filename = dir / "Shell" / "Shell.crvm";
     

@@ -8,7 +8,7 @@
 extern "C" {
 #include "../sqlite/sqlite3.h"
 }
-#if defined(GEKKO)
+#if defined(GEKKO) || defined(__SWITCH__)
 extern "C" {
     sqlite3_vfs *sqlite3_demovfs();
 }
@@ -31,7 +31,7 @@ namespace Tesses::CrossLang
         tzset();
         #if defined(CROSSLANG_ENABLE_SQLITE)
            sqlite3_initialize();
-            #if defined(GEKKO)
+            #if defined(GEKKO) || defined(__SWITCH__)
             sqlite3_vfs_register(sqlite3_demovfs(),1);
             #endif
         #endif

@@ -1571,4 +1571,20 @@ class GC {
     void LoadPlugin(GC* gc, TRootEnvironment* env, Tesses::Framework::Filesystem::VFSPath sharedObjectPath);
     std::string Json_Encode(TObject o,bool indent=false);
     TObject Json_Decode(GCList ls,std::string str);
+    //DO NOT USE DIRECTLY
+    class SharedPtrTObject {
+        GCList* ls;
+        TObject o;
+        public:
+            SharedPtrTObject(GC* gc, TObject o);
+            TObject& GetObject();
+            GC* GetGC();
+            ~SharedPtrTObject();
+    };
+    using MarkedTObject = std::shared_ptr<SharedPtrTObject>;
+
+    MarkedTObject CreateMarkedTObject(GC* gc, TObject o);
+    MarkedTObject CreateMarkedTObject(GC& gc, TObject o);
+    MarkedTObject CreateMarkedTObject(GCList* gc, TObject o);
+    MarkedTObject CreateMarkedTObject(GCList& gc, TObject o);
 };

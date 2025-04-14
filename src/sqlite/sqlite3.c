@@ -20,8 +20,8 @@
 ** The content in this amalgamation comes from Fossil check-in
 ** c9c2ab54ba1f5f46360f1b4f35d849cd3f08.
 */
-
-#if defined(GEKKO)
+ 
+#if defined(GEKKO) || defined(__SWITCH__)
 //-DSQLITE_OMIT_LOAD_EXTENSION -DSQLITE_OMIT_WAL -DSQLITE_THREADSAFE=0
 #define SQLITE_OMIT_LOAD_EXTENSION
 #define SQLITE_OMIT_WAL

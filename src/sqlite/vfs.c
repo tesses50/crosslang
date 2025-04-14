@@ -115,7 +115,7 @@
 
 /*removed tests from https://www.sqlite.org/src/doc/trunk/src/test_demovfs.c*/
 
-#if defined(GEKKO)
+#if defined(GEKKO) || defined(__SWITCH__)
 
 #include "sqlite3.h"
 

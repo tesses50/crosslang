@@ -8,8 +8,13 @@ namespace Tesses::CrossLang
 {
     static int64_t ToLocalTime(int64_t local)
     {
+	#if defined(__SWITCH__)
+	local -= _timezone;
+	if(_daylight)
+	#else
         local -= timezone;
         if(daylight)
+	#endif
         {
             auto epoch = date::sys_days{date::January/1/1970};
             epoch += date::days(local/86400);
@@ -163,8 +168,13 @@ namespace Tesses::CrossLang
         dict->DeclareFunction(gc, "Sleep","Sleep for a specified amount of milliseconds (multiply seconds by 1000 to get milliseconds)", {"ms"},Time_Sleep);
 
         gc->BarrierBegin();
+	#if defined(__SWITCH__)
+	dict->SetValue("Zone", (int64_t)-(_timezone)); 
+        dict->SetValue("SupportsDaylightSavings",(int64_t)_daylight);
+	#else
         dict->SetValue("Zone", (int64_t)-(timezone));
         dict->SetValue("SupportsDaylightSavings",(int64_t)daylight);
+	#endif
         env->DeclareVariable("Time", dict);
 
         gc->BarrierEnd();

@@ -118,6 +118,7 @@ src/vm/gclist.cpp
 src/vm/vm.cpp
 src/bitconverter.cpp
 src/archive.cpp
+src/markedtobject.cpp
 )
 
 if(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
