@@ -54,7 +54,7 @@ namespace Tesses::CrossLang
                 str.push_back('\\');
                 str.push_back('v');
             }
-            else if(item == '\e')
+            else if(item == '\x1B')
             {
                 str.push_back('\\');
                 str.push_back('e');
@@ -219,7 +219,7 @@ namespace Tesses::CrossLang
                 }
                 else if(read == 'e')
                 {
-                    return std::pair<int,bool>('\e',true);
+                    return std::pair<int,bool>('\x1B',true);
                 }
                 else if(read == 't')
                 {
