@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 
 
 include(CMakePackageConfigHelpers)
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+
 option(CROSSLANG_ENABLE_STATIC "Enable Tesses CrossLang static libraries" ON)
 option(CROSSLANG_ENABLE_SHARED "Enable Tesses CrossLang shared libraries" ON)
 option(CROSSLANG_ENABLE_BINARIES "Enable Tesses CrossLang binaries" ON)
@@ -16,7 +18,7 @@ option(CROSSLANG_ENABLE_PROCESS "Enable process" ON)
 option(CROSSLANG_ENABLE_TERMIOS "Enable termios (For changing terminal options)" ON)
 option(CROSSLANG_ENABLE_PLATFORM_FOLDERS "Enable platform folders" ON)
 option(CROSSLANG_SHARED_EXECUTABLES "Link with libcrosslang_shared" ON)
-option(CROSSLANG_FETCHCONTENT "Use fetchcontent" OFF)
+option(CROSSLANG_FETCHCONTENT "Use fetchcontent" ON)
 
 option(CROSSLANG_CUSTOM_CONSOLE "Enable custom Console" OFF)
 
