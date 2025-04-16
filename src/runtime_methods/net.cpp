@@ -8,7 +8,6 @@
 #include <sys/types.h>
 #include <csignal>
 #include <iostream>
-#include <unistd.h>
 #include <cstring>
 using namespace Tesses::Framework::Streams;
 using namespace Tesses::Framework::Http;

@@ -1,8 +1,12 @@
 #include "CrossLang.hpp"
 #include <chrono>
 #include <iostream>
-#include <unistd.h>
 #include <time.h>
+#if defined(_WIN32)
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 #if defined(CROSSLANG_ENABLE_SQLITE) 
 extern "C" {
@@ -118,8 +122,11 @@ namespace Tesses::CrossLang
 
             }
 
-            
+            #if defined(_WIN32)
+            Sleep(100);
+            #else
             usleep(100000);
+            #endif
         }
         GC::Collect();
         });

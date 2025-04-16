@@ -245,11 +245,8 @@ namespace Tesses::CrossLang
                 size_t offset = 0;
                 uint8_t buff[1024];
                 do {
-                    #if defined(_WIN32)
-                    read = min(min(tableLen-offset,tableLen), sizeof(buff));
-                    #else
+                    
                     read = std::min(std::min(tableLen-offset,tableLen), sizeof(buff));
-                    #endif
                     read = strm->Read(buff,read);
                     if(read > 0)
                         strm2->WriteBlock(buff,read);

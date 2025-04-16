@@ -1,6 +1,11 @@
 
 #include "CrossLang.hpp"
+#if defined(_WIN32)
+#include <windows.h>
+#include <time.h>
+#else
 #include <unistd.h>
+#endif
 #include "../HowardHinnant_date/date.h"
 
 
@@ -83,7 +88,11 @@ namespace Tesses::CrossLang
         int64_t msec;
         if(GetArgument(args,0,msec))
         {
+            #if defined(_WIN32)
+            Sleep((int)msec);
+            #else
             usleep(1000*msec);   
+            #endif
         }
         return nullptr;
     }
