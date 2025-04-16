@@ -16,7 +16,7 @@ option(CROSSLANG_ENABLE_PROCESS "Enable process" ON)
 option(CROSSLANG_ENABLE_TERMIOS "Enable termios (For changing terminal options)" ON)
 option(CROSSLANG_ENABLE_PLATFORM_FOLDERS "Enable platform folders" ON)
 option(CROSSLANG_SHARED_EXECUTABLES "Link with libcrosslang_shared" ON)
-option(CROSSLANG_FETCHCONTENT "Use fetchcontent" ON)
+option(CROSSLANG_FETCHCONTENT "Use fetchcontent" OFF)
 
 option(CROSSLANG_CUSTOM_CONSOLE "Enable custom Console" OFF)
 
