@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 include(CMakePackageConfigHelpers)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
+
 option(CROSSLANG_ENABLE_STATIC "Enable Tesses CrossLang static libraries" ON)
 option(CROSSLANG_ENABLE_SHARED "Enable Tesses CrossLang shared libraries" ON)
 option(CROSSLANG_ENABLE_BINARIES "Enable Tesses CrossLang binaries" ON)
