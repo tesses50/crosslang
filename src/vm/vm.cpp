@@ -2969,12 +2969,9 @@ namespace Tesses::CrossLang {
                             uint16_t port=0;
 
                             if(off < len)
-                                #if defined(_WIN32)
-                                len = netStrm->ReadFrom(data->data.data()+off,min(len,min(data->data.size() - off, data->data.size())),ip,port);
                                 
-                                #else
                                 len = netStrm->ReadFrom(data->data.data()+off,std::min(len,std::min(data->data.size() - off, data->data.size())),ip,port);
-                                #endif
+                            
                             else
                                 len = 0;
 
@@ -3030,12 +3027,9 @@ namespace Tesses::CrossLang {
                             size_t len = (size_t)length;
 
                             if(off < len)
-                                #if defined(_WIN32)
-                                len = strm->stream->Read(data->data.data()+off,min(len,min(data->data.size() - off, data->data.size())));
-                                
-                                #else
+                               
                                 len = strm->stream->Read(data->data.data()+off,std::min(len,std::min(data->data.size() - off, data->data.size())));
-                                #endif
+                               
                             else
                                 len = 0;
                             
@@ -3114,11 +3108,9 @@ namespace Tesses::CrossLang {
                             size_t len = (size_t)length;
 
                             if(off < len)
-                                #if defined(_WIN32)
-                                strm->stream->WriteBlock(data->data.data()+off,min(len,min(data->data.size() - off, data->data.size())));
-                                #else
+                               
                                 strm->stream->WriteBlock(data->data.data()+off,std::min(len,std::min(data->data.size() - off, data->data.size())));
-                                #endif
+                                
 
                         }
                         cse.back()->Push(gc, nullptr);
