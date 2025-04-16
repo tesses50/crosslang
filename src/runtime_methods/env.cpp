@@ -25,6 +25,13 @@ namespace Tesses::CrossLang
     }
     Tesses::Framework::Filesystem::VFSPath GetCrossLangConfigDir()
     {
+        #if defined(CROSSLANG_ENABLE_CONFIG_ENVVAR)
+        char* conf = std::getenv("CROSSLANG_CONFIG");
+        if(conf != NULL)
+        {
+            return std::string(conf);
+        }
+        #endif
         Tesses::Framework::Filesystem::VFSPath p;
         #if defined(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
         p=sago::getConfigHome();

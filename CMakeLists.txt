@@ -20,6 +20,7 @@ option(CROSSLANG_ENABLE_TERMIOS "Enable termios (For changing terminal options)"
 option(CROSSLANG_ENABLE_PLATFORM_FOLDERS "Enable platform folders" ON)
 option(CROSSLANG_SHARED_EXECUTABLES "Link with libcrosslang_shared" ON)
 option(CROSSLANG_FETCHCONTENT "Use fetchcontent" ON)
+option(CROSSLANG_ENABLE_CONFIG_ENVVAR "Allow setting config directory via the environment variable CROSSLANG_CONFIG" ON)
 
 option(CROSSLANG_CUSTOM_CONSOLE "Enable custom Console" OFF)
 
@@ -50,6 +51,9 @@ else()
 find_package(TessesFramework REQUIRED)
 endif()
 function(CROSSLANG_LINK_DEPS CROSSLANG_TARGET_NAME)
+if(CROSSLANG_ENABLE_CONFIG_ENVVAR)
+target_compile_definitions(${CROSSLANG_TARGET_NAME} PUBLIC CROSSLANG_ENABLE_CONFIG_ENVVAR)
+endif()
 if(CROSSLANG_ENABLE_PROCESS)
 target_compile_definitions(${CROSSLANG_TARGET_NAME} PUBLIC CROSSLANG_ENABLE_PROCESS)
 endif()
