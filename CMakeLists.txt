@@ -32,12 +32,13 @@ endif()
 set(CROSSLANG_OFFLINE_SHELL_PACKAGE "" CACHE FILEPATH "Path to the shell package generated from https://onedev.site.tesses.net/CrossLang/CrossLangExtras")
 
 if(CROSSLANG_FETCHCONTENT)
+if(NOT WIN32)
 set(TESSESFRAMEWORK_ENABLE_EXAMPLES OFF)
 set(TESSESFRAMEWORK_ENABLE_APPS OFF)
 set(CROSSLANG_ENABLE_SHARED OFF)
 set(TESSESFRAMEWORK_ENABLE_SHARED OFF)
 set(CROSSLANG_SHARED_EXECUTABLES OFF)
-
+endif()
 include(FetchContent)
 FetchContent_Declare(
     TessesFramework
