@@ -204,10 +204,7 @@ install(TARGETS crosslang_shared
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
-if(WIN32 AND NOT CROSSLANG_FETCHCONTENT)
-install(FILES ${TessesFramework_DIR}/${CMAKE_INSTALL_BINDIR}/tessesframework_shared.dll
-DESTINATION ${CMAKE_INSTALL_BINDIR})
-endif()
+
 endif()
 endif()
 
