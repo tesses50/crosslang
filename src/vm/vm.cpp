@@ -2969,7 +2969,12 @@ namespace Tesses::CrossLang {
                             uint16_t port=0;
 
                             if(off < len)
+                                #if defined(_WIN32)
+                                len = netStrm->ReadFrom(data->data.data()+off,min(len,min(data->data.size() - off, data->data.size())),ip,port);
+                                
+                                #else
                                 len = netStrm->ReadFrom(data->data.data()+off,std::min(len,std::min(data->data.size() - off, data->data.size())),ip,port);
+                                #endif
                             else
                                 len = 0;
 
@@ -3000,7 +3005,12 @@ namespace Tesses::CrossLang {
                             size_t len = (size_t)length;
 
                             if(off < len)
+                                #if defined(_WIN32)
+                                len = netStrm->WriteTo(data->data.data()+off,min(len, min(data->data.size() - off, data->data.size())), ip, (int64_t)port);
+                               
+                                #else
                                 len = netStrm->WriteTo(data->data.data()+off,std::min(len, std::min(data->data.size() - off, data->data.size())), ip, (int64_t)port);
+                                #endif
                             else
                                 len = 0;
                             
@@ -3023,7 +3033,12 @@ namespace Tesses::CrossLang {
                             size_t len = (size_t)length;
 
                             if(off < len)
+                                #if defined(_WIN32)
+                                len = strm->stream->Read(data->data.data()+off,min(len,min(data->data.size() - off, data->data.size())));
+                                
+                                #else
                                 len = strm->stream->Read(data->data.data()+off,std::min(len,std::min(data->data.size() - off, data->data.size())));
+                                #endif
                             else
                                 len = 0;
                             
@@ -3044,7 +3059,12 @@ namespace Tesses::CrossLang {
                             size_t len = (size_t)length;
 
                             if(off < len)
+                                #if defined(_WIN32)
+
+                                len = strm->stream->Write(data->data.data()+off,min(len, min(data->data.size() - off, data->data.size())));
+                                #else
                                 len = strm->stream->Write(data->data.data()+off,std::min(len, std::min(data->data.size() - off, data->data.size())));
+                                #endif
                             else
                                 len = 0;
                             
@@ -3065,7 +3085,12 @@ namespace Tesses::CrossLang {
                             size_t len = (size_t)length;
 
                             if(off < len)
+                                #if defined(_WIN32)
+                                len = strm->stream->ReadBlock(data->data.data()+off,min(len, min(data->data.size() - off, data->data.size())));
+                                
+                                #else
                                 len = strm->stream->ReadBlock(data->data.data()+off,std::min(len, std::min(data->data.size() - off, data->data.size())));
+                                #endif
                             else
                                 len = 0;
                             
@@ -3098,7 +3123,11 @@ namespace Tesses::CrossLang {
                             size_t len = (size_t)length;
 
                             if(off < len)
+                                #if defined(_WIN32)
+                                strm->stream->WriteBlock(data->data.data()+off,min(len,min(data->data.size() - off, data->data.size())));
+                                #else
                                 strm->stream->WriteBlock(data->data.data()+off,std::min(len,std::min(data->data.size() - off, data->data.size())));
+                                #endif
 
                         }
                         cse.back()->Push(gc, nullptr);
@@ -3263,7 +3292,11 @@ namespace Tesses::CrossLang {
                         {
                             offdest = bArray2->data.size();
                         }
+                        #if defined(_WIN32)
+                        len = min(min(bArray->data.size()-offsrc,bArray2->data.size()-offdest),len);
+                        #else
                         len = std::min<size_t>(std::min<size_t>(bArray->data.size()-offsrc,bArray2->data.size()-offdest),len);
+                        #endif
                         if(len > 0)
                         memcpy(bArray2->data.data()+offdest,bArray->data.data()+offsrc,len);
                         cse.back()->Push(gc,bArray2);
@@ -3309,8 +3342,11 @@ namespace Tesses::CrossLang {
                         {
                             offdest = bArray->data.size();
                         }
+                        #if defined(_WIN32)
+                        len = min(len,bArray2->data.size()-offsrc);
+                        #else
                         len = std::min(len,bArray2->data.size()-offsrc);
-
+                        #endif
 
                         bArray->data.insert(bArray->data.begin()+offdest,bArray2->data.begin()+offsrc,bArray2->data.begin()+offsrc+len);
                         cse.back()->Push(gc, bArray);
@@ -3344,9 +3380,11 @@ namespace Tesses::CrossLang {
                         {
                             off = bArray->data.size();
                         }
-
+                        #if defined(_WIN32)
+                        len = min(bArray->data.size() - off,len);
+                        #else
                         len = std::min<size_t>(bArray->data.size() - off,len);
-
+                        #endif
                         bArray->data.insert(bArray->data.end(),bArray2->data.begin()+off,bArray2->data.begin()+off+len);
                         cse.back()->Push(gc,bArray);
                         return false;
@@ -5078,10 +5116,18 @@ namespace Tesses::CrossLang {
                 {
                     if(closure->closure->args[i].find("$$") == 0)
                     {
+                        #if defined(_WIN32)
+                        return min(argLen,i);
+                        #else
                         return std::min(argLen,i);
+                        #endif
                     }
                 }
+                #if defined(_WIN32)
+                return min(argLen,closure->closure->args.size());
+                #else
                 return std::min(argLen,closure->closure->args.size());
+                #endif
             };
             auto trimStart = [](std::string txt)->std::string {
                 if(txt.empty()) return {};

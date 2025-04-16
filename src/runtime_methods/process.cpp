@@ -97,7 +97,7 @@ namespace Tesses::CrossLang
             int r = subprocess_create_ex(args3,(int)options,env3,subprocess);
             if(r != 0)
             {
-                printf("Here2 %i\n",r);
+
                 delete[] args3;
                 delete[] env3;
                 delete subprocess;

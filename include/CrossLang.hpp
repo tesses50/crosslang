@@ -16,11 +16,16 @@
 #include <TessesFramework/TessesFramework.hpp>
 #include <regex>
 #include <time.h>
+#include <cstdbool>
 #define TVM_MAJOR 1
 #define TVM_MINOR 0
 #define TVM_PATCH 0
 #define TVM_BUILD 0
 #define TVM_VERSIONSTAGE DevVersion
+
+#if defined(_WIN32)
+#undef Yield
+#endif
 
 namespace Tesses::CrossLang {
     

@@ -2,7 +2,7 @@
 #include "CrossLang.hpp"
 #include <iostream>
 
-#if defined(GEKKO) || defined(__SWITCH__)
+#if defined(GEKKO) || defined(__SWITCH__) || defined(_WIN32)
 #undef CROSSLANG_ENABLE_TERMIOS
 #endif
 
