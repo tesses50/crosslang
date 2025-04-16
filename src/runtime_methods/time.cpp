@@ -13,7 +13,7 @@ namespace Tesses::CrossLang
 {
     static int64_t ToLocalTime(int64_t local)
     {
-	#if defined(__SWITCH__)
+	#if defined(__SWITCH__) || defined(_WIN32)
 	local -= _timezone;
 	if(_daylight)
 	#else
@@ -177,8 +177,8 @@ namespace Tesses::CrossLang
         dict->DeclareFunction(gc, "Sleep","Sleep for a specified amount of milliseconds (multiply seconds by 1000 to get milliseconds)", {"ms"},Time_Sleep);
 
         gc->BarrierBegin();
-	#if defined(__SWITCH__)
-	dict->SetValue("Zone", (int64_t)-(_timezone)); 
+	#if defined(__SWITCH__) || defined(_WIN32)
+	    dict->SetValue("Zone", (int64_t)-(_timezone)); 
         dict->SetValue("SupportsDaylightSavings",(int64_t)_daylight);
 	#else
         dict->SetValue("Zone", (int64_t)-(timezone));
