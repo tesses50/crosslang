@@ -94,11 +94,9 @@ namespace Tesses::CrossLang
             arr->data.resize(sz);
 
             auto res = dict->CallMethod(ls2, "Read",{arr, (int64_t)0L, (int64_t)sz});
-            #if defined(_WIN32)
-            memcpy(buff,arr->data.data(),min(sz,arr->data.size()));
-            #else
+            
             memcpy(buff,arr->data.data(),std::min(sz,arr->data.size()));
-            #endif
+           
             int64_t r;
             if(GetObject(res,r)) return r;
         }

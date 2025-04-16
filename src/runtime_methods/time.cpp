@@ -2,7 +2,10 @@
 #include "CrossLang.hpp"
 #if defined(_WIN32)
 #include <windows.h>
+
 #include <time.h>
+#undef min
+#undef max
 #else
 #include <unistd.h>
 #endif
