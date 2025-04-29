@@ -1075,14 +1075,36 @@ namespace Tesses::CrossLang
                 instructions.push_back(new EmbedInstruction(GetResource(filename)));
 
             }
+            else if(adv.nodeName == HtmlRootExpression)
+            {
+                scope++;
+                instructions.push_back(new SimpleInstruction(SCOPEBEGIN));
+               
+                instructions.push_back(new StringInstruction(GetString(std::get<std::string>(adv.nodes[0]))));
+                instructions.push_back(new StringInstruction(GetString("")));
+                instructions.push_back(new SimpleInstruction(DECLAREVARIABLE));
+                instructions.push_back(new SimpleInstruction(POP));
+
+                for(size_t i = 1; i < adv.nodes.size(); i++)
+                {
+                    GenNode(instructions,adv.nodes[i],scope,contscope,brkscope,contI,brkI);
+                    GenPop(instructions,adv.nodes[i]);
+                }
+                
+                instructions.push_back(new StringInstruction(GetString(std::get<std::string>(adv.nodes[0]))));
+                instructions.push_back(new SimpleInstruction(GETVARIABLE));
+                instructions.push_back(new SimpleInstruction(SCOPEEND));
+                scope--;
+            }
             else if(adv.nodeName == ScopeNode)
             {
                 scope++;
                 instructions.push_back(new SimpleInstruction(SCOPEBEGIN));
-                for(auto item : adv.nodes)
+                for(size_t i = 0; i < adv.nodes.size(); i++)
                 {
-                    GenNode(instructions,item,scope,contscope,brkscope,contI,brkI);
-                    GenPop(instructions,item);
+                    GenNode(instructions,adv.nodes[i],scope,contscope,brkscope,contI,brkI);
+                    if(!adv.isExpression || i < adv.nodes.size()-1)
+                        GenPop(instructions,adv.nodes[i]);
                 }
                 instructions.push_back(new SimpleInstruction(SCOPEEND));
                 scope--;
@@ -1419,8 +1441,9 @@ namespace Tesses::CrossLang
 
     void CodeGen::GenPop(std::vector<ByteCodeInstruction*>& instrs,SyntaxNode n)
     {
-        if(std::holds_alternative<AdvancedSyntaxNode>(n) && std::get<AdvancedSyntaxNode>(n).isExpression)
+        if(std::holds_alternative<AdvancedSyntaxNode>(n))
         {
+            if(std::get<AdvancedSyntaxNode>(n).isExpression)
             instrs.push_back(new SimpleInstruction(POP));
         }
         else

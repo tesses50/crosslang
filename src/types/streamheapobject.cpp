@@ -10,6 +10,7 @@ namespace Tesses::CrossLang
     {
         this->ls = new GCList(gc);
         this->ls->Add(obj);
+        this->obj = obj;
         TDictionary* dict;
         if(GetObjectHeap(obj,dict))
         {

@@ -468,6 +468,14 @@ namespace Tesses::CrossLang
                     return TVMVersion(ba->data.data()+o);
                 }
                 return nullptr;
+            })),
+            TDItem("FromLong", TExternalMethod::Create(ls, "Create from long",{"longBasedVersion"},[](GCList& ls, std::vector<TObject> args)->TObject {
+                int64_t num;
+                if(GetArgument(args,0,num))
+                {
+                    return TVMVersion((uint64_t)num);
+                }
+                return nullptr;
             }))
         }));
         env->DeclareVariable("InvokeMethod",MethodInvoker());

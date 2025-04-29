@@ -46,7 +46,8 @@ namespace Tesses::CrossLang
         using namespace Tesses::Framework::Filesystem;
         using namespace Tesses::Framework::Http;
         LocalFilesystem lfs;
-        if(!realPath.relative) return realPath;
+        if(!realPath.relative) return realPath.MakeAbsolute();
+        if(lfs.FileExists(realPath)) return realPath.MakeAbsolute();
         const char* path = std::getenv("PATH");
         #if defined(_WIN32)
         const char* pathext = std::getenv("PATHEXT");
@@ -61,7 +62,7 @@ namespace Tesses::CrossLang
                 if(lfs.FileExists(newPath)) return newPath;
             }
         }
-        return realPath.RelativeCurrentDirectory();
+        return realPath;
         #else
         
         auto pathParts = HttpUtils::SplitString(path,":");
@@ -70,7 +71,7 @@ namespace Tesses::CrossLang
             auto newPath = lfs.SystemToVFSPath(item) / realPath;
             if(lfs.FileExists(newPath)) return newPath;
         }
-        return realPath.RelativeCurrentDirectory();
+        return realPath.MakeAbsolute();
         #endif
     }
 

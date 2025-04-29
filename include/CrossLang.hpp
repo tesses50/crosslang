@@ -116,6 +116,14 @@ namespace Tesses::CrossLang {
             {
                 this->SetVersion(versionData[0],versionData[1],versionData[2],versionData[3],versionData[4]);
             }
+            void SetFromLong(uint64_t v)
+            {
+
+                this->major = (uint8_t)((v >> 32) & 0xFF);
+                this->minor = (uint8_t)(v >> 24) & 0xFF;
+                this->patch = (uint8_t)(v >> 16) & 0xFF;
+                this->build = (uint16_t)(v & 0xFFFF);
+            }
             void ToArray(uint8_t* versionData)
             {
                 versionData[0] = major;
@@ -138,6 +146,10 @@ namespace Tesses::CrossLang {
                 this->minor=0;
                 this->patch=0;
                 this->SetBuild(0, TVMVersionStage::DevVersion);
+            }
+            TVMVersion(uint64_t v)
+            {
+                this->SetFromLong(v);
             }
             int CompareTo(TVMVersion& version)
             {
@@ -315,6 +327,7 @@ typedef enum {
             LexTokenLineInfo lineInfo;
             LexTokenType type;
             std::string text;
+            std::string whiteSpaceCharsBefore;
     };
     int Lex(std::string filename, std::istream& strm, std::vector<LexToken>& tokens);
 
@@ -538,7 +551,7 @@ class CodeGen {
         ~CodeGen();
 };
 
-
+constexpr std::string_view HtmlRootExpression = "htmlRootExpression";
 constexpr std::string_view EmbedExpression = "embedExpression";
 constexpr std::string_view NegativeExpression = "negativeExpression";
 constexpr std::string_view NotExpression = "notExpression";
@@ -628,6 +641,8 @@ SyntaxNode Deserialize(std::string astData);
 std::string Serialize(SyntaxNode node);
 
 class Parser {
+    uint32_t id;
+    uint32_t NewId();
     uint64_t i;
     std::vector<LexToken> tokens;
         
@@ -654,6 +669,7 @@ class Parser {
     SyntaxNode ParseFactor();
     SyntaxNode ParseValue();
     SyntaxNode ParseUnary();
+    void ParseHtml(std::vector<SyntaxNode>& nodes,std::string var);
     public:
         Parser(std::vector<LexToken> tokens);
         SyntaxNode ParseRoot()

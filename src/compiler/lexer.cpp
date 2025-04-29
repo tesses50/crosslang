@@ -140,26 +140,31 @@ namespace Tesses::CrossLang
         lineInfo.line = 1;
         lineInfo.offset = 0;
 
+       std::string whiteSpaceCharsBefore="";
        
-
-        auto Flush = [&buffer,&tokens,&lineInfo]() -> void {
+        auto Flush = [&buffer,&tokens,&lineInfo,&whiteSpaceCharsBefore]() -> void {
             if(!buffer.empty())
             {
                 LexToken token;
                 token.text = buffer;
+                token.whiteSpaceCharsBefore = whiteSpaceCharsBefore;
                 token.type = LexTokenType::Identifier;
                 token.lineInfo = lineInfo;
                 token.lineInfo.Subtract(buffer.size());
                 tokens.push_back(token);
                 buffer.clear();
+
+                whiteSpaceCharsBefore="";
             }
         };
 
-        auto Symbol = [&tokens,&lineInfo](std::initializer_list<int> chrs)-> void {
+        auto Symbol = [&tokens,&lineInfo,&whiteSpaceCharsBefore](std::initializer_list<int> chrs)-> void {
             LexToken token;
             
             token.type = LexTokenType::Symbol;
             token.lineInfo = lineInfo;
+
+            token.whiteSpaceCharsBefore=whiteSpaceCharsBefore;
 
             token.text.reserve(chrs.size());
 
@@ -167,6 +172,8 @@ namespace Tesses::CrossLang
                 token.text.push_back((char)i);
 
             tokens.push_back(token);
+
+            whiteSpaceCharsBefore="";
         };
 
         auto ReadChr = [&lineInfo, &strm, Read]() -> std::pair<int,bool> {
@@ -436,8 +443,9 @@ namespace Tesses::CrossLang
 
         while((read = Read()) != -1)
         {
-            
+           
             peek = Peek();
+            
 
             switch(read)
             {
@@ -671,6 +679,7 @@ namespace Tesses::CrossLang
                 case '\r':
                 case ' ':
                     Flush();
+                    whiteSpaceCharsBefore += read;
                     
                     break;
                 default:

@@ -108,6 +108,422 @@ namespace Tesses::CrossLang
         this->i = 0;
         this->tokens = tokens;
     }
+    void Parser::ParseHtml(std::vector<SyntaxNode>& nodes,std::string var)
+    {
+        if(this->IsSymbol("!",true))
+        {
+            if(this->i < this->tokens.size() && this->tokens[this->i].type == LexTokenType::Identifier)
+            {
+                std::string identifier = this->tokens[this->i++].text;
+
+                if(identifier == "DOCTYPE")
+                {
+                    if(this->i < this->tokens.size() && this->tokens[this->i].type == LexTokenType::Identifier)
+                    {
+                        std::string doctype_secArg = this->tokens[this->i++].text;
+                        std::string r = "<!DOCTYPE " + doctype_secArg + ">";
+
+                        nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{AdvancedSyntaxNode::Create(AddExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{var}),r})}));
+                        this->EnsureSymbol(">");
+                        if(this->IsSymbol("<"))
+                        {
+                            ParseHtml(nodes,var);
+                        }
+                    }
+                }
+                
+            }
+        }
+        else
+        {
+            auto parseFn = [this,var](std::vector<SyntaxNode>& nodes,std::string tagName)->void{
+                        while(this->i < this->tokens.size())
+                        {
+                            if(this->IsSymbol("<",false))
+                            {
+                                nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{AdvancedSyntaxNode::Create(AddExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{var}),Tesses::Framework::Http::HttpUtils::HtmlEncode(this->tokens[i].whiteSpaceCharsBefore)})}));
+                                
+                                this->i++;
+                                if(this->IsIdentifier("else",false) || this->IsIdentifier("elif",false))
+                                {
+                                    this->i--;
+                                    return;
+                                }
+
+                                if(this->IsSymbol("/"))
+                                {
+                                    if(!this->IsIdentifier(tagName))
+                                    {
+                                        //error
+                                        
+                                    }
+                                    this->EnsureSymbol(">");
+                                    if(tagName != "if" && tagName != "for" && tagName != "while" && tagName != "do" && tagName != "each")
+                                    {
+                                        std::string myVal = "</";
+                                        myVal += tagName;
+                                        myVal += ">";
+                                        nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{AdvancedSyntaxNode::Create(AddExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{var}),myVal})}));
+                                    }
+                                    break;
+                                }
+                                else
+                                {
+                                    ParseHtml(nodes,var);
+                                }
+                            }
+                            else if(this->IsSymbol("{",false))
+                            {
+                                nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{AdvancedSyntaxNode::Create(AddExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{var}),Tesses::Framework::Http::HttpUtils::HtmlEncode(this->tokens[i].whiteSpaceCharsBefore)})}));
+                                this->i++;
+
+                                auto expr = ParseExpression();
+
+                                this->EnsureSymbol("}");
+
+                                //Net.Http.HtmlEncode(expr.ToString())
+                                
+                                nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{
+                                    AdvancedSyntaxNode::Create(AddExpression,true,{
+                                        AdvancedSyntaxNode::Create(GetVariableExpression,true,{var})
+                                        ,
+                                        AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                                                AdvancedSyntaxNode::Create(GetFieldExpression,true,{
+                                                    AdvancedSyntaxNode::Create(GetFieldExpression,true, {
+                                                        AdvancedSyntaxNode::Create(GetVariableExpression,true, {
+                                                            "Net"
+                                                        }),
+                                                        "Http"
+                                                    }),
+                                                    "HtmlEncode"
+                                                }),
+                                                AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                                                    AdvancedSyntaxNode::Create(GetFieldExpression,true,{
+                                                        AdvancedSyntaxNode::Create(ParenthesesExpression,true,{expr})
+                                                        ,
+                                                        "ToString"
+                                                    })
+                                                })
+                                            })
+
+                                        
+                                    })
+                                }));
+
+                            }
+                            else
+                            {
+                                std::string str = "";
+                                while(this->i < this->tokens.size() && !this->IsSymbol("{",false) && !this->IsSymbol("<",false))
+                                {
+                                    str+=this->tokens[this->i].whiteSpaceCharsBefore + this->tokens[this->i].text;
+                                    this->i++;
+                                }
+
+                                nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{AdvancedSyntaxNode::Create(AddExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{var}),Tesses::Framework::Http::HttpUtils::HtmlEncode(str)})}));
+                                
+                            }
+                        }
+                    
+            };
+
+            if(this->i < this->tokens.size() && this->tokens[this->i].type == LexTokenType::Identifier)
+            {
+                std::string tagName = this->tokens[this->i++].text;
+                
+
+                if(tagName == "if")
+                {
+                    std::function<SyntaxNode()> readIf;
+                    readIf = [this,&parseFn,var,&readIf]()->SyntaxNode {
+                        EnsureSymbol("(");
+                        auto expr = ParseExpression();
+                        EnsureSymbol(")");
+                        EnsureSymbol(">");
+                        
+                        std::vector<SyntaxNode> trueNodes;
+
+                        SyntaxNode falseNode=nullptr;
+                        
+                        parseFn(trueNodes,"if"); 
+
+                        if(this->IsSymbol("<",false) && this->i + 1 < this->tokens.size())
+                        {
+                            auto tkn = this->tokens[i+1];
+                            if(tkn.type == LexTokenType::Identifier && tkn.text == "else")
+                            {
+                                i += 2;
+                                EnsureSymbol(">");
+                                std::vector<SyntaxNode> falseNodes;
+                                parseFn(falseNodes,"if");
+                                falseNode = AdvancedSyntaxNode::Create(ScopeNode,false,falseNodes);
+                            }
+                            else if(tkn.type == LexTokenType::Identifier && tkn.text == "elif")
+                            {
+                               
+                                i += 2;
+                                falseNode = readIf();
+
+                            }
+                        }
+
+
+                        return AdvancedSyntaxNode::Create(IfStatement,false,{
+                            expr,
+                            AdvancedSyntaxNode::Create(ScopeNode,false,trueNodes),
+                            falseNode
+                        });
+                    } ;
+                    nodes.push_back(readIf());
+                }
+                else if(tagName == "raw")
+                {
+                    EnsureSymbol("(");
+                    SyntaxNode expr = ParseExpression();
+                    
+                    EnsureSymbol(")");
+                    EnsureSymbol(">");
+
+                    nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{
+                        AdvancedSyntaxNode::Create(AddExpression,true,{
+                            AdvancedSyntaxNode::Create(GetVariableExpression,true,{var}),
+                            AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                                AdvancedSyntaxNode::Create(GetFieldExpression,true,{
+                                    expr
+                                    ,
+                                    "ToString"
+                                })
+                            })
+                        })
+                    }));
+                }
+                else if(tagName == "while")
+                {
+                    
+                    EnsureSymbol("(");
+                    SyntaxNode expr = ParseExpression();
+                    SyntaxNode body = nullptr;
+                    
+                    EnsureSymbol(")");
+                    EnsureSymbol(">");
+                    
+                    
+                    std::vector<SyntaxNode> _nodes;
+                    parseFn(_nodes,"while");
+                    body = AdvancedSyntaxNode::Create(ScopeNode,false,_nodes);
+                    
+                    nodes.push_back(AdvancedSyntaxNode::Create(WhileStatement,false,{expr,body}));
+              
+                }
+                else if(tagName == "do")
+                {
+                    EnsureSymbol("(");
+                    SyntaxNode expr = ParseExpression();
+                    SyntaxNode body = nullptr;
+                    
+                    EnsureSymbol(")");
+                    EnsureSymbol(">");
+                    
+                    std::vector<SyntaxNode> _nodes;
+                    parseFn(_nodes,"do");
+                    body = AdvancedSyntaxNode::Create(ScopeNode,false,_nodes);
+                    
+                    nodes.push_back(AdvancedSyntaxNode::Create(DoStatement,false,{expr,body}));
+                }
+                else if(tagName == "for")
+                {
+                    SyntaxNode init = nullptr;
+            SyntaxNode cond = true;
+            SyntaxNode inc = nullptr;
+            SyntaxNode body = nullptr;
+            EnsureSymbol("(");
+            if(!IsSymbol(";",false))
+            {
+                init = ParseExpression();
+            }
+            EnsureSymbol(";");
+            if(!IsSymbol(";",false))
+            {
+                cond = ParseExpression();
+            }
+            EnsureSymbol(";");
+            if(!IsSymbol(")",false))
+            {
+                inc = ParseExpression();
+            }
+
+            EnsureSymbol(")");
+            EnsureSymbol(">");
+            std::vector<SyntaxNode> _nodes;
+            parseFn(_nodes,"for");
+            body = AdvancedSyntaxNode::Create(ScopeNode,false,_nodes);
+            
+            nodes.push_back(AdvancedSyntaxNode::Create(ForStatement,false,{init,cond,inc,body}));
+
+
+                }
+                else if(tagName == "each")
+                {
+                    SyntaxNode item = nullptr;
+                    EnsureSymbol("(");
+                    SyntaxNode list = ParseExpression();
+                    SyntaxNode body = nullptr;
+                    if(IsSymbol(":"))
+                    {
+                        item = list;
+                        list = ParseExpression();
+                    }
+                    EnsureSymbol(")");
+                    EnsureSymbol(">");
+                    
+                    std::vector<SyntaxNode> _nodes;
+                    parseFn(_nodes,"each");
+                    body = AdvancedSyntaxNode::Create(ScopeNode,false,_nodes);
+                    
+                    nodes.push_back(AdvancedSyntaxNode::Create(EachStatement,false,{item,list,body}));
+                }
+                else 
+                {
+                    std::string s = "<";
+                    s.append(tagName);
+
+                    nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{AdvancedSyntaxNode::Create(AddExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{var}),s})}));
+
+                    while(!this->IsSymbol(">"))
+                    {
+                        //we need to get a name=value
+                        if(this->i < this->tokens.size() && this->tokens[this->i].type == LexTokenType::Identifier)
+                        {
+                            std::string key = "";
+
+                            while(this->i < this->tokens.size())
+                            {
+                                if(this->tokens[i].type == Identifier)
+                                {
+                                    key += this->tokens[i].text;
+                                    i++;
+                                }
+                                else if(this->tokens[i].type == Symbol)
+                                {
+                                    if(this->tokens[i].text == "-" || this->tokens[i].text == ":" || this->tokens[i].text == "--" || tokens[i].text == ".")
+                                    {
+                                        key += this->tokens[i].text;
+                                        i++;
+                                    }
+                                    else break;
+                                }
+                                else break;
+                            }
+                            
+                            if(this->IsSymbol(">"))
+                            {
+                                std::string myVal = " " + key;
+                                
+
+                                nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{AdvancedSyntaxNode::Create(AddExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{var}),myVal})}));
+                                
+                                break;
+                            }
+                            else if(this->IsSymbol("="))
+                            {
+
+                                std::string myVal = " " + key + "=\"";
+                                
+                               
+                                
+                                EnsureSymbol("{");
+                                auto expr = ParseExpression();
+                                EnsureSymbol("}");
+                                if(std::holds_alternative<AdvancedSyntaxNode>(expr))
+                                {
+                                  nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{
+                                        AdvancedSyntaxNode::Create(AddExpression,true,{
+                                            AdvancedSyntaxNode::Create(GetVariableExpression,true,{var}),
+                                            AdvancedSyntaxNode::Create(AddExpression,true,{
+                                                myVal,
+                                                    AdvancedSyntaxNode::Create(AddExpression,true,{
+                                                        AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                                                            AdvancedSyntaxNode::Create(GetFieldExpression,true,{
+                                                                AdvancedSyntaxNode::Create(GetFieldExpression,true, {
+                                                                    AdvancedSyntaxNode::Create(GetVariableExpression,true, {
+                                                                        "Net"
+                                                                    }),
+                                                                    "Http"
+                                                                }),
+                                                                "HtmlEncode"
+                                                            }),
+                                                            AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                                                                AdvancedSyntaxNode::Create(GetFieldExpression,true,{
+                                                                    expr
+                                                                    ,
+                                                                    "ToString"
+                                                                })
+                                                            })
+                                                        }),
+                                                        "\"",
+                                                    })
+                                                    
+                                            })
+                                        })
+                                  }));
+                                
+                              
+
+                                } 
+                                else if(std::holds_alternative<double>(expr)) 
+                                {
+                                    myVal += std::to_string(std::get<double>(expr)) + "\"";
+                                    
+                                    nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{AdvancedSyntaxNode::Create(AddExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{var}),myVal})}));
+                                }
+                                else if(std::holds_alternative<int64_t>(expr)) 
+                                {
+                                    myVal += std::to_string(std::get<int64_t>(expr)) + "\"";
+
+                                    nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{AdvancedSyntaxNode::Create(AddExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{var}),myVal})}));
+                                }
+                                else if(std::holds_alternative<bool>(expr))
+                                {
+                                    myVal += std::holds_alternative<bool>(expr) ? "true\"" : "false\"";
+
+                                    
+                                    nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{AdvancedSyntaxNode::Create(AddExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{var}),myVal})}));
+                                }
+                                else if(std::holds_alternative<std::string>(expr))
+                                {
+                                    myVal += Tesses::Framework::Http::HttpUtils::HtmlEncode(std::get<std::string>(expr)) + "\"";
+                                    nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{AdvancedSyntaxNode::Create(AddExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{var}),myVal})}));
+                                }
+                                //key = value
+
+
+                                
+                            }
+                            else {
+
+                                std::string myVal = " " + key;
+                                
+                                
+                                nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{AdvancedSyntaxNode::Create(AddExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{var}),myVal})}));
+                                
+                            }
+                        }
+                    }
+
+                    nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{AdvancedSyntaxNode::Create(AddExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{var}),">"})}));
+                    
+                    if(tagName !=  "img" && tagName != "input" && tagName != "br" && tagName != "hr" && tagName != "link" && tagName != "meta")
+                    {
+                        parseFn(nodes,tagName);
+                    }
+                }
+            }
+        }
+    }
+    uint32_t Parser::NewId()
+    {
+        return id++;
+    }
     SyntaxNode Parser::ParseValue()
     {
         if(i >= tokens.size()) throw std::out_of_range("End of file");
@@ -124,6 +540,18 @@ namespace Tesses::CrossLang
             node = tkn2.text.empty() ? '\0' : tkn2.text.front();
             i++;
             
+        }
+        else if(IsSymbol("<"))
+        {
+            uint32_t htmlId = NewId();
+            std::string compHtml = "__compGenHtml";
+            compHtml.append(std::to_string(htmlId));
+            std::vector<SyntaxNode> syntaxNode = {
+                compHtml
+            };
+            ParseHtml(syntaxNode,compHtml);    
+            
+            return AdvancedSyntaxNode::Create(HtmlRootExpression,true,syntaxNode);
         }
         else if(IsSymbol("["))
         {

@@ -69,6 +69,7 @@ namespace Tesses::CrossLang {
             {
                 return !thrd->hasReturned;
             }
+            return true;
         }
 
         return false;
@@ -873,12 +874,14 @@ namespace Tesses::CrossLang {
         auto left = cse.back()->Pop(ls);
         if(std::holds_alternative<std::nullptr_t>(left) && std::holds_alternative<std::nullptr_t>(right))
         {
-            return true;
+            cse.back()->Push(gc,true);
+            return false;
         }
 
         else if(std::holds_alternative<Undefined>(left) && std::holds_alternative<Undefined>(right))
         {
-            return true;
+            cse.back()->Push(gc,true);
+            return false;
         }
 
         else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<int64_t>(right))
@@ -934,6 +937,7 @@ namespace Tesses::CrossLang {
             auto dict = dynamic_cast<TDictionary*>(obj);
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
+            auto native = dynamic_cast<TNative*>(obj);
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
@@ -953,9 +957,25 @@ namespace Tesses::CrossLang {
                     return false;
                 }
             }
+            else if(native != nullptr && std::holds_alternative<std::nullptr_t>(right)){
+                cse.back()->Push(gc, native->GetDestroyed());
+                return false;
+            }
+
             if(std::holds_alternative<THeapObjectHolder>(right))
             {
                 cse.back()->Push(gc,obj == std::get<THeapObjectHolder>(right).obj);
+                return false;
+            }
+
+            else if(std::holds_alternative<std::nullptr_t>(right))
+            {
+                cse.back()->Push(gc, false);
+                return false;
+            }
+            else if(std::holds_alternative<Undefined>(right))
+            {
+                cse.back()->Push(gc, false);
                 return false;
             }
             else
@@ -964,9 +984,21 @@ namespace Tesses::CrossLang {
             }
             
         }
+
+        else if(std::holds_alternative<std::nullptr_t>(right))
+        {
+            cse.back()->Push(gc, false);
+            return false;
+        }
+        else if(std::holds_alternative<Undefined>(right))
+        {
+            cse.back()->Push(gc, false);
+            return false;
+        }
         else
         {
             cse.back()->Push(gc, Undefined());
+            
         }
  
         return false;
@@ -980,10 +1012,12 @@ namespace Tesses::CrossLang {
 
         if(std::holds_alternative<std::nullptr_t>(left) && std::holds_alternative<std::nullptr_t>(right))
         {
+            cse.back()->Push(gc,false);
             return false;
         }
         else if(std::holds_alternative<Undefined>(left) && std::holds_alternative<Undefined>(right))
         {
+            cse.back()->Push(gc,false);
             return false;
         }
         else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<int64_t>(right))
@@ -1033,6 +1067,7 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
+            auto native = dynamic_cast<TNative*>(obj);
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             if(dict != nullptr)
@@ -1054,16 +1089,41 @@ namespace Tesses::CrossLang {
                     return false;
                 }
             }
+            else if(native != nullptr && std::holds_alternative<std::nullptr_t>(right)){
+                cse.back()->Push(gc, !native->GetDestroyed());
+                return false;
+            }
             if(std::holds_alternative<THeapObjectHolder>(right))
             {
                 cse.back()->Push(gc,obj != std::get<THeapObjectHolder>(right).obj);
                 return false;
             }
+            else if(std::holds_alternative<std::nullptr_t>(right))
+            {
+                cse.back()->Push(gc, true);
+                return false;
+            }
+            else if(std::holds_alternative<Undefined>(right))
+            {
+                cse.back()->Push(gc, true);
+                return false;
+            }
             else
             {
                 cse.back()->Push(gc,Undefined());
+                
             }
             
+        }
+        else if(std::holds_alternative<Undefined>(right))
+        {
+            cse.back()->Push(gc, true);
+            return false;
+        }
+        else if(std::holds_alternative<std::nullptr_t>(right))
+        {
+            cse.back()->Push(gc, true);
+            return false;
         }
         else
         {
@@ -3826,6 +3886,7 @@ namespace Tesses::CrossLang {
                         }
                         else {
                             cse.back()->Push(gc, nullptr);
+                            return false;
                         }
                     }
                     cse.back()->Push(gc, Undefined());
@@ -4177,6 +4238,7 @@ namespace Tesses::CrossLang {
             
             auto value = stk->Pop(ls);
             auto key = stk->Pop(ls);
+        
             if(std::holds_alternative<std::string>(key))
             {
                 gc->BarrierBegin();
@@ -4420,6 +4482,17 @@ namespace Tesses::CrossLang {
                             {
                                 stk->Push(gc, tryC->Call(ls,{}));
                             }   
+                            catch(TextException& ex)
+                            {
+
+                                TDictionary* dict = TDictionary::Create(ls);
+                                auto gc = ls.GetGC();
+                                gc->BarrierBegin();
+                                dict->SetValue("Type","NativeException");
+                                dict->SetValue("Text",ex.what());
+                                gc->BarrierEnd();
+                                stk->Push(gc, catchC->Call(ls,{dict}));
+                            }
                             catch(VMException& ex)
                             {
                                 

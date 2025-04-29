@@ -239,6 +239,15 @@ namespace Tesses::CrossLang
                 ctx->WithSingleHeader(key,value);
             return dict;
         });
+        
+        dict->DeclareFunction(gc,"SendStream","Send stream",{"strm"},[ctx,dict](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
+            TStreamHeapObject* strmHeapObj;
+            if(GetArgumentHeap(args2,0,strmHeapObj))
+            {
+                ctx->SendStream(strmHeapObj->stream);
+            }
+            return nullptr;
+        });
         dict->DeclareFunction(gc,"SendBytes","Send bytes",{"ba"},[ctx,dict](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
             TByteArray* ba;
             if(GetArgumentHeap(args2,0,ba))

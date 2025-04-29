@@ -317,6 +317,7 @@ namespace Tesses::CrossLang
         dict->DeclareFunction(gc, "getRuntimeVersion","Get the runtime version",{},[](GCList& ls,std::vector<TObject> args)->TObject {
             return TVMVersion(TVM_MAJOR,TVM_MINOR,TVM_PATCH,TVM_BUILD,TVM_VERSIONSTAGE);
         });
+        
         gc->BarrierBegin();
         env->DeclareVariable("VM", dict);
         gc->BarrierEnd();
