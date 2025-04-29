@@ -428,12 +428,17 @@ namespace Tesses::CrossLang
                             {
 
                                 std::string myVal = " " + key + "=\"";
+                                SyntaxNode expr;
+                                if(this->i < this->tokens.size() && this->tokens[this->i].type == LexTokenType::String)
+                                {
+                                    expr = this->tokens[this->i++].text;
                                 
-                               
-                                
+                                }
+                                else {
                                 EnsureSymbol("{");
-                                auto expr = ParseExpression();
+                                 expr = ParseExpression();
                                 EnsureSymbol("}");
+                                }
                                 if(std::holds_alternative<AdvancedSyntaxNode>(expr))
                                 {
                                   nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{
