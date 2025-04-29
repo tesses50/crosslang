@@ -1922,6 +1922,34 @@ namespace Tesses::CrossLang {
                     cse.back()->Push(gc, path.GetExtension());
                     return false;
                 }
+                if(cse.back()->env->GetRootEnvironment()->permissions.canRegisterLocalFS && key == "MakeAbsolute")
+                {
+                    Tesses::Framework::Filesystem::VFSPath p;
+                    if(GetArgumentAsPath(args,0,p))
+                    {
+                        cse.back()->Push(gc,path.MakeAbsolute(p));
+                        return false;
+                    }
+                    else
+                    {
+                        cse.back()->Push(gc,path.MakeAbsolute());
+                        return false;
+                    }
+                }
+                if(cse.back()->env->GetRootEnvironment()->permissions.canRegisterLocalFS && key == "MakeRelative")
+                {
+                    Tesses::Framework::Filesystem::VFSPath p;
+                    if(GetArgumentAsPath(args,0,p))
+                    {
+                        cse.back()->Push(gc,path.MakeRelative(p));
+                        return false;
+                    }
+                    else
+                    {
+                        cse.back()->Push(gc,path.MakeRelative());
+                        return false;
+                    }
+                }
                 if(key == "ChangeExtension")
                 {
                     Tesses::Framework::Filesystem::VFSPath newPath = path;

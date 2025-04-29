@@ -74,6 +74,7 @@ namespace Tesses::CrossLang
         
         gc->BarrierBegin();
         dict->DeclareFunction(gc,"FromString","Create a Path from string",{"path"},Path_FromString);
+        
         dict->DeclareFunction(gc,"Create","Create a Path from parts",{"relative","parts"},Path_Create);
         dict->DeclareFunction(gc,"Root","Create Absolute Root Path",{}, Path_Root);
         env->DeclareVariable("Path", dict);

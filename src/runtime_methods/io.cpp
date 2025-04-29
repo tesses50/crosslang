@@ -144,6 +144,18 @@ namespace Tesses::CrossLang
         return nullptr;
     }
 
+    static TObject FS_getCurrentPath(GCList& ls, std::vector<TObject> args)
+    {
+        return Tesses::Framework::Filesystem::VFSPath::GetAbsoluteCurrentDirectory();
+    }
+    static TObject FS_setCurrentPath(GCList& ls, std::vector<TObject> args)
+    {
+        Tesses::Framework::Filesystem::VFSPath path;
+        if(GetArgumentAsPath(args,0,path))
+        Tesses::Framework::Filesystem::VFSPath::SetAbsoluteCurrentDirectory(path);
+        return nullptr;
+    }
+
     void TStd::RegisterIO(GC* gc,TRootEnvironment* env,bool enableLocalFilesystem)
     {
 
@@ -159,6 +171,8 @@ namespace Tesses::CrossLang
         
             dict->SetValue("Local", vfs);
             dict->DeclareFunction(gc, "MakeFull", "Make absolute path from relative path",{"path"},FS_MakeFull);
+            dict->DeclareFunction(gc,"getCurrentPath","Get current path",{},FS_getCurrentPath);
+            dict->DeclareFunction(gc,"setCurrentPath","Set the current path",{"path"},FS_setCurrentPath);
         }
 
         dict->DeclareFunction(gc, "ReadAllText","Read all text from file", {"fs","filename"},FS_ReadAllText);
