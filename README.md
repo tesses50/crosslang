@@ -3,6 +3,8 @@ Tesses Cross Language
 
 ![CrossImage](crosslang.png)
 
+> :warning: **NOT READY FOR PRODUCTION (THERE WILL BE BREAKING CHANGES)** 
+
 ## What is required to build this project
 - [TessesFramework](https://onedev.site.tesses.net/tesses-framework) (if you turn CROSSLANG_FETCHCONTENT off otherwise it will be grabbed automaticly)
 - CMake

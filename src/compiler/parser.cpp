@@ -144,21 +144,21 @@ namespace Tesses::CrossLang
                                 nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{AdvancedSyntaxNode::Create(AddExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{var}),Tesses::Framework::Http::HttpUtils::HtmlEncode(this->tokens[i].whiteSpaceCharsBefore)})}));
                                 
                                 this->i++;
-                                if(this->IsIdentifier("else",false) || this->IsIdentifier("elif",false))
-                                {
-                                    this->i--;
-                                    return;
-                                }
 
                                 if(this->IsSymbol("/"))
                                 {
+                                    if(this->IsIdentifier("if",false) && tagName == "if")
+                                    {
+                                        this->i-=2;
+                                        break;
+                                    }
                                     if(!this->IsIdentifier(tagName))
                                     {
                                         //error
                                         
                                     }
                                     this->EnsureSymbol(">");
-                                    if(tagName != "if" && tagName != "for" && tagName != "while" && tagName != "do" && tagName != "each")
+                                    if(tagName != "if" && tagName != "true" && tagName != "false" && tagName != "for" && tagName != "while" && tagName != "do" && tagName != "each")
                                     {
                                         std::string myVal = "</";
                                         myVal += tagName;
@@ -232,51 +232,7 @@ namespace Tesses::CrossLang
                 std::string tagName = this->tokens[this->i++].text;
                 
 
-                if(tagName == "if")
-                {
-                    std::function<SyntaxNode()> readIf;
-                    readIf = [this,&parseFn,var,&readIf]()->SyntaxNode {
-                        EnsureSymbol("(");
-                        auto expr = ParseExpression();
-                        EnsureSymbol(")");
-                        EnsureSymbol(">");
-                        
-                        std::vector<SyntaxNode> trueNodes;
-
-                        SyntaxNode falseNode=nullptr;
-                        
-                        parseFn(trueNodes,"if"); 
-
-                        if(this->IsSymbol("<",false) && this->i + 1 < this->tokens.size())
-                        {
-                            auto tkn = this->tokens[i+1];
-                            if(tkn.type == LexTokenType::Identifier && tkn.text == "else")
-                            {
-                                i += 2;
-                                EnsureSymbol(">");
-                                std::vector<SyntaxNode> falseNodes;
-                                parseFn(falseNodes,"if");
-                                falseNode = AdvancedSyntaxNode::Create(ScopeNode,false,falseNodes);
-                            }
-                            else if(tkn.type == LexTokenType::Identifier && tkn.text == "elif")
-                            {
-                               
-                                i += 2;
-                                falseNode = readIf();
-
-                            }
-                        }
-
-
-                        return AdvancedSyntaxNode::Create(IfStatement,false,{
-                            expr,
-                            AdvancedSyntaxNode::Create(ScopeNode,false,trueNodes),
-                            falseNode
-                        });
-                    } ;
-                    nodes.push_back(readIf());
-                }
-                else if(tagName == "raw")
+                if(tagName == "raw")
                 {
                     EnsureSymbol("(");
                     SyntaxNode expr = ParseExpression();
@@ -296,6 +252,43 @@ namespace Tesses::CrossLang
                             })
                         })
                     }));
+                }
+                else if(tagName == "if")
+                {
+                    EnsureSymbol("(");
+                    SyntaxNode expr = ParseExpression();
+                    SyntaxNode truth = nullptr;
+                    SyntaxNode falsey = nullptr;
+                    
+                    EnsureSymbol(")");
+                    EnsureSymbol(">");
+
+                    while(this->IsSymbol("<"))
+                    {
+                        if(this->IsSymbol("/"))
+                        {
+                            if(!this->IsIdentifier("if")) { this->i -= 3;}
+                            this->EnsureSymbol(">");
+                            break;
+                        }
+                        else if(this->IsIdentifier("true"))
+                        {
+                            this->EnsureSymbol(">");
+
+                            std::vector<SyntaxNode> _nodes;
+                            parseFn(_nodes,"true");
+                            truth = AdvancedSyntaxNode::Create(ScopeNode,false,_nodes);
+                            
+                        }
+                        else if(this->IsIdentifier("false"))
+                        {
+                            this->EnsureSymbol(">");
+                            std::vector<SyntaxNode> _nodes;
+                            parseFn(_nodes,"false");
+                            falsey = AdvancedSyntaxNode::Create(ScopeNode,false,_nodes);
+                        }
+                    }
+                    nodes.push_back(AdvancedSyntaxNode::Create(IfStatement,false,{expr,truth,falsey}));
                 }
                 else if(tagName == "while")
                 {

@@ -2109,6 +2109,54 @@ namespace Tesses::CrossLang {
                          return false;
                     }
                 }
+                if(key == "EndsWith")
+                {
+                    std::string v;
+                    if(GetArgument(args,0,v))   
+                    {
+                        if(str.size() < v.size()) {
+                            cse.back()->Push(gc,false);
+                            return false;
+                        }
+                       
+                        size_t _end = str.size()-v.size();
+                        for(size_t i = 0; i < v.size(); i++)
+                        {
+                            if(v[i] != str[i+_end])
+                            {
+                                cse.back()->Push(gc,false);
+                                return false;
+                            }
+                        }
+                        cse.back()->Push(gc,true);
+                        return false;
+                    }
+                    cse.back()->Push(gc,false);
+                    return false;
+                }
+                if(key == "StartsWith")
+                {
+                    std::string v;
+                    if(GetArgument(args,0,v))   
+                    {
+                        if(str.size() < v.size()) {
+                            cse.back()->Push(gc,false);
+                            return false;
+                        }
+                        for(size_t i = 0; i < v.size(); i++)
+                        {
+                            if(v[i] != str[i])
+                            {
+                                cse.back()->Push(gc,false);
+                                return false;
+                            }
+                        }
+                        cse.back()->Push(gc,true);
+                        return false;
+                    }
+                    cse.back()->Push(gc,false);
+                    return false;
+                }
                 if(key == "Escape")
                 {
                     bool quote;
