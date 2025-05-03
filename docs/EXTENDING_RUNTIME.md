@@ -195,7 +195,7 @@ func main(args)
 - in TStd::RegisterStd before register everything call TStd::RegisterMyPlugin(gc, env);
 - in CMakeLists.txt within list(APPEND CROSSLANG_SOURCE **Many Source Files**) you must add src/runtime_methods/myplugin.cpp
 
-myplugin.cpp:
+src/runtime_methods/myplugin.cpp:
 ```c++
 #include <CrossLang.hpp>
 namespace Tesses::CrossLang 
