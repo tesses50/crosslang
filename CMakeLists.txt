@@ -45,7 +45,7 @@ endif()
 include(FetchContent)
 FetchContent_Declare(
     TessesFramework
-    GIT_REPOSITORY httpgc, envs://onedev.site.tesses.net/tesses-framework.git
+    GIT_REPOSITORY https://onedev.site.tesses.net/tesses-framework.git
 )
 FetchContent_MakeAvailable(TessesFramework)
 else()
@@ -155,15 +155,12 @@ endif()
 
 
 
-include(GNUInstallDirs)cmake_minimum_required(VERSION 3.16)
+include(GNUInstallDirs)
 
-project(MyPlugin)
+if(CROSSLANG_ENABLE_STATIC)
 
-find_package(TessesCrossLang REQUIRED)
-
-add_library(MyPlugin SHARED lib.cpp)
-
-target_link_libraries(MyPlugin PUBLIC TessesCrossLang::crosslang_shared)
+add_library(crosslang_static STATIC ${CROSSLANG_SOURCE})
+CROSSLANG_LINK_DEPS(crosslang_static)
 if(CROSSLANG_FETCHCONTENT)
 target_link_libraries(crosslang_static PUBLIC tessesframework)
 else()
