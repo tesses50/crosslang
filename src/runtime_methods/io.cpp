@@ -4,60 +4,6 @@
 
 namespace Tesses::CrossLang
 {
-    static TObject FS_SubdirFilesystem(GCList& ls, std::vector<TObject> args)
-    {
-        TVFSHeapObject* vfsho;
-
-        Tesses::Framework::Filesystem::VFSPath path;
-
-        if(GetArgumentHeap(args,0,vfsho) && GetArgumentAsPath(args,1,path))
-        {
-            return TVFSHeapObject::Create(ls,new Tesses::Framework::Filesystem::SubdirFilesystem(new TObjectVFS(ls.GetGC(),vfsho),path,true));
-        }
-        return nullptr;
-    }
-    static TObject FS_MountableFilesystem(GCList& ls, std::vector<TObject> args)
-    {
-        TVFSHeapObject* vfsho;
-
-        if(GetArgumentHeap(args,0,vfsho))
-        {
-            return TVFSHeapObject::Create(ls,new Tesses::Framework::Filesystem::MountableFilesystem(new TObjectVFS(ls.GetGC(),vfsho),true));
-        }
-        return nullptr;
-    }
-    static TObject FS_MemoryStream(GCList& ls, std::vector<TObject> args)
-    {
-        bool writable;
-        if(GetArgument(args,0,writable))
-        {
-            return TStreamHeapObject::Create(ls,new Tesses::Framework::Streams::MemoryStream(writable));
-        }
-        return nullptr;
-    }
-    static TObject FS_CreateMemoryFilesystem(GCList& ls, std::vector<TObject> args)
-    {
-        return TVFSHeapObject::Create(ls, new Tesses::Framework::Filesystem::MemoryFilesystem());
-    }
-
-    static TObject FS_CreateFilesystem(GCList& ls, std::vector<TObject> args)
-    {
-        TDictionary* dict;
-        if(GetArgumentHeap(args,0,dict))
-        {
-            return TVFSHeapObject::Create(ls, new TObjectVFS(ls.GetGC(),dict));
-        }
-        return nullptr;
-    }
-    static TObject FS_CreateStream(GCList& ls, std::vector<TObject> args)
-    {
-        TDictionary* dict;
-        if(GetArgumentHeap(args,0,dict))
-        {
-            return TStreamHeapObject::Create(ls, new TObjectStream(ls.GetGC(),dict));
-        }
-        return nullptr;
-    }
     static TObject FS_MakeFull(GCList& ls, std::vector<TObject> args)
     {
         Tesses::Framework::Filesystem::VFSPath path;
@@ -126,6 +72,27 @@ namespace Tesses::CrossLang
         }
         return "";
     }
+    static TObject FS_ReadAllBytes(GCList& ls, std::vector<TObject> args)
+    {
+        Tesses::Framework::Filesystem::VFSPath path;
+        TVFSHeapObject* vfs;
+        if(GetArgumentHeap(args,0,vfs) && GetArgumentAsPath(args,1,path))
+        {
+            auto txtFile = vfs->vfs->OpenFile(path,"rb");
+            if(txtFile == nullptr) return nullptr;
+            auto res = TByteArray::Create(ls);
+            std::array<uint8_t,1024> data;
+            size_t read;
+            do {
+                read = txtFile->ReadBlock(data.data(),data.size());
+                res->data.insert(res->data.end(),data.begin(),data.begin()+read);
+            } while(read != 0);
+            delete txtFile;
+            return res;
+        }
+        return nullptr;
+    }
+
 
     static TObject FS_WriteAllText(GCList& ls, std::vector<TObject> args)
     {
@@ -140,6 +107,22 @@ namespace Tesses::CrossLang
             if(txtFile == nullptr) return nullptr;
             Tesses::Framework::TextStreams::StreamWriter writer(txtFile,true);
             writer.Write(content);
+        }
+        return nullptr;
+    }
+    static TObject FS_WriteAllBytes(GCList& ls, std::vector<TObject> args)
+    {
+        Tesses::Framework::Filesystem::VFSPath path;
+
+        TVFSHeapObject* vfs;
+
+        TByteArray* bArray;
+        if(GetArgumentHeap(args,0,vfs) && GetArgumentAsPath(args,1,path) && GetArgumentHeap(args,2,bArray))
+        {
+            auto txtFile = vfs->vfs->OpenFile(path,"wb");
+            if(txtFile == nullptr) return nullptr;
+            txtFile->WriteBlock(bArray->data.data(),bArray->data.size());
+            delete txtFile;
         }
         return nullptr;
     }
@@ -178,13 +161,9 @@ namespace Tesses::CrossLang
         dict->DeclareFunction(gc, "ReadAllText","Read all text from file", {"fs","filename"},FS_ReadAllText);
         dict->DeclareFunction(gc, "WriteAllText","Write all text to file", {"fs","filename","content"},FS_WriteAllText);
     
-        dict->DeclareFunction(gc, "MountableFilesystem","Create a mountable filesystem",{"root"}, FS_MountableFilesystem);
-        dict->DeclareFunction(gc, "SubdirFilesystem","Create a subdir filesystem",{"fs","subdir"}, FS_SubdirFilesystem);
-        dict->DeclareFunction(gc, "MemoryStream","Create a memory stream",{"writable"}, FS_MemoryStream);
-        dict->DeclareFunction(gc, "CreateStream","Create stream", {"strm"},FS_CreateStream);
-        dict->DeclareFunction(gc, "CreateFilesystem","Create filesystem", {"fs"},FS_CreateFilesystem);
-
-        dict->DeclareFunction(gc, "CreateMemoryFilesystem","Create in memory filesystem", {},FS_CreateMemoryFilesystem);
+        dict->DeclareFunction(gc, "ReadAllBytes","Read all bytes from file", {"fs","filename"},FS_ReadAllBytes);
+        dict->DeclareFunction(gc, "WriteAllBytes","Write all bytes to file", {"fs","filename","content"},FS_WriteAllBytes);
+    
         dict->DeclareFunction(gc, "CreateArchive", "Create a crvm archive",{"fs","strm","name","version","info"},FS_CreateArchive);
         dict->DeclareFunction(gc,"ExtractArchive", "Extract a crvm archive",{"strm","vfs"},FS_ExtractArchive);
         env->DeclareVariable("FS", dict);

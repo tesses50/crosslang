@@ -158,7 +158,7 @@ namespace Tesses::CrossLang
                                         
                                     }
                                     this->EnsureSymbol(">");
-                                    if(tagName != "if" && tagName != "true" && tagName != "false" && tagName != "for" && tagName != "while" && tagName != "do" && tagName != "each")
+                                    if(tagName != "if" && tagName != "true" && tagName != "false" && tagName != "for" && tagName != "while" && tagName != "do" && tagName != "each" && tagName != "null")
                                     {
                                         std::string myVal = "</";
                                         myVal += tagName;
@@ -289,6 +289,14 @@ namespace Tesses::CrossLang
                         }
                     }
                     nodes.push_back(AdvancedSyntaxNode::Create(IfStatement,false,{expr,truth,falsey}));
+                }
+                else if(tagName == "null")
+                {
+                    EnsureSymbol(">");
+                    std::vector<SyntaxNode> _nodes;
+                    parseFn(_nodes,"null");
+                    nodes.push_back(AdvancedSyntaxNode::Create(ScopeNode,false,_nodes));
+                    
                 }
                 else if(tagName == "while")
                 {

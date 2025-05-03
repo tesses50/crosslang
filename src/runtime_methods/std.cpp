@@ -118,7 +118,61 @@ namespace Tesses::CrossLang
         TVFSHeapObject* vfs;
         return GetArgumentHeap(args,0,vfs);
     }
-    
+    static TObject New_SubdirFilesystem(GCList& ls, std::vector<TObject> args)
+    {
+        TVFSHeapObject* vfsho;
+
+        Tesses::Framework::Filesystem::VFSPath path;
+
+        if(GetArgumentHeap(args,0,vfsho) && GetArgumentAsPath(args,1,path))
+        {
+            return TVFSHeapObject::Create(ls,new Tesses::Framework::Filesystem::SubdirFilesystem(new TObjectVFS(ls.GetGC(),vfsho),path,true));
+        }
+        return nullptr;
+    }
+    static TObject New_MountableFilesystem(GCList& ls, std::vector<TObject> args)
+    {
+        TVFSHeapObject* vfsho;
+
+        if(GetArgumentHeap(args,0,vfsho))
+        {
+            return TVFSHeapObject::Create(ls,new Tesses::Framework::Filesystem::MountableFilesystem(new TObjectVFS(ls.GetGC(),vfsho),true));
+        }
+        return nullptr;
+    }
+    static TObject New_MemoryStream(GCList& ls, std::vector<TObject> args)
+    {
+        bool writable;
+        if(GetArgument(args,0,writable))
+        {
+            return TStreamHeapObject::Create(ls,new Tesses::Framework::Streams::MemoryStream(writable));
+        }
+        return nullptr;
+    }
+    static TObject New_MemoryFilesystem(GCList& ls, std::vector<TObject> args)
+    {
+        return TVFSHeapObject::Create(ls, new Tesses::Framework::Filesystem::MemoryFilesystem());
+    }
+
+    static TObject New_Filesystem(GCList& ls, std::vector<TObject> args)
+    {
+        TDictionary* dict;
+        if(GetArgumentHeap(args,0,dict))
+        {
+            return TVFSHeapObject::Create(ls, new TObjectVFS(ls.GetGC(),dict));
+        }
+        return nullptr;
+    }
+    static TObject New_Stream(GCList& ls, std::vector<TObject> args)
+    {
+        TDictionary* dict;
+        if(GetArgumentHeap(args,0,dict))
+        {
+            return TStreamHeapObject::Create(ls, new TObjectStream(ls.GetGC(),dict));
+        }
+        return nullptr;
+    }
+  
     static TObject TypeOf(GCList& ls, std::vector<TObject> args)
     {
         if(args.size() < 1) return "Undefined";
@@ -334,6 +388,15 @@ namespace Tesses::CrossLang
         
         env->permissions.canRegisterRoot=true;
         TDictionary* newTypes = TDictionary::Create(ls);
+
+        newTypes->DeclareFunction(gc, "MountableFilesystem","Create a mountable filesystem",{"root"}, New_MountableFilesystem);
+        newTypes->DeclareFunction(gc, "SubdirFilesystem","Create a subdir filesystem",{"fs","subdir"}, New_SubdirFilesystem);
+        newTypes->DeclareFunction(gc, "MemoryStream","Create a memory stream",{"writable"}, New_MemoryStream);
+        newTypes->DeclareFunction(gc, "Stream","Create stream", {"strm"},New_Stream);
+        newTypes->DeclareFunction(gc, "Filesystem","Create filesystem", {"fs"},New_Filesystem);
+
+        newTypes->DeclareFunction(gc, "MemoryFilesystem","Create in memory filesystem", {},New_MemoryFilesystem);
+
     
         newTypes->DeclareFunction(gc,"Version","Create a version object",{"$major","$minor","$patch","$build","$stage"},[](GCList& ls, std::vector<TObject> args)->TObject{
             int64_t major=1;
@@ -375,7 +438,7 @@ namespace Tesses::CrossLang
         env->DeclareFunction(gc, "TypeIsVFS","Get whether object is a virtual filesystem",{"object"},TypeIsVFS);
         
         
-        env->DeclareFunction(gc, "Regex", "Create regex object",{"regex"},[](GCList& ls,std::vector<TObject> args)->TObject {
+        newTypes->DeclareFunction(gc, "Regex", "Create regex object",{"regex"},[](GCList& ls,std::vector<TObject> args)->TObject {
             std::string str;
             if(GetArgument(args,0,str))
             {
@@ -384,7 +447,7 @@ namespace Tesses::CrossLang
             }
             return nullptr;
         });
-        env->DeclareFunction(gc, "Mutex", "Create mutex",{}, [](GCList& ls,std::vector<TObject> args)->TObject {
+        newTypes->DeclareFunction(gc, "Mutex", "Create mutex",{}, [](GCList& ls,std::vector<TObject> args)->TObject {
             ls.GetGC()->BarrierBegin();
             auto mtx = TDictionary::Create(ls);
             auto native = TNative::Create(ls, new Tesses::Framework::Threading::Mutex(),[](void* ptr)->void{
@@ -428,7 +491,7 @@ namespace Tesses::CrossLang
             ls.GetGC()->BarrierEnd();
             return mtx;
         });
-        env->DeclareFunction(gc, "Thread","Create thread",{"callback"},[](GCList& ls, std::vector<TObject> args)-> TObject
+        newTypes->DeclareFunction(gc, "Thread","Create thread",{"callback"},[](GCList& ls, std::vector<TObject> args)-> TObject
         {
             if(args.size() == 1 && std::holds_alternative<THeapObjectHolder>(args[0]))
             {
@@ -440,7 +503,7 @@ namespace Tesses::CrossLang
             }
             return Undefined();
         });
-        env->DeclareFunction(gc,"ByteArray","Create bytearray, with optional either size (to size it) or string argument (to fill byte array)",{"$data"},ByteArray);
+        newTypes->DeclareFunction(gc,"ByteArray","Create bytearray, with optional either size (to size it) or string argument (to fill byte array)",{"$data"},ByteArray);
         gc->BarrierBegin();
         env->DeclareVariable("Version", TDictionary::Create(ls,{
             TDItem("Parse",TExternalMethod::Create(ls,"Parse version from string",{"versionStr"},[](GCList& ls, std::vector<TObject> args)->TObject{
