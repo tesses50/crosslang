@@ -17,23 +17,65 @@
 #include <regex>
 #include <time.h>
 #include <cstdbool>
+
+/**
+ * @brief CrossLang Runtime Major version
+ * 
+ */
 #define TVM_MAJOR 1
+/**
+ * @brief CrossLang Runtime Minor version
+ * 
+ */
 #define TVM_MINOR 0
+/**
+ * @brief CrossLang Runtime Patch version
+ * 
+ */
 #define TVM_PATCH 0
+/**
+ * @brief CrossLang Runtime Build version
+ * 
+ */
 #define TVM_BUILD 0
+/**
+ * @brief CrossLang Runtime Stage version
+ * 
+ */
 #define TVM_VERSIONSTAGE DevVersion
 
 #if defined(_WIN32)
 #undef Yield
 #endif
-
+/**
+ * @namespace Tesses::CrossLang
+ * @brief The CrossLang namespace
+ * 
+ */
 namespace Tesses::CrossLang {
-    
+    /**
+     * @brief Escape a crosslang string (for generating source code)
+     * 
+     * @param text text to escape
+     * @param quote whether to surround with double quotes
+     * @return std::string the escaped string
+     */
     std::string EscapeString(std::string text,bool quote);
 
     Tesses::Framework::Filesystem::VFSPath GetRealExecutablePath(Tesses::Framework::Filesystem::VFSPath realPath);
+    /**
+     * @brief Get the config folder used by crosslang
+     * 
+     * @return Tesses::Framework::Filesystem::VFSPath the config folder for crosslang
+     */
     Tesses::Framework::Filesystem::VFSPath GetCrossLangConfigDir();
 
+
+
+    /**
+     * @brief Version stage
+     * 
+     */
     enum TVMVersionStage : uint8_t
     {
         DevVersion=0,
@@ -41,6 +83,10 @@ namespace Tesses::CrossLang {
         BetaVersion=2,
         ProductionVersion=3
     };
+    /**
+     * @brief CrossLang version
+     * 
+     */
     class TVMVersion
     {
         uint8_t major;
@@ -48,50 +94,106 @@ namespace Tesses::CrossLang {
         uint8_t patch;
         uint16_t build;
         public:
+            /**
+             * @brief Major
+             * 
+             * @return uint8_t The major
+             */
             uint8_t Major()
             {
                 return major;
             }
+            /**
+             * @brief Minor
+             * 
+             * @return uint8_t The minor
+             */
             uint8_t Minor()
             {
                 return minor;
             }
+            /**
+             * @brief Patch
+             * 
+             * @return uint8_t The patch
+             */
             uint8_t Patch()
             {
                 return patch;
             }
+            /**
+             * @brief Build
+             * 
+             * @return uint16_t The build
+             */
             uint16_t Build()
             {
                 return build >> 2;
             }
-
+            /**
+             * @brief Stage (dev, alpha, beta or prod)
+             * 
+             * @return TVMVersionStage The stage
+             */
             TVMVersionStage VersionStage()
             {
                 return (TVMVersionStage)(build & 3);
             }
-
+            /**
+             * @brief Set the Major
+             * 
+             * @param major The major
+             */
             void SetMajor(uint8_t major)
             {
                 this->major=major;
             }
+             /**
+             * @brief Set the Minor
+             * 
+             * @param minor The minor
+             */
             void SetMinor(uint8_t minor)
             {
                 this->minor=minor;
             }
+             /**
+             * @brief Set the Patch
+             * 
+             * @param patch The patch
+             */
             void SetPatch(uint8_t patch)
             {
                 this->patch=patch;
             }
+             /**
+             * @brief Set the Build
+             * 
+             * @param build The build << 2 | (stage & 3)
+             */
             void SetBuild(uint16_t build)
             {
                 this->build = build;
             }
-
+            /**
+             * @brief Set the Build (and stage)
+             * 
+             * @param build 
+             * @param version 
+             */
             void SetBuild(uint16_t build,TVMVersionStage version)
             {
                 this->build = (build << 2) | version;
             }
-
+            /**
+             * @brief Set the Version
+             * 
+             * @param major The major
+             * @param minor The minor
+             * @param patch The patch
+             * @param build The build
+             * @param ver The stage
+             */
             void SetVersion(uint8_t major, uint8_t minor, uint8_t patch, uint16_t build, TVMVersionStage ver)
             {
                 this->SetMajor(major);
@@ -99,7 +201,14 @@ namespace Tesses::CrossLang {
                 this->SetPatch(patch);
                 this->SetBuild(build,ver);
             }
-
+            /**
+             * @brief Set the Version
+             * 
+             * @param major The major
+             * @param minor The minor
+             * @param patch The patch
+             * @param build The build << 2 | (stage & 3)
+             */
             void SetVersion(uint8_t major, uint8_t minor, uint8_t patch, uint16_t build)
             {
                 this->SetMajor(major);
@@ -107,15 +216,33 @@ namespace Tesses::CrossLang {
                 this->SetPatch(patch);
                 this->SetBuild(build);
             }
+            /**
+             * @brief Set the Version
+             * 
+             * @param major The major
+             * @param minor The minor
+             * @param patch The patch
+             * @param buildHigh The build (high 8 bits)
+             * @param buildLow The build (low 6 bits) << 2 | (stage & 3)
+             */
             void SetVersion(uint8_t major, uint8_t minor, uint8_t patch, uint8_t buildHigh, uint8_t buildLow)
             {
                 this->SetVersion(major, minor, patch, buildHigh << 8 | buildLow);
             }
-
+            /**
+             * @brief Set the Version
+             * 
+             * @param versionData same order as SetVersion(uint8_t major, uint8_t minor, uint8_t patch, uint8_t buildHigh, uint8_t buildLow) but is a pointer to uint8_t version[5]
+             */
             void SetVersion(uint8_t* versionData)
             {
                 this->SetVersion(versionData[0],versionData[1],versionData[2],versionData[3],versionData[4]);
             }
+            /**
+             * @brief Set the version from long
+             * 
+             * @param v version serialized as long
+             */
             void SetFromLong(uint64_t v)
             {
 
@@ -124,6 +251,11 @@ namespace Tesses::CrossLang {
                 this->patch = (uint8_t)(v >> 16) & 0xFF;
                 this->build = (uint16_t)(v & 0xFFFF);
             }
+            /**
+             * @brief Encodes the version to bytes to be decoded by SetVersion(uint8_t*) or the constructor
+             * 
+             * @param versionData an array that is 5 bytes long
+             */
             void ToArray(uint8_t* versionData)
             {
                 versionData[0] = major;
@@ -132,14 +264,32 @@ namespace Tesses::CrossLang {
                 versionData[3] = build >> 8;
                 versionData[4] = build & 0xFF;
             }
+            /**
+             * @brief Construct a new Version object
+             * 
+             * @param major Major
+             * @param minor Minor
+             * @param patch Patch
+             * @param build Build
+             * @param version Stage (dev, alpha, beta, prod) see TVMVersionStage for actual names 
+             */
             TVMVersion(uint8_t major, uint8_t minor, uint8_t patch, uint16_t build, TVMVersionStage version)
             {
                 this->SetVersion(major,minor,patch,build,version);
             }
+            /**
+             * @brief Construct a new Version object
+             * 
+             * @param versionData same order as SetVersion(uint8_t major, uint8_t minor, uint8_t patch, uint8_t buildHigh, uint8_t buildLow) but is a pointer to uint8_t version[5]
+             */
             TVMVersion(uint8_t* versionData)
             {
                 this->SetVersion(versionData);
             }
+            /**
+             * @brief Construct a new 1.0.0.0-dev Version object
+             * 
+             */
             TVMVersion()
             {
                 this->major=1;
@@ -147,10 +297,21 @@ namespace Tesses::CrossLang {
                 this->patch=0;
                 this->SetBuild(0, TVMVersionStage::DevVersion);
             }
+            /**
+             * @brief Construct a new Version object from a long
+             * 
+             * @param v version serialized as long
+             */
             TVMVersion(uint64_t v)
             {
                 this->SetFromLong(v);
             }
+            /**
+             * @brief Compares to another version
+             * 
+             * @param version another version object
+             * @return int returns 1 if this is newer than other version, 0 if same, -1 if this is older than other version
+             */
             int CompareTo(TVMVersion& version)
             {
                 if(this->major > version.major) return 1;
@@ -163,7 +324,11 @@ namespace Tesses::CrossLang {
                 if(this->build < version.build) return -1;
                 return 0;
             }
-
+            /**
+             * @brief Serializes to a long
+             * 
+             * @return uint64_t serialized as a long
+             */
             uint64_t AsLong()
             {
                 uint64_t v = (uint64_t)major << 32;
@@ -172,11 +337,24 @@ namespace Tesses::CrossLang {
                 v |= (uint64_t)build;
                 return v;
             }
+            /**
+             * @brief Compares this to the runtime version
+             * 
+             * @return int CompareTo(RuntimeVersion) where RuntimeVersion is the runtime version
+             */
             int CompareToRuntime()
             {
                 TVMVersion version(TVM_MAJOR,TVM_MINOR,TVM_PATCH,TVM_BUILD,TVM_VERSIONSTAGE);
                 return CompareTo(version);
             }
+            /**
+             * @brief Try to parse the version from a string
+             * 
+             * @param versionStr the version string like 1.0.0.0-prod (or dev, alpha, beta)
+             * @param version a reference to a version
+             * @return true the parsing succeeded
+             * @return false the parsing failed
+             */
             static bool TryParse(std::string versionStr, TVMVersion& version)
             {
                 if(versionStr.empty()) return false;
@@ -264,7 +442,11 @@ namespace Tesses::CrossLang {
                 return true;
 
             }
-
+            /**
+             * @brief Converts version to string
+             * 
+             * @return std::string the version string like 1.0.0.0-prod (or dev, alpha, beta)
+             */
             std::string ToString()
             {
                 std::string str={};
@@ -295,13 +477,32 @@ namespace Tesses::CrossLang {
             }
     };
 
-
+    /**
+     * @brief Create a crvm archive file
+     * 
+     * @param vfs the filesystem used as root of the archive
+     * @param strm the output stream
+     * @param name the crvm name
+     * @param version the crvm version
+     * @param info the crvm info
+     * @param icon the crvm icon
+     */
     void CrossArchiveCreate(Tesses::Framework::Filesystem::VFS* vfs,Tesses::Framework::Streams::Stream* strm,std::string name,TVMVersion version,std::string info, std::string icon="");
+    /**
+     * @brief 
+     * 
+     * @param strm the input stream
+     * @param vfs vfs to extract to (as root)
+     * @return std::pair<std::pair<std::string,TVMVersion>,std::string> ((name, version),info)
+     */
     std::pair<std::pair<std::string,TVMVersion>,std::string> CrossArchiveExtract(Tesses::Framework::Streams::Stream* strm,Tesses::Framework::Filesystem::VFS* vfs);
 
 
 
-
+/**
+ * @brief The token type for lexer
+ * 
+ */
 typedef enum {
         Identifier,
         Symbol,
@@ -309,36 +510,97 @@ typedef enum {
         Char,
         Documentation
 } LexTokenType;
-
+    /**
+     * @brief The line info for lextoken
+     * 
+     */
     class LexTokenLineInfo
     {
         public:
+            /**
+             * @brief line number
+             * 
+             */
             int line;
+            /**
+             * @brief column number
+             * 
+             */
             int column;
+            /**
+             * @brief byte offset in file
+             * 
+             */
             int offset;
+            /**
+             * @brief filename
+             * 
+             */
             std::string filename;
+            /**
+             * @brief Add a char
+             * 
+             * @param c a char to add to line, column, offset
+             */
             void Add(int c);
+            /**
+             * @brief Subtract from column and offset
+             * 
+             * @param c the number of chars
+             */
             void Subtract(size_t c);
     };
 
-
+    /**
+     * @brief The lextoken for lexer
+     * 
+     */
     class LexToken {
         public:
+            /**
+             * @brief line information
+             * 
+             */
             LexTokenLineInfo lineInfo;
+            /**
+             * @brief the token type
+             * 
+             */
             LexTokenType type;
+            /**
+             * @brief the token text
+             * 
+             */
             std::string text;
+            /**
+             * @brief any white space characters before this token
+             * 
+             */
             std::string whiteSpaceCharsBefore;
     };
+    /**
+     * @brief Start lexing the file
+     * 
+     * @param filename the filename used for exception purposes
+     * @param strm the character stream
+     * @param tokens the tokens
+     * @return int 0 on success, line number on failure
+     */
     int Lex(std::string filename, std::istream& strm, std::vector<LexToken>& tokens);
 
-
+/**
+ * @brief Undefined type
+ * 
+ */
 class Undefined
 {
 
 };
-
 class AdvancedSyntaxNode;
-
+/**
+ * @brief Bytecode instruction enumeration
+ * 
+ */
 typedef enum {
     ADD,
     SUB,
@@ -396,30 +658,94 @@ typedef enum {
     PUSHSCOPELESSCLOSURE,
     YIELD,
     PUSHROOTPATH,
-    PUSHRELATIVEPATH
+    PUSHRELATIVEPATH,
+    BREAKPOINT
 } Instruction;
-
+/**
+ * @brief Base type for bytecode instruction
+ * 
+ */
 class ByteCodeInstruction {
     public:
+        /**
+         * @brief Size of instruction
+         * 
+         * @return size_t the length of the instruction
+         */
         virtual size_t Size()=0;
+        /**
+         * @brief Write the instruction to vector
+         * 
+         * @param data the vector of uint8_t
+         */
         virtual void Write(std::vector<uint8_t>& data)=0;
         virtual ~ByteCodeInstruction()
         {}
 };
-
+/**
+ * @brief Basic bytecode instruction
+ * 
+ */
 class SimpleInstruction : public ByteCodeInstruction {
     public:
+        /**
+         * @brief The instruction
+         * 
+         */
         Instruction instruction;
+        /**
+         * @brief Construct a new Simple Instruction object
+         * 
+         * @param instr the instruction
+         */
         SimpleInstruction(Instruction instr);
+        /**
+         * @brief Size of instruction
+         * 
+         * @return size_t 1, because simple instructions are just an instruction
+         */
         size_t Size();
+        /**
+         * @brief Write the opcode to the vector
+         * 
+         * @param data the vector of uint8_t
+         */
         void Write(std::vector<uint8_t>& data);
 };
 
+/**
+ * @brief A bit converter
+ * 
+ */
 class BitConverter {
     public:
+        /**
+         * @brief Get the bits of a double from a int64_t
+         * 
+         * @param v a int64_t with double's bits
+         * @return double the double
+         */
         static double ToDoubleBits(uint64_t v);
+        /**
+         * @brief Get the bits of a int64_t from a double
+         * 
+         * @param v a double with int64_t's bits
+         * @return uint64_t the int64_t
+         */
         static uint64_t ToUintBits(double v);
+        /**
+         * @brief Get big endian double from uint8_t reference of first element of 8 byte array
+         * 
+         * @param b a reference to the first byte of an array
+         * @return double the double
+         */
         static double ToDoubleBE(uint8_t& b);
+        /**
+         * @brief Get big endian uint64_t from uint8_t reference of first element of 8 byte array
+         * 
+         * @param b a reference to the first byte of an array
+         * @return uint64_t the uint64_t
+         */
         static uint64_t ToUint64BE(uint8_t& b);
         static uint32_t ToUint32BE(uint8_t& b);
         static uint16_t ToUint16BE(uint8_t& b);
@@ -528,6 +854,7 @@ class CodeGen {
     void GetFunctionArgs(std::vector<uint32_t>& args,SyntaxNode n);
     void GetFunctionName(std::vector<uint32_t>& name,SyntaxNode n);
     void GetFunctionArgs(std::vector<SyntaxNode>& args,SyntaxNode n);
+    SyntaxNode StringifyListOfVars(SyntaxNode n);
 
     uint32_t GetString(std::string str);
     uint32_t GetResource(std::string res);
@@ -537,6 +864,7 @@ class CodeGen {
     std::vector<std::pair<std::vector<uint32_t>, std::vector<ByteCodeInstruction*>>> chunks;
     std::vector<std::pair<std::vector<uint32_t>,uint32_t>> funcs;
     std::vector<ObjectEntry> objectEntries;
+
     void GenNode(std::vector<ByteCodeInstruction*>& instructions, SyntaxNode n,int32_t scope, int32_t contscope, int32_t brkscope, int32_t contI, int32_t brkI);
     void GenPop(std::vector<ByteCodeInstruction*>& instrs,SyntaxNode n);
     public:
@@ -550,87 +878,381 @@ class CodeGen {
         void Save(Tesses::Framework::Filesystem::VFS* embedFS,Tesses::Framework::Streams::Stream* output);
         ~CodeGen();
 };
-
+/**
+ * @brief A html expression
+ * 
+ */
 constexpr std::string_view HtmlRootExpression = "htmlRootExpression";
+/**
+ * @brief an intrinsic function that embeads a resource from the filename based on the constant string argument
+ * 
+ */
 constexpr std::string_view EmbedExpression = "embedExpression";
+/**
+ * @brief Negative operator -EXPR
+ * 
+ */
 constexpr std::string_view NegativeExpression = "negativeExpression";
+/**
+ * @brief Not operator !EXPR
+ * 
+ */
 constexpr std::string_view NotExpression = "notExpression";
+/**
+ * @brief Bitwise not operator ~EXPR
+ * 
+ */
 constexpr std::string_view BitwiseNotExpression = "bitwiseNotExpression";
+/**
+ * @brief ++i
+ * 
+ */
 constexpr std::string_view PrefixIncrementExpression = "prefixIncrementExpression";
+/**
+ * @brief --i
+ * 
+ */
 constexpr std::string_view PrefixDecrementExpression = "prefixDecrementExpression";
+/**
+ * @brief i++
+ * 
+ */
 constexpr std::string_view PostfixIncrementExpression = "postfixIncrementExpression";
+/**
+ * @brief i--
+ * 
+ */
 constexpr std::string_view PostfixDecrementExpression = "postfixDecrementExpression";
+/**
+ * @brief Gets variable value
+ * 
+ */
 constexpr std::string_view GetVariableExpression = "getVariableExpression";
+/**
+ * @brief Get field or get property (EXPR.getNAME()) (unless it is wrapped in AssignExpression) which then it sets the field or calls EXPR.setNAME(VALUE)
+ * 
+ */
 constexpr std::string_view GetFieldExpression = "getFieldExpression";
+/**
+ * @brief Syntax sugar for EXPR.GetAt(index) (unless it is wrapped in AssignExpresion) which then it is EXPR.SetAt(index, VALUE)
+ * 
+ */
 constexpr std::string_view GetArrayExpression = "getArrayExpression";
+/**
+ * @brief Function Call myFn() or MyDict.Fn()
+ * 
+ */
 constexpr std::string_view FunctionCallExpression = "functionCallExpression";
+/**
+ * @brief Used for compound assignment like VAR += EXPR
+ * 
+ */
 constexpr std::string_view CompoundAssignExpression = "compoundAssignExpression";
+/**
+ * @brief Assign something using =
+ * 
+ */
 constexpr std::string_view AssignExpression = "assignExpression";
+/**
+ * @brief A char litteral
+ * 
+ */
 constexpr std::string_view CharExpression = "charExpression";
+/**
+ * @brief The undefined literal
+ * 
+ */
 constexpr std::string_view UndefinedExpression = "undefinedExpression";
+/**
+ * @brief A list of nodes that does create a new scope
+ * 
+ */
 constexpr std::string_view ScopeNode = "scopeNode";
+/**
+ * @brief A list of nodes that doesn't create a new scope
+ * 
+ */
 constexpr std::string_view NodeList = "nodeList";
-
+/**
+ * @brief Array expresion [1,2,10]
+ * 
+ */
 constexpr std::string_view ArrayExpression = "arrayExpression";
+/**
+ * @brief Dictionary expression  { a = 42, b = false}
+ * 
+ */
 constexpr std::string_view DictionaryExpression = "dictionaryExpression";
+/**
+ * @brief var v = 59;
+ * 
+ */
 constexpr std::string_view DeclareExpression = "declareExpression";
-
+/**
+ * @brief Closure expression (a,b)=> a * b
+ * 
+ */
 constexpr std::string_view ClosureExpression = "closureExpression";
+/**
+ * @brief Just like normal closures but doesn't create its own scope
+ * 
+ */
 constexpr std::string_view ScopelessClosureExpression = "scopelessClosureExpression";
-
+/**
+ * @brief Ternary operator COND ? EXPR : EXPR
+ * 
+ */
 constexpr std::string_view TernaryExpression = "ternaryExpression";
+/**
+ * @brief If statement if(COND) {} else if(COND) {} else {}
+ * 
+ */
 constexpr std::string_view IfStatement = "ifStatement";
+/**
+ * @brief For statement for(var i = 0; i < 42; i++)
+ * 
+ */
 constexpr std::string_view ForStatement = "forStatement";
+/**
+ * @brief While statement while(COND)
+ * 
+ */
 constexpr std::string_view WhileStatement = "whileStatement";
+/**
+ * @brief Do statement do(COND)
+ * 
+ */
 constexpr std::string_view DoStatement = "doStatement";
+/**
+ * @brief Each statement each(var item : EXPR)
+ * 
+ */
 constexpr std::string_view EachStatement = "eachStatement";
+/**
+ * @brief Return statement return EXPR;
+ * 
+ */
 constexpr std::string_view ReturnStatement = "returnStatement";
+/**
+ * @brief Break statement break;
+ * 
+ */
 constexpr std::string_view BreakStatement = "breakStatement";
+/**
+ * @brief Continue statement continue;
+ * 
+ */
 constexpr std::string_view ContinueStatement = "continueStatement";
+/**
+ * @brief Function statement func main(args)
+ * 
+ */
 constexpr std::string_view FunctionStatement = "functionStatement";
+/**
+ * @brief The documentation statement /^ Documentation ^/ func main(args) {}
+ * 
+ */
 constexpr std::string_view DocumentationStatement = "documentationStatement";
+/**
+ * @brief The comma expression EXPR, EXPR
+ * 
+ */
 constexpr std::string_view CommaExpression = "commaExpression";
-
+/**
+ * @brief The addition operator EXPR + EXPR
+ * 
+ */
 constexpr std::string_view AddExpression = "addExpression";
+/**
+ * @brief The subtraction operator EXPR - EXPR
+ * 
+ */
 constexpr std::string_view SubExpression = "subtractExpression";
+/**
+ * @brief The times operator EXPR * EXPR
+ * 
+ */
 constexpr std::string_view TimesExpression = "timesExpression";
+/**
+ * @brief The divsion operator EXPR / EXPR
+ * 
+ */
 constexpr std::string_view DivideExpression = "divideExpression";
+/**
+ * @brief The modulo operator (get remainder) EXPR % EXPR
+ * 
+ */
 constexpr std::string_view ModExpression = "modExpression";
+/**
+ * @brief The left shift operator EXPR << EXPR
+ * 
+ */
 constexpr std::string_view LeftShiftExpression = "leftShiftExpression";
+/**
+ * @brief The right shift operator EXPR >> EXPR
+ * 
+ */
 constexpr std::string_view RightShiftExpression = "rightShiftExpression";
+/**
+ * @brief The bitwise or expression EXPR | EXPR
+ * 
+ */
 constexpr std::string_view BitwiseOrExpression = "bitwiseOrExpression";
+/**
+ * @brief The bitwise and expression EXPR & EXPR
+ * 
+ */
 constexpr std::string_view BitwiseAndExpression = "bitwiseAndExpression";
-
+/**
+ * @brief The xor expression EXPR ^ EXPR
+ * 
+ */
 constexpr std::string_view XOrExpression = "xOrExpression";
+/**
+ * @brief The logical or expression EXPR || EXPR
+ * 
+ */
 constexpr std::string_view LogicalOrExpression = "logicalOrExpression";
+/**
+ * @brief The logical and expression EXPR && EXPR
+ * 
+ */
 constexpr std::string_view LogicalAndExpression = "logicalAndExpression";
-
+/**
+ * @brief The equals expression EXPR == EXPR
+ * 
+ */
 constexpr std::string_view EqualsExpression = "equalsExpression";
+/**
+ * @brief The not equals expression EXPR != EXPR
+ * 
+ */
 constexpr std::string_view NotEqualsExpression = "notEqualsExpression";
+/**
+ * @brief The less than expression EXPR < EXPR
+ * 
+ */
 constexpr std::string_view LessThanExpression = "lessThanExpression";
+/**
+ * @brief The greater than expression EXPR > EXPR
+ * 
+ */
 constexpr std::string_view GreaterThanExpression = "greaterThanExpression";
+/**
+ * @brief The less than equals expression EXPR <= EXPR
+ * 
+ */
 constexpr std::string_view LessThanEqualsExpression = "lessThanEqualsExpression";
+/**
+ * @brief The greater than equals expression EXPR >= EXPR
+ * 
+ */
 constexpr std::string_view GreaterThanEqualsExpression = "greaterThanEqualsExpression";
+/**
+ * @brief The parentheses expression (expression)
+ * 
+ */
 constexpr std::string_view ParenthesesExpression = "parenthesesExpression";
+/**
+ * @brief The throw statement
+ * 
+ */
 constexpr std::string_view ThrowStatement = "throwStatement";
+/**
+ * @brief The breakpoint statement
+ */
+constexpr std::string_view BreakpointStatement = "breakpointStatement";
+/**
+ * @brief The try statement
+ * 
+ */
 constexpr std::string_view TryStatement = "tryStatement";
+/**
+ * @brief The defer statement
+ * 
+ */
 constexpr std::string_view DeferStatement = "deferStatement";
+/**
+ * @brief The defer statement
+ * 
+ */
 constexpr std::string_view YieldStatement = "yieldStatement";
+/**
+ * @brief The enumerable statement
+ * 
+ */
 constexpr std::string_view EnumerableStatement = "enumerableStatement";
+/**
+ * @brief The switch statement
+ * 
+ */
 constexpr std::string_view SwitchStatement = "switchStatement";
+/**
+ * @brief Case clause of switch statement
+ * 
+ */
 constexpr std::string_view CaseStatement = "caseStatement";
+/**
+ * @brief Default clause of switch statement
+ * 
+ */
 constexpr std::string_view DefaultStatement = "defaultStatement";
+/**
+ * @brief Object statement (like class but not having inheritence) (not implemented)
+ * 
+ */
 constexpr std::string_view ObjectStatement = "objectStatement";
+/**
+ * @brief Static statement (static methods in object statement)
+ * 
+ */
 constexpr std::string_view StaticStatement = "staticStatement";
-constexpr std::string_view MethodDeclaration = "methodDeclaration";
-constexpr std::string_view RootPathExpression = "rootPathExpression";
-constexpr std::string_view RelativePathExpression = "relativePathExpression";
 
+/**
+ * @brief Method declaration method fun() {} in object statement
+ * 
+ */
+
+constexpr std::string_view MethodDeclaration = "methodDeclaration";
+/**
+ * @brief Root path expression / "path" / "to" / "file" (fullfils the first /)
+ * 
+ */
+constexpr std::string_view RootPathExpression = "rootPathExpression";
+/**
+ * @brief The relative path expression ./ "path" / "to" / "subdir" (fullfills the ./)
+ * 
+ */
+constexpr std::string_view RelativePathExpression = "relativePathExpression";
+/**
+ * @brief Advanced AST node
+ * 
+ */
 class AdvancedSyntaxNode {
     public:
+        /**
+         * @brief The name of the advanced AST node
+         * 
+         */
         std::string nodeName;
+        /**
+         * @brief The advanced syntax node is an expression
+         * 
+         */
         bool isExpression;
+        /**
+         * @brief The subnodes of the abstract syntax node
+         * 
+         */
         std::vector<SyntaxNode> nodes;
+        /**
+         * @brief Create abstract syntax node
+         * 
+         * @param nodeName The name of the advanced AST node
+         * @param isExpression The advanced syntax node is an expression
+         * @param n The subnodes of the abstract syntax node
+         * @return AdvancedSyntaxNode The AST node
+         */
         static AdvancedSyntaxNode Create(std::string_view nodeName,bool isExpression, std::vector<SyntaxNode> n);
 };
 
@@ -639,7 +1261,10 @@ class AdvancedSyntaxNode {
 SyntaxNode Deserialize(std::string astData);
 
 std::string Serialize(SyntaxNode node);
-
+/**
+ * @brief Token Parser
+ * 
+ */
 class Parser {
     uint32_t id;
     uint32_t NewId();
@@ -671,7 +1296,17 @@ class Parser {
     SyntaxNode ParseUnary();
     void ParseHtml(std::vector<SyntaxNode>& nodes,std::string var);
     public:
+        /**
+         * @brief Construct a new Parser object
+         * 
+         * @param tokens the tokens from lexer
+         */
         Parser(std::vector<LexToken> tokens);
+        /**
+         * @brief Turn tokens into abstract syntax tree
+         * 
+         * @return SyntaxNode the abstract syntax tree
+         */
         SyntaxNode ParseRoot()
         {
             return ParseNode(true);
@@ -713,6 +1348,10 @@ class Parser {
     class MethodInvoker {
 
     };
+    /**
+     * @brief A script object
+     * 
+     */
 using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder,TVMVersion>;
 class TRootEnvironment;
 class GC;
@@ -978,6 +1617,7 @@ class GC {
     class TRootEnvironment : public TEnvironment
     {
         TDictionary* dict;
+        TCallable* error=nullptr;
         
         void LoadDependency(GC* gc,Tesses::Framework::Filesystem::VFS* vfs, std::pair<std::string,TVMVersion> dep);
         public:
@@ -999,6 +1639,9 @@ class GC {
             void DeclareVariable(std::string key, TObject value);
             TRootEnvironment* GetRootEnvironment();
             TEnvironment* GetParentEnvironment();
+            void RegisterOnError(TCallable* callable);
+            bool HandleException(GC* gc,TEnvironment* env, TObject err);
+            bool HandleBreakpoint(GC* gc,TEnvironment* env, TObject err);
             void Mark();
     };
     class TStd {
@@ -1036,6 +1679,7 @@ class GC {
             void DeclareVariable(std::string key, TObject value);
             TRootEnvironment* GetRootEnvironment();
             TEnvironment* GetParentEnvironment();
+            TDictionary* GetDictionary();
             void Mark();
     };
 
@@ -1412,6 +2056,7 @@ class GC {
             bool Pop(GC* gc);
             bool Dup(GC* gc);
             bool Nop(GC* gc);
+            bool Breakpoint(GC* gc);
         public:
             static InterperterThread* Create(GCList* ls);
             static InterperterThread* Create(GCList& ls);
@@ -1581,6 +2226,8 @@ class GC {
     }
     bool GetObjectAsPath(TObject& obj, Tesses::Framework::Filesystem::VFSPath& path, bool allowString=true);
     bool GetArgumentAsPath(std::vector<TObject>& args, size_t index, Tesses::Framework::Filesystem::VFSPath& path,bool allowString=true);
+    bool ToBool(TObject obj);
+    bool Equals(GC* gc, TObject left, TObject right);
     typedef void (*PluginFunction)(GC* gc,TRootEnvironment* env);
     #if !defined(_WIN32)
     #define DLLEXPORT

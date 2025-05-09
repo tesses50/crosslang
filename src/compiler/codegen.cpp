@@ -3,6 +3,7 @@
 #include <array>
 #include <map>
 #include <cstring>
+#include <variant>
 namespace Tesses::CrossLang
 {
     void Write(Tesses::Framework::Streams::Stream* strm, uint8_t* buffer, size_t len)
@@ -30,6 +31,7 @@ namespace Tesses::CrossLang
                 delete instr;
         }
     }
+
 
     void CodeGen::Save(Tesses::Framework::Filesystem::VFS* vfs, Tesses::Framework::Streams::Stream* stream)
     {
@@ -409,6 +411,32 @@ namespace Tesses::CrossLang
     }
     #define ONE_EXPR(EXPRESSION, INSTRUCTION) if(adv.nodeName == EXPRESSION && adv.nodes.size() == 1) {GenNode(instructions,adv.nodes[0],scope,contscope,brkscope,contI,brkI);instructions.push_back(new SimpleInstruction(INSTRUCTION));}
     #define TWO_EXPR(EXPRESSION, INSTRUCTION) if(adv.nodeName == EXPRESSION && adv.nodes.size() == 2) {GenNode(instructions,adv.nodes[0],scope,contscope,brkscope,contI,brkI);GenNode(instructions,adv.nodes[1],scope,contscope,brkscope,contI,brkI);instructions.push_back(new SimpleInstruction(INSTRUCTION));}
+
+    SyntaxNode CodeGen::StringifyListOfVars(SyntaxNode n)
+    {
+        if(std::holds_alternative<std::string>(n))
+        {
+            return n;
+        }
+        else if(std::holds_alternative<AdvancedSyntaxNode>(n))
+        {
+            auto itemA=std::get<AdvancedSyntaxNode>(n);
+            if(itemA.nodeName == GetVariableExpression && itemA.nodes.size()==1 &&  std::holds_alternative<std::string>(itemA.nodes[0]))
+                {
+                    return std::get<std::string>(itemA.nodes[0]);
+                }
+            else if(itemA.nodeName == CommaExpression && itemA.nodes.size()==2)
+            {
+                return AdvancedSyntaxNode::Create(CommaExpression,true,{StringifyListOfVars(itemA.nodes[0]),StringifyListOfVars(itemA.nodes[1])});
+            }
+
+
+
+        }
+        return nullptr;
+    }
+
+
     void CodeGen::GenNode(std::vector<ByteCodeInstruction*>& instructions, SyntaxNode n,int32_t scope,int32_t contscope, int32_t brkscope, int32_t contI, int32_t brkI)
     {
         if(std::holds_alternative<std::nullptr_t>(n))
@@ -1018,9 +1046,22 @@ namespace Tesses::CrossLang
             else if(adv.nodeName == AssignExpression && adv.nodes.size() == 2 && std::holds_alternative<AdvancedSyntaxNode>(adv.nodes[0]))
             {
                 auto varNode = std::get<AdvancedSyntaxNode>(adv.nodes[0]);
+
                 if(varNode.nodeName == GetVariableExpression && varNode.nodes.size() == 1 && std::holds_alternative<std::string>(varNode.nodes[0]))
                 {
                     instructions.push_back(new StringInstruction(GetString(std::get<std::string>(varNode.nodes[0]))));
+                    GenNode(instructions,adv.nodes[1],scope,contscope,brkscope,contI,brkI);
+                    instructions.push_back(new SimpleInstruction(SETVARIABLE));
+                }
+                else if(varNode.nodeName == ArrayExpression && varNode.nodes.size() >= 1)
+                {
+
+                    auto vars= StringifyListOfVars(varNode.nodes[0]);
+
+
+                    auto nArray = AdvancedSyntaxNode::Create(ArrayExpression,true,{vars});
+
+                    this->GenNode(instructions,nArray ,scope ,contscope ,brkscope ,contI , brkI);
                     GenNode(instructions,adv.nodes[1],scope,contscope,brkscope,contI,brkI);
                     instructions.push_back(new SimpleInstruction(SETVARIABLE));
                 }
@@ -1029,6 +1070,23 @@ namespace Tesses::CrossLang
                     instructions.push_back(new StringInstruction(GetString(std::get<std::string>(varNode.nodes[0]))));
                     GenNode(instructions,adv.nodes[1],scope,contscope,brkscope,contI,brkI);
                     instructions.push_back(new SimpleInstruction(DECLAREVARIABLE));
+                }
+                else if(varNode.nodeName == DeclareExpression && varNode.nodes.size() == 1 && std::holds_alternative<AdvancedSyntaxNode>(varNode.nodes[0]))
+                {
+                    auto adv2 = std::get<AdvancedSyntaxNode>(varNode.nodes[0]);
+
+                    if(adv2.nodeName == ArrayExpression && adv2.nodes.size() == 1)
+                    {
+
+                        auto vars= StringifyListOfVars(adv2.nodes[0]);
+
+                        auto nArray = AdvancedSyntaxNode::Create(ArrayExpression,true,{vars});
+
+                        this->GenNode(instructions,nArray ,scope ,contscope ,brkscope ,contI , brkI);
+                        GenNode(instructions,adv.nodes[1],scope,contscope,brkscope,contI,brkI);
+                        instructions.push_back(new SimpleInstruction(DECLAREVARIABLE));
+
+                    }
                 }
                 else if(varNode.nodeName == GetFieldExpression && varNode.nodes.size() == 2 && std::holds_alternative<std::string>(varNode.nodes[1]))
                 {
@@ -1050,9 +1108,41 @@ namespace Tesses::CrossLang
                     GenNode(instructions,n,scope,contscope,brkscope,contI,brkI);
                 }
             }
-            else if(adv.nodeName == ThrowStatement && adv.nodes.size() == 1)
+            else if(adv.nodeName == BreakpointStatement && adv.nodes.size() == 5)
+            {
+                instructions.push_back(new SimpleInstruction(CREATEDICTIONARY));
+                instructions.push_back(new StringInstruction(GetString("Data")));
+                GenNode(instructions,adv.nodes[0],scope,contscope,brkscope,contI,brkI);
+                instructions.push_back(new SimpleInstruction(APPENDDICT));
+                instructions.push_back(new StringInstruction(GetString("Filename")));
+                GenNode(instructions,adv.nodes[1] ,scope,contscope ,brkscope ,contI ,brkI);
+                instructions.push_back(new SimpleInstruction(APPENDDICT));
+                instructions.push_back(new StringInstruction(GetString("Line")));
+                GenNode(instructions,adv.nodes[2] ,scope,contscope ,brkscope ,contI ,brkI);
+                instructions.push_back(new SimpleInstruction(APPENDDICT));
+                instructions.push_back(new StringInstruction(GetString("Column")));
+                GenNode(instructions,adv.nodes[3] ,scope,contscope ,brkscope ,contI ,brkI);
+                instructions.push_back(new SimpleInstruction(APPENDDICT));
+                instructions.push_back(new StringInstruction(GetString("Offset")));
+                GenNode(instructions,adv.nodes[4] ,scope,contscope ,brkscope ,contI ,brkI);
+                instructions.push_back(new SimpleInstruction(APPENDDICT));
+                instructions.push_back(new SimpleInstruction(BREAKPOINT));
+            }
+            else if(adv.nodeName == ThrowStatement && adv.nodes.size() == 5)
             {
                 GenNode(instructions,adv.nodes[0],scope,contscope,brkscope,contI,brkI);
+                instructions.push_back(new StringInstruction(GetString("Filename")));
+                GenNode(instructions,adv.nodes[1] ,scope,contscope ,brkscope ,contI ,brkI);
+                instructions.push_back(new SimpleInstruction(APPENDDICT));
+                instructions.push_back(new StringInstruction(GetString("Line")));
+                GenNode(instructions,adv.nodes[2] ,scope,contscope ,brkscope ,contI ,brkI);
+                instructions.push_back(new SimpleInstruction(APPENDDICT));
+                instructions.push_back(new StringInstruction(GetString("Column")));
+                GenNode(instructions,adv.nodes[3] ,scope,contscope ,brkscope ,contI ,brkI);
+                instructions.push_back(new SimpleInstruction(APPENDDICT));
+                instructions.push_back(new StringInstruction(GetString("Offset")));
+                GenNode(instructions,adv.nodes[4] ,scope,contscope ,brkscope ,contI ,brkI);
+                instructions.push_back(new SimpleInstruction(APPENDDICT));
                 instructions.push_back(new SimpleInstruction(THROW));
             }
             else if(adv.nodeName == ReturnStatement && adv.nodes.size() == 1)

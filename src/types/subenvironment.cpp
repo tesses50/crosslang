@@ -1,6 +1,10 @@
 #include "CrossLang.hpp"
 
 namespace Tesses::CrossLang  {
+    TDictionary* TSubEnvironment::GetDictionary()
+    {
+        return this->dict;
+    }
     TObject TSubEnvironment::GetVariable(std::string key)
     {
         if(this->dict->HasValue(key))

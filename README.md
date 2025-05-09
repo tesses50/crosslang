@@ -10,9 +10,9 @@ Tesses Cross Language
 - CMake
 
 ## What libraries have I embeded from other people
-- [HodwardHinnart's date]() (in folder src/HodwardHinnart_date, modified tz.cpp to point to correct header)
-- [Sqlite]() (in folder src/sqlite also uses demo VFS (at least on Wii))
-- [Sago's platform_folders]() (in folder src/sago)
+- [HodwardHinnart's date](https://github.com/HowardHinnant/date) (in folder src/HodwardHinnart_date, modified tz.cpp to point to correct header)
+- [Sqlite](https://www.sqlite.org/) (in folder src/sqlite also uses demo VFS (at least on Wii))
+- [Sago's platform_folders](https://github.com/sago007/PlatformFolders) (in folder src/sago)
 - [subprocess](https://github.com/sheredom/subprocess.h) (as file src/runtime_methods/subprocess.h)
 ## Use in docker (use my container)
 ```bash
@@ -30,7 +30,9 @@ Tesses Cross Language
 - Install [mbedtls](https://github.com/Mbed-TLS/mbedtls) (use sudo apt install libmbedtls-dev on debian) for TessesFramework
 - Follow the commands bellow
 
-## Run these commands to install crosslang (or use binaries from [here](https://crosslang.tesseslanguage.com/download/))
+## Run these commands to install crosslang
+Or use binaries from [here](https://crosslang.tesseslanguage.com/download/)
+
 ```bash
 git clone https://onedev.site.tesses.net/CrossLang
 cd CrossLang
@@ -39,6 +41,16 @@ cd build
 cmake -S .. -B .
 make
 sudo make install
+```
+
+## To Create the binaries and ISO (You need linux for this)
+```bash
+sudo apt install xorriso wget curl mingw-w64 nsis cmake tar zip
+mkdir dvdwork
+cp build-dvd.tcross dvdwork/
+cd dvdwork
+crossint build-dvd.tcross
+bash script.sh # the iso and tarballs will be in Working/Output
 ```
 
 ```

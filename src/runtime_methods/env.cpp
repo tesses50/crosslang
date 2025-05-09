@@ -13,6 +13,7 @@ namespace Tesses::CrossLang
     #else
     static char EnvPathSeperator=':';
     #endif
+
     static std::string GetHomeFolder()
     {
         #if defined(CROSSLANG_ENABLE_PLATFORM_FOLDERS)

@@ -1,6 +1,7 @@
 #include "CrossLang.hpp"
 #include <TessesFramework/Filesystem/VFS.hpp>
 #include <cstddef>
+#include <exception>
 #include <iostream>
 #include <cmath>
 #include <cstring>
@@ -74,6 +75,170 @@ namespace Tesses::CrossLang {
 
         return false;
     }
+
+    bool Equals(GC* gc, TObject left, TObject right)
+    {
+        GCList ls(gc);
+        if(std::holds_alternative<std::nullptr_t>(left) && std::holds_alternative<std::nullptr_t>(right))
+        {
+
+            return true;
+        }
+
+        else if(std::holds_alternative<Undefined>(left) && std::holds_alternative<Undefined>(right))
+        {
+            return true;
+        }
+
+        else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<int64_t>(right))
+        {
+            return std::get<int64_t>(left) == std::get<int64_t>(right);
+        }
+
+        else if(std::holds_alternative<double>(left) && std::holds_alternative<double>(right))
+        {
+            return std::get<double>(left) == std::get<double>(right);
+        }
+        else if(std::holds_alternative<double>(left) && std::holds_alternative<int64_t>(right))
+        {
+            return std::get<double>(left) == std::get<int64_t>(right);
+        }
+        else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<double>(right))
+        {
+            return std::get<int64_t>(left) == std::get<double>(right);
+        }
+
+        else if(std::holds_alternative<std::string>(left) && std::holds_alternative<std::string>(right))
+        {
+            return std::get<std::string>(left) == std::get<std::string>(right);
+        }
+
+        else if(std::holds_alternative<bool>(left) && std::holds_alternative<bool>(right))
+        {
+            return std::get<bool>(left) == std::get<bool>(right);
+        }
+
+        else if(std::holds_alternative<char>(left) && std::holds_alternative<char>(right))
+        {
+            return std::get<char>(left) == std::get<char>(right);
+        }
+        else if(std::holds_alternative<char>(left) && std::holds_alternative<int64_t>(right))
+        {
+            return std::get<char>(left) == std::get<int64_t>(right);
+        }
+        else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<char>(right))
+        {
+            return std::get<int64_t>(left) == std::get<char>(right);
+        }
+        else if(std::holds_alternative<TVMVersion>(left) && std::holds_alternative<TVMVersion>(right))
+        {
+            auto lver= std::get<TVMVersion>(left);
+            auto rver = std::get<TVMVersion>(right);
+            auto r = lver.CompareTo(rver);
+            return r == 0;
+        }
+        else if(std::holds_alternative<THeapObjectHolder>(left))
+        {
+            auto obj = std::get<THeapObjectHolder>(left).obj;
+            auto dict = dynamic_cast<TDictionary*>(obj);
+
+            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
+            auto native = dynamic_cast<TNative*>(obj);
+            if(dict != nullptr)
+            {
+                gc->BarrierBegin();
+                TObject fn = dict->GetValue("operator==");
+                gc->BarrierEnd();
+                if(!std::holds_alternative<Undefined>(fn))
+                {
+                    if(std::holds_alternative<THeapObjectHolder>(fn))
+                    {
+
+                        auto obj = dynamic_cast<TCallable*>(std::get<THeapObjectHolder>(fn).obj);
+                        if(obj != nullptr)
+                        {
+                            auto closure = dynamic_cast<TClosure*>(obj);
+                            if(closure != nullptr)
+                            {
+
+                                if(!closure->closure->args.empty() && closure->closure->args[0] == "this")
+                                {
+                                    return ToBool(obj->Call(ls,{left,right}));
+                                }
+                                else
+                                {
+                                    return ToBool(obj->Call(ls,{right}));
+                                }
+
+                            }
+                            else
+                            {
+                                return ToBool(obj->Call(ls,{right}));
+
+                            }
+                        }
+
+                    }
+
+                }
+                return false;
+
+            }
+
+            else if(dynDict != nullptr)
+            {
+                auto res = dynDict->CallMethod(ls,"operator==",{right});
+                if(!std::holds_alternative<std::nullptr_t>(res) && std::holds_alternative<Undefined>(res))
+                {
+                    return ToBool(res);
+                }
+            }
+            else if(native != nullptr && std::holds_alternative<std::nullptr_t>(right))
+            {
+                return native->GetDestroyed();
+
+            }
+
+            if(std::holds_alternative<THeapObjectHolder>(right))
+            {
+                return obj == std::get<THeapObjectHolder>(right).obj;
+
+            }
+
+            else if(std::holds_alternative<std::nullptr_t>(right))
+            {
+                return false;
+            }
+            else if(std::holds_alternative<Undefined>(right))
+            {
+
+                return false;
+            }
+            else
+            {
+                return false;
+            }
+
+        }
+
+        else if(std::holds_alternative<std::nullptr_t>(right))
+        {
+            return false;
+        }
+        else if(std::holds_alternative<Undefined>(right))
+        {
+            return false;
+        }
+        else
+        {
+            return false;
+
+        }
+
+        return false;
+
+    }
+
     TObject ExecuteFunction(GCList& ls,TCallable* callable, std::vector<TObject> args)
     {
         return callable->Call(ls,args);
@@ -170,6 +335,20 @@ namespace Tesses::CrossLang {
             
         }
         this->call_stack_entries.back()->Push(ls.GetGC(),Undefined());
+        return false;
+    }
+    bool InterperterThread::InterperterThread::Breakpoint(GC* gc)
+    {
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        GCList ls(gc);
+        auto res = cse.back()->Pop(ls);
+
+        auto env = cse.back()->env;
+        if(!env->GetRootEnvironment()->HandleBreakpoint(gc, env, res))
+        {
+            throw std::exception();
+        }
+
         return false;
     }
     bool InterperterThread::Sub(GC* gc)
@@ -299,8 +478,11 @@ namespace Tesses::CrossLang {
         GCList ls(gc);
         auto right = cse.back()->Pop(ls);
         auto left = cse.back()->Pop(ls);
-
-        if(std::holds_alternative<std::string>(left) && std::holds_alternative<Tesses::Framework::Filesystem::VFSPath>(right))
+        if(std::holds_alternative<std::string>(left) && std::holds_alternative<std::string>(right))
+        {
+            cse.back()->Push(gc,Tesses::Framework::Filesystem::VFSPath(std::get<std::string>(left)) / std::get<std::string>(right));
+        }
+        else if(std::holds_alternative<std::string>(left) && std::holds_alternative<Tesses::Framework::Filesystem::VFSPath>(right))
         {
             cse.back()->Push(gc,std::get<std::string>(left) / std::get<Tesses::Framework::Filesystem::VFSPath>(right));
         
@@ -610,6 +792,10 @@ namespace Tesses::CrossLang {
             auto r = lver.CompareTo(rver);
             cse.back()->Push(gc, r < 0);
         }
+        else if(std::holds_alternative<std::string>(left) && std::holds_alternative<std::string>(right))
+        {
+            cse.back()->Push(gc, std::get<std::string>(left) < std::get<std::string>(right));
+        }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
@@ -685,6 +871,10 @@ namespace Tesses::CrossLang {
             auto r = lver.CompareTo(rver);
             cse.back()->Push(gc, r > 0);
         }
+        else if(std::holds_alternative<std::string>(left) && std::holds_alternative<std::string>(right))
+        {
+            cse.back()->Push(gc, std::get<std::string>(left) > std::get<std::string>(right));
+        }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
@@ -758,6 +948,10 @@ namespace Tesses::CrossLang {
             auto rver = std::get<TVMVersion>(right);
             auto r = lver.CompareTo(rver);
             cse.back()->Push(gc, r <= 0);
+        }
+        else if(std::holds_alternative<std::string>(left) && std::holds_alternative<std::string>(right))
+        {
+            cse.back()->Push(gc, std::get<std::string>(left) <= std::get<std::string>(right));
         }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
@@ -834,7 +1028,10 @@ namespace Tesses::CrossLang {
             auto r = lver.CompareTo(rver);
             cse.back()->Push(gc, r >= 0);
         }
-        
+        else if(std::holds_alternative<std::string>(left) && std::holds_alternative<std::string>(right))
+        {
+            cse.back()->Push(gc, std::get<std::string>(left) >= std::get<std::string>(right));
+        }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
@@ -2262,6 +2459,8 @@ namespace Tesses::CrossLang {
                 auto strm = dynamic_cast<TStreamHeapObject*>(obj);
                 auto vfs = dynamic_cast<TVFSHeapObject*>(obj);
                 auto env = dynamic_cast<TEnvironment*>(obj);
+
+                auto subEnv = dynamic_cast<TSubEnvironment*>(obj);
                 auto rootEnv = dynamic_cast<TRootEnvironment*>(obj);
                 auto callable = dynamic_cast<TCallable*>(obj);
                 auto callstackEntry = dynamic_cast<CallStackEntry*>(obj);
@@ -2369,6 +2568,17 @@ namespace Tesses::CrossLang {
                     //TStd::RegisterSqlite
                     //TStd::RegisterVM
                     auto myEnv = cse.back()->env->GetRootEnvironment();
+
+                    if(key == "RegisterOnError")
+                    {
+                        TCallable* callable;
+                        if(!rootEnv->permissions.locked && GetArgumentHeap(args,0,callable))
+                        {
+                            gc->BarrierBegin();
+                            rootEnv->RegisterOnError(callable);
+                            gc->BarrierEnd();
+                        }
+                    }
                     if(key == "RegisterEverything")
                     {
                         if(myEnv->permissions.canRegisterEverything)
@@ -2593,6 +2803,14 @@ namespace Tesses::CrossLang {
                         return false;
                     }
                 }
+                if(subEnv != nullptr)
+                {
+                    if(key == "GetDictionary")
+                    {
+                        cse.back()->Push(gc,subEnv->GetDictionary());
+                        return false;
+                    }
+                }
                 
                 if(env != nullptr)
                 {
@@ -2614,6 +2832,7 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc,env->GetRootEnvironment());
                         return false;
                     }
+
                     if(key == "GetSubEnvironment")
                     {
                         cse.back()->Push(gc,env->GetSubEnvironment(ls));
@@ -3573,6 +3792,48 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc, Undefined());
                         return false;
                     }
+                    if(key == "RemoveAllEqual")
+                    {
+                        if(args.size() != 1)
+                        {
+                            throw VMException("List.RemoveAllEqual must only accept one argument");
+                        }
+
+
+                        gc->BarrierBegin();
+                        for(int64_t i = 0; i < list->Count(); i++)
+                        {
+                            if(Equals(gc,args[0],list->Get(i)))
+                            {
+                                list->RemoveAt(i);
+                                i--;
+                            }
+                        }
+                        gc->BarrierEnd();
+                        cse.back()->Push(gc, Undefined());
+                        return false;
+                    }
+                    if(key == "Remove")
+                    {
+                        if(args.size() != 1)
+                        {
+                            throw VMException("List.Remove must only accept one argument");
+                        }
+
+
+                        gc->BarrierBegin();
+                        for(int64_t i = 0; i < list->Count(); i++)
+                        {
+                            if(Equals(gc,args[0],list->Get(i)))
+                            {
+                                list->RemoveAt(i);
+                                break;
+                            }
+                        }
+                        gc->BarrierEnd();
+                        cse.back()->Push(gc, Undefined());
+                        return false;
+                    }
                     if(key == "RemoveAt")
                     {
                         if(args.size() != 1)
@@ -4290,11 +4551,111 @@ namespace Tesses::CrossLang {
             GCList ls(gc);
             auto value = stk->Pop(ls);
             auto key = stk->Pop(ls);
+            TList* mls;
             if(std::holds_alternative<std::string>(key))
             {
                 gc->BarrierBegin();
                 stk->env->SetVariable(std::get<std::string>(key),value);
                 stk->Push(gc, value);
+                gc->BarrierEnd();
+            }
+            else if(GetObjectHeap(key,mls))
+            {
+                gc->BarrierBegin();
+
+                TList* valueLs;
+                TDynamicList* valueDynList;
+                TDictionary* valueDict;
+                TDynamicDictionary* valueDynDict;
+                if(GetObjectHeap(value, valueLs))
+                {
+                    TDictionary* result = TDictionary::Create(ls);
+                    int64_t len = std::min(valueLs->Count(), mls->Count());
+                    for(int64_t i = 0; i < len; i++)
+                    {
+                        std::string mkey;
+                        auto item = mls->Get(i);
+                        if(GetObject(item,mkey))
+                        {
+                            auto val = valueLs->Get(i);
+                            result->SetValue(mkey, val);
+                            stk->env->SetVariable(mkey,val);
+                        }
+                    }
+                    stk->Push(gc,result);
+                }
+                else if(GetObjectHeap(value, valueDynList))
+                {
+                    TDictionary* result = TDictionary::Create(ls);
+                    gc->BarrierEnd();
+                    int64_t len = std::min(valueDynList->Count(ls), mls->Count());
+                    gc->BarrierBegin();
+                    for(int64_t i = 0; i < len; i++)
+                    {
+                        std::string mkey;
+                        auto item = mls->Get(i);
+                        if(GetObject(item,mkey))
+                        {
+                            gc->BarrierEnd();
+                            auto val = valueDynList->GetAt(ls,i);
+                            gc->BarrierBegin();
+                            result->SetValue(mkey, val);
+                            stk->env->SetVariable(mkey,val);
+                        }
+                    }
+                    stk->Push(gc,result);
+                }
+                else if(GetObjectHeap(value, valueDict))
+                {
+
+                    TDictionary* result = TDictionary::Create(ls);
+                    int64_t len = mls->Count();
+                    for(int64_t i = 0; i < len; i++)
+                    {
+                        std::string mkey;
+                        auto item = mls->Get(i);
+                        if(GetObject(item,mkey))
+                        {
+                            auto val = valueDict->GetValue(mkey);
+                            result->SetValue(mkey, val);
+                            stk->env->SetVariable(mkey,val);
+                        }
+                    }
+                    stk->Push(gc,result);
+                }
+                else if(GetObjectHeap(value, valueDynDict))
+                {
+                    TDictionary* result = TDictionary::Create(ls);
+                    int64_t len =mls->Count();
+                    for(int64_t i = 0; i < len; i++)
+                    {
+                        std::string mkey;
+                        auto item = mls->Get(i);
+                        if(GetObject(item,mkey))
+                        {
+                            gc->BarrierEnd();
+                            auto val = valueDynDict->GetField(ls,mkey);
+                            gc->BarrierBegin();
+
+                            result->SetValue(mkey, val);
+                            stk->env->SetVariable(mkey,val);
+                        }
+                    }
+                    stk->Push(gc,result);
+                }
+                else {
+                    int64_t len =mls->Count();
+                    for(int64_t i = 0; i < len; i++)
+                    {
+                        std::string mkey;
+                        auto item = mls->Get(i);
+                        if(GetObject(item,mkey))
+                        {
+                            stk->env->SetVariable(mkey, value);
+                        }
+                    }
+                    stk->Push(gc, value);
+                }
                 gc->BarrierEnd();
             }
             else
@@ -4314,12 +4675,113 @@ namespace Tesses::CrossLang {
             
             auto value = stk->Pop(ls);
             auto key = stk->Pop(ls);
+
+            TList* mls;
         
             if(std::holds_alternative<std::string>(key))
             {
                 gc->BarrierBegin();
                 stk->env->DeclareVariable(std::get<std::string>(key),value);
                 stk->Push(gc, value);
+                gc->BarrierEnd();
+            }
+            else if(GetObjectHeap(key,mls))
+            {
+                gc->BarrierBegin();
+
+                TList* valueLs;
+                TDynamicList* valueDynList;
+                TDictionary* valueDict;
+                TDynamicDictionary* valueDynDict;
+                if(GetObjectHeap(value, valueLs))
+                {
+                    TDictionary* result = TDictionary::Create(ls);
+                    int64_t len = std::min(valueLs->Count(), mls->Count());
+                    for(int64_t i = 0; i < len; i++)
+                    {
+                        std::string mkey;
+                        auto item = mls->Get(i);
+                        if(GetObject(item,mkey))
+                        {
+                            auto val = valueLs->Get(i);
+                            result->SetValue(mkey, val);
+                            stk->env->DeclareVariable(mkey,val);
+                        }
+                    }
+                    stk->Push(gc,result);
+                }
+                else if(GetObjectHeap(value, valueDynList))
+                {
+                    TDictionary* result = TDictionary::Create(ls);
+                    gc->BarrierEnd();
+                    int64_t len = std::min(valueDynList->Count(ls), mls->Count());
+                    gc->BarrierBegin();
+                    for(int64_t i = 0; i < len; i++)
+                    {
+                        std::string mkey;
+                        auto item = mls->Get(i);
+                        if(GetObject(item,mkey))
+                        {
+                            gc->BarrierEnd();
+                            auto val = valueDynList->GetAt(ls,i);
+                            gc->BarrierBegin();
+                            result->SetValue(mkey, val);
+                            stk->env->DeclareVariable(mkey,val);
+                        }
+                    }
+                    stk->Push(gc,result);
+                }
+                else if(GetObjectHeap(value, valueDict))
+                {
+
+                    TDictionary* result = TDictionary::Create(ls);
+                    int64_t len = mls->Count();
+                    for(int64_t i = 0; i < len; i++)
+                    {
+                        std::string mkey;
+                        auto item = mls->Get(i);
+                        if(GetObject(item,mkey))
+                        {
+                            auto val = valueDict->GetValue(mkey);
+                            result->SetValue(mkey, val);
+                            stk->env->DeclareVariable(mkey,val);
+                        }
+                    }
+                    stk->Push(gc,result);
+                }
+                else if(GetObjectHeap(value, valueDynDict))
+                {
+                    TDictionary* result = TDictionary::Create(ls);
+                    int64_t len =mls->Count();
+                    for(int64_t i = 0; i < len; i++)
+                    {
+                        std::string mkey;
+                        auto item = mls->Get(i);
+                        if(GetObject(item,mkey))
+                        {
+                            gc->BarrierEnd();
+                            auto val = valueDynDict->GetField(ls,mkey);
+                            gc->BarrierBegin();
+
+                            result->SetValue(mkey, val);
+                            stk->env->DeclareVariable(mkey,val);
+                        }
+                    }
+                    stk->Push(gc,result);
+                }
+                else {
+                    int64_t len =mls->Count();
+                    for(int64_t i = 0; i < len; i++)
+                    {
+                        std::string mkey;
+                        auto item = mls->Get(i);
+                        if(GetObject(item,mkey))
+                        {
+                            stk->env->DeclareVariable(mkey, value);
+                        }
+                    }
+                    stk->Push(gc, value);
+                }
                 gc->BarrierEnd();
             }
             else
@@ -4368,6 +4830,8 @@ namespace Tesses::CrossLang {
 
         if(!std::holds_alternative<Undefined>(_res2))
         {
+            auto env = cse.back()->env;
+            if(!env->GetRootEnvironment()->HandleException(gc,env, _res2))
             throw VMByteCodeException(gc,_res2);
         }
         return false;

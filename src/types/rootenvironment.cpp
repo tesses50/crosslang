@@ -208,6 +208,7 @@ namespace Tesses::CrossLang {
         this->marked = true;
         this->dict->Mark();
         for(auto defer : this->defers) defer->Mark();
+        if(this->error != nullptr) this->error->Mark();
     }
     TRootEnvironment* TRootEnvironment::Create(GCList* gc,TDictionary* dict)
     {
@@ -224,5 +225,40 @@ namespace Tesses::CrossLang {
         gc.Add(env);
         _gc->Watch(env);
         return env;
+    }
+
+    bool TRootEnvironment::HandleException(GC* gc,TEnvironment* env, TObject err)
+    {
+        if(error != nullptr)
+        {
+            GCList ls(gc);
+            return ToBool(error->Call(ls, {
+                TDictionary::Create(ls,{
+                    TDItem("IsBreakpoint",false),
+                                    TDItem("Exception",err),
+                                    TDItem("Environment", env)
+                })
+            }));
+        }
+        return false;
+    }
+    bool TRootEnvironment::HandleBreakpoint(GC* gc,TEnvironment* env, TObject err)
+    {
+        if(error != nullptr)
+        {
+            GCList ls(gc);
+            return ToBool(error->Call(ls, {
+                TDictionary::Create(ls,{
+                        TDItem("IsBreakpoint",true),
+                        TDItem("Breakpoint",err),
+                        TDItem("Environment", env)
+                })
+            }));
+        }
+        return true;
+    }
+    void TRootEnvironment::RegisterOnError(TCallable* call)
+    {
+        this->error = call;
     }
 };

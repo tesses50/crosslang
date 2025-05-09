@@ -588,9 +588,20 @@ namespace Tesses::CrossLang
         {
             if(i >= tokens.size()) throw std::out_of_range("End of file");
             auto variable = tokens[i];
-            i++;
-            if(variable.type != LexTokenType::Identifier) throw SyntaxException(variable.lineInfo, "Expected an identifier got a " + LexTokenType_ToString(variable.type) + " \"" + variable.text + "\"");
+
+                i++;
+            if(variable.type == LexTokenType::Symbol && variable.text == "[")
+            {
+                node = AdvancedSyntaxNode::Create(DeclareExpression,true,{
+                    AdvancedSyntaxNode::Create(ArrayExpression ,true,{ParseExpression()})
+                });
+                EnsureSymbol("]");
+            }
+            else if(variable.type != LexTokenType::Identifier) throw SyntaxException(variable.lineInfo, "Expected an identifier got a " + LexTokenType_ToString(variable.type) + " \"" + variable.text + "\"");
+            else
+            {
             node = AdvancedSyntaxNode::Create(DeclareExpression,true,{variable.text});
+            }
         }
         else if(IsIdentifier("operator"))
         {
@@ -1189,9 +1200,19 @@ namespace Tesses::CrossLang
         }
         if(IsIdentifier("throw"))
         {
+            auto tkn2 = tkn;
+
             auto v = ParseExpression();
             EnsureSymbol(";");
-            return AdvancedSyntaxNode::Create(ThrowStatement,false,{v});
+            return AdvancedSyntaxNode::Create(ThrowStatement,false,{v,tkn2.lineInfo.filename,(int64_t)tkn2.lineInfo.line,(int64_t)tkn2.lineInfo.column,(int64_t)tkn.lineInfo.offset});
+        }
+        if(IsIdentifier("breakpoint"))
+        {
+            auto tkn2 = tkn;
+
+            auto v = ParseExpression();
+            EnsureSymbol(";");
+            return AdvancedSyntaxNode::Create(BreakpointStatement,false,{v,tkn2.lineInfo.filename,(int64_t)tkn2.lineInfo.line,(int64_t)tkn2.lineInfo.column,(int64_t)tkn.lineInfo.offset});
         }
         if(IsIdentifier("try"))
         {

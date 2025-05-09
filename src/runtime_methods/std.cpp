@@ -204,6 +204,14 @@ namespace Tesses::CrossLang
             auto strm = dynamic_cast<TStreamHeapObject*>(obj);
             auto svr = dynamic_cast<TServerHeapObject*>(obj);
             auto cse = dynamic_cast<CallStackEntry*>(obj);
+            auto rootEnv = dynamic_cast<TRootEnvironment*>(obj);
+            auto subEnv = dynamic_cast<TSubEnvironment*>(obj);
+            auto env = dynamic_cast<TEnvironment*>(obj);
+
+            if(rootEnv != nullptr) return "RootEnvironment";
+            if(subEnv != nullptr) return "SubEnvironment";
+            if(env != nullptr) return "Environment";
+
             if(cse != nullptr) return "YieldedClosure";
             if(dynDict != nullptr) return "DynamicDictionary";
             if(dynList != nullptr) return "DynamicList";
@@ -568,6 +576,7 @@ namespace Tesses::CrossLang
         GCList ls(gc);
 
         TDictionary* dict = TDictionary::Create(ls);
+         TDictionary* gc_dict = TDictionary::Create(ls);
         dict->DeclareFunction(gc,"LoadNativePlugin","Load a native plugin, requires a dynamic linker and shared build of libcrosslang",{"path"},[gc,env](GCList& ls, std::vector<TObject> args)->TObject {
             Tesses::Framework::Filesystem::VFSPath path;
             if(GetArgumentAsPath(args,0,path))
@@ -576,8 +585,21 @@ namespace Tesses::CrossLang
             }
             return nullptr;
         });
+        gc_dict->DeclareFunction(gc,"Collect","Collect garbage",{},[](GCList& ls, std::vector<TObject> args)->TObject{
+            ls.GetGC()->Collect();
+            return nullptr;
+        });
+        gc_dict->DeclareFunction(gc,"BarrierBegin","Lock globally",{},[](GCList& ls,std::vector<TObject> args)->TObject {
+            ls.GetGC()->BarrierBegin();
+            return nullptr;
+        });
+        gc_dict->DeclareFunction(gc, "BarrierEnd","Unlock globally",{},[](GCList& ls, std::vector<TObject> args)->TObject {
+            ls.GetGC()->BarrierEnd();
+            return  nullptr;
+        });
         gc->BarrierBegin();
         env->SetVariable("Reflection",dict);
+        env->SetVariable("GC", gc_dict);
         gc->BarrierEnd();
         env->permissions.locked=true;
     }

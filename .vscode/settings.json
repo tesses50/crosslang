@@ -74,7 +74,8 @@
         "stop_token": "cpp",
         "thread": "cpp",
         "bitset": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "cstdbool": "cpp"
     },
     "clangd.fallbackFlags": [
         "-Iinclude"

@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 include(CMakePackageConfigHelpers)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
+#option(CROSSLANG_ENABLE_DOXYGEN "Enable doxygen" ON)
 
 option(CROSSLANG_ENABLE_STATIC "Enable Tesses CrossLang static libraries" ON)
 option(CROSSLANG_ENABLE_SHARED "Enable Tesses CrossLang shared libraries" ON)
@@ -25,6 +26,15 @@ option(CROSSLANG_ENABLE_CONFIG_ENVVAR "Allow setting config directory via the en
 
 option(CROSSLANG_CUSTOM_CONSOLE "Enable custom Console" OFF)
 
+#if(CROSSLANG_ENABLE_DOXYGEN)
+#find_package(Doxygen REQUIRED)
+#doxygen_add_docs(doxygen-crosslang "${CMAKE_CURRENT_SOURCE_DIR}/include/CrossLang.hpp" "${CMAKE_CURRENT_SOURCE_DIR}/docs" "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+#add_custom_target(crosslang_doxygen ALL
+#    COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile.doxygen-crosslang
+#    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+#)
+
+#endif()
 
 if(CROSSLANG_CUSTOM_CONSOLE)
 set(CROSSLANG_ENABLE_BINARIES OFF)
