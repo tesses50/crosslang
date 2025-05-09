@@ -116,7 +116,7 @@ rm {mbedversion}.tar.bz2
 fi
 git clone --depth=1 https://onedev.site.tesses.net/tesses-framework
 git clone --depth=1 https://onedev.site.tesses.net/crosslang
-zip \"{working / \"DvdFiles\" / \"crosslang-source.zip\"}\" ./*
+zip -r \"{working / \"DvdFiles\" / \"crosslang-source.zip\"}\" ./*
 cp ../DvdFiles/crosslang-source.zip ../Output/crosslang-source.zip
 wget -O \"{working / \"DvdFiles\" / \"Common\" / \"ShellPackage.crvm\"}\" https://downloads.tesses.net/ShellPackage.crvm
 ";
