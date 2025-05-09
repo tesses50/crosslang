@@ -1,0 +1,278 @@
+var cpus = [
+    {
+        uname = "ppc",
+        name = "powerpc",
+        compiler = "powerpc-linux-musl-cross",
+        cc = "powerpc-linux-musl-gcc",
+        cxx = "powerpc-linux-musl-g++",
+        flags = "-static-libgcc -static-libstdc++ -static"
+    },
+    {
+        uname = "ppc64",
+        name = "powerpc64",
+        compiler = "powerpc64-linux-musl-cross",
+        cc = "powerpc64-linux-musl-gcc",
+        cxx = "powerpc64-linux-musl-g++",
+        flags = "-static-libgcc -static-libstdc++ -static"
+    },
+    {
+        uname = "x86_64",
+        name = "x86_64",
+        compiler = "x86_64-linux-musl-cross",
+        cc = "x86_64-linux-musl-gcc",
+        cxx = "x86_64-linux-musl-g++",
+        flags = "-static-libgcc -static-libstdc++ -static"
+    },
+    {
+        uname="i686",
+        name = "i686",
+        compiler = "i686-linux-musl-cross",
+        cc = "i686-linux-musl-gcc",
+        cxx = "i686-linux-musl-g++",
+        flags = "-static-libgcc -static-libstdc++ -static"
+    },
+    {
+        uname = "aarch64",
+        name = "aarch64",
+        compiler = "aarch64-linux-musl-cross",
+        cc = "aarch64-linux-musl-gcc",
+        cxx = "aarch64-linux-musl-g++",
+        flags = "-static-libgcc -static-libstdc++ -static"
+    },
+    {
+        uname = "arm",
+        name = "arm",
+        compiler = "arm-linux-musleabi-cross",
+        cc = "arm-linux-musleabi-gcc",
+        cxx = "arm-linux-musleabi-g++",
+        flags = "-static-libgcc -static-libstdc++ -static"
+    },
+    {
+        uname = "armv7l",
+        name = "armv7l",
+        compiler = "arm-linux-musleabihf-cross",
+        cc = "arm-linux-musleabihf-gcc",
+        cxx = "arm-linux-musleabihf-g++",
+        flags = "-static-libgcc -static-libstdc++ -static"
+    },
+    {
+        uname = "mips",
+        name = "mips",
+        compiler = "mips-linux-musl-cross",
+        cc = "mips-linux-musl-gcc",
+        cxx = "mips-linux-musl-g++",
+        flags = "-static-libgcc -static-libstdc++ -static"
+    },
+    {
+        uname = "mips64",
+        name = "mips64",
+        compiler = "mips64-linux-musl-cross",
+        cc = "mips64-linux-musl-gcc",
+        cxx = "mips64-linux-musl-g++",
+        flags = "-static-libgcc -static-libstdc++ -static"
+    },
+    {
+        uname = "riscv32",
+        name = "riscv32",
+        compiler = "riscv32-linux-musl-cross",
+        cc = "riscv32-linux-musl-gcc",
+        cxx = "riscv32-linux-musl-g++",
+        flags = "-static-libgcc -static-libstdc++ -static"
+    },
+    {
+        uname = "riscv64",
+        name = "riscv64",
+        compiler = "riscv64-linux-musl-cross",
+        cc = "riscv64-linux-musl-gcc",
+        cxx = "riscv64-linux-musl-g++",
+        flags = "-static-libgcc -static-libstdc++ -static"
+    }
+];
+
+
+var mbedversion="mbedtls-2.28.9";
+func main(args)
+{
+    var working = FS.CurrentPath / "Working";
+
+
+    FS.Local.CreateDirectory(working / "Toolchains");
+    FS.Local.CreateDirectory(working / "CMakeToolchains");
+    FS.Local.CreateDirectory(working / "Source");
+    FS.Local.CreateDirectory(working / "DvdFiles" / "Linux");
+    FS.Local.CreateDirectory(working / "DvdFiles" / "Common");
+    FS.Local.CreateDirectory(working / "Output");
+var install = "#!/bin/bash
+export CPU=`uname -m`
+
+";
+var file = $"cd {working / \"Source\"}
+if [ ! -d \"{mbedversion}\" ]; then
+wget -O ../DvdFiles/LICENSE.txt https://www.gnu.org/licenses/gpl-3.0.txt
+wget -O {mbedversion}.tar.bz2 https://downloads.tesses.net/cache/libraries/source/{mbedversion}.tar.bz2
+tar xf {mbedversion}.tar.bz2
+rm {mbedversion}.tar.bz2
+fi
+git clone --depth=1 https://onedev.site.tesses.net/tesses-framework
+git clone --depth=1 https://onedev.site.tesses.net/crosslang
+zip \"{working / \"DvdFiles\" / \"source.zip\"}\" ./
+wget -O \"{working / \"DvdFiles\" / \"Common\" / \"ShellPackage.crvm\"}\" https://downloads.tesses.net/ShellPackage.crvm
+";
+    var w32_toolchain = $"
+            set(CMAKE_C_COMPILER \"/usr/bin/i686-w64-mingw32-gcc\")
+            set(CMAKE_CXX_COMPILER \"/usr/bin/i686-w64-mingw32-g++\")
+            set(CMAKE_C_FLAGS \"-static-libgcc -static-libstdc++ -static\")
+            set(CMAKE_CXX_FLAGS \"-static-libgcc -static-libstdc++ -static\")
+            set(CMAKE_EXE_LINKER_FLAGS \"-static-libgcc -static-libstdc++ -static\")
+
+            set(CMAKE_SYSROOT \"{working}/Sysroot/windows\")
+
+            set(CMAKE_SYSTEM_NAME Windows)
+            set(CMAKE_SYSTEM_PROCESSOR i686)
+        ";
+    FS.Local.CreateDirectory(working / "Build" / "windows");
+    FS.Local.CreateDirectory(working / "Sysroot" / "windows");
+    FS.WriteAllText(FS.Local,working / "CMakeToolchains" / "windows.cmake", w32_toolchain);
+    file += $"#windows
+    cd \"{working / \"Build\" / \"windows\"}\"
+mkdir -p mbedtls
+cd mbedtls
+cmake -S \"{working / \"Source\" / mbedversion}\"  -B . -DCMAKE_TOOLCHAIN_FILE=\"{working / \"CMakeToolchains\" / \"windows\"}.cmake\" -DENABLE_PROGRAMS=OFF -DENABLE_TESTING=OFF
+make -j16
+make install DESTDIR=\"{working / \"Sysroot\" / \"windows\"}\"
+cd ..
+mkdir -p tesses-framework
+cd tesses-framework
+cmake -S \"{working / \"Source\" / \"tesses-framework\"}\"  -DMBEDTLS_DIR=\"{working / \"Sysroot\" / \"windows\"/\"usr\"/\"local\"}\" -B . -DCMAKE_TOOLCHAIN_FILE=\"{working / \"CMakeToolchains\" / \"windows\"}.cmake\" -DTESSESFRAMEWORK_ENABLE_SHARED=OFF -DTESSESFRAMEWORK_ENABLE_APPS=OFF -DTESSESFRAMEWORK_ENABLE_EXAMPLES=OFF
+make -j16
+make install DESTDIR=\"{working / \"Sysroot\" / \"windows\"}\"
+cd ..
+mkdir -p crosslang 
+cd crosslang
+cmake -S \"{working / \"Source\" / \"crosslang\"}\"  -B . -DCMAKE_TOOLCHAIN_FILE=\"{working / \"CMakeToolchains\" / \"windows\"}.cmake\" -DCROSSLANG_ENABLE_SHARED=OFF -DCROSSLANG_FETCHCONTENT=OFF -DCROSSLANG_SHARED_EXECUTABLES=OFF
+make -j16
+cpack -G NSIS
+cpack -G ZIP
+cp TessesCrossLang-*-win32.exe \"{working/\"DvdFiles\"/\"setup.exe\"}\"
+cp TessesCrossLang-*-win32.zip \"{working/\"DvdFiles\"/\"TessesCrossLang-win32.zip\"}\"
+cp TessesCrossLang-*-win32.exe \"{working/\"Output\"/\"TessesCrossLang-win32.exe\"}\"
+cp TessesCrossLang-*-win32.zip \"{working/\"Output\"/\"TessesCrossLang-win32.zip\"}\"
+    ";
+    each(var item : cpus)
+    {
+        FS.Local.CreateDirectory(working / "Build" / item.name);
+        FS.Local.CreateDirectory(working / "Sysroot" / item.name);
+
+        var toolchain = $"
+            set(CMAKE_C_COMPILER \"{working}/Toolchains/{item.compiler}/bin/{item.cc}\")
+            set(CMAKE_CXX_COMPILER \"{working}/Toolchains/{item.compiler}/bin/{item.cxx}\")
+            set(CMAKE_C_FLAGS \"{item.flags}\")
+            set(CMAKE_CXX_FLAGS \"{item.flags}\")
+            set(CMAKE_EXE_LINKER_FLAGS \"{item.flags}\")
+
+            set(CMAKE_SYSROOT \"{working}/Sysroot/{item.name}\")
+
+            set(CMAKE_SYSTEM_NAME Linux)
+            set(CMAKE_SYSTEM_PROCESSOR powerpc)
+        ";
+        if(item.name == "riscv32" || item.name == "riscv64")
+        {
+            toolchain += "set(CMAKE_POSITION_INDEPENDENT_CODE ON)\n";
+        }
+        FS.WriteAllText(FS.Local,working / "CMakeToolchains" / $"{item.name}.cmake", toolchain);
+        var tar = working / "Output" / $"crosslang-{item.name}.tar.gz";
+        var dvdDir = working / "DvdFiles" / "Linux" / item.name;
+file += $"#{item.name}
+cd \"{working / \"Toolchains\"}\"
+if [ ! -d \"{item.compiler}\" ]; then
+
+wget -O {item.compiler}.tgz https://downloads.tesses.net/cache/compilers/{item.compiler}.tgz
+tar xzf {item.compiler}.tgz
+rm {item.compiler}.tgz
+fi
+cd \"{working / \"Build\" / item.name}\"
+mkdir -p mbedtls
+cd mbedtls
+cmake -S \"{working / \"Source\" / mbedversion}\"  -B . -DCMAKE_TOOLCHAIN_FILE=\"{working / \"CMakeToolchains\" / item.name}.cmake\" -DENABLE_PROGRAMS=OFF -DENABLE_TESTING=OFF
+make -j16
+make install DESTDIR=\"{working / \"Sysroot\" / item.name}\"
+cd ..
+mkdir -p tesses-framework
+cd tesses-framework
+cmake -S \"{working / \"Source\" / \"tesses-framework\"}\"  -DMBEDTLS_DIR=\"{working / \"Sysroot\" / item.name/\"usr\"/\"local\"}\" -B . -DCMAKE_TOOLCHAIN_FILE=\"{working / \"CMakeToolchains\" / item.name}.cmake\" -DTESSESFRAMEWORK_ENABLE_SHARED=OFF -DTESSESFRAMEWORK_ENABLE_APPS=OFF -DTESSESFRAMEWORK_ENABLE_EXAMPLES=OFF
+make -j16
+make install DESTDIR=\"{working / \"Sysroot\" / item.name}\"
+cd ..
+mkdir -p crosslang 
+cd crosslang
+cmake -S \"{working / \"Source\" / \"crosslang\"}\"  -B . -DCMAKE_TOOLCHAIN_FILE=\"{working / \"CMakeToolchains\" / item.name}.cmake\" -DCROSSLANG_ENABLE_SHARED=OFF -DCROSSLANG_FETCHCONTENT=OFF -DCROSSLANG_SHARED_EXECUTABLES=OFF
+make -j16
+make install DESTDIR=\"{working / \"Sysroot\" / item.name}\"
+cd \"{working/\"Sysroot\"/item.name/\"usr\"/\"local\"}\"
+tar czf \"{tar}\" bin share lib/binfmt.d
+mv bin \"{dvdDir}\"
+";
+    install += $"
+if [[ \"$CPU\" == \"{item.uname}\" ]]; then
+    install -D -m 755 -o root ./Linux/{item.name}/crossarchivecreate /usr/local/bin/crossarchivecreate
+    install -D -m 755 -o root ./Linux/{item.name}/crossarchiveextract /usr/local/bin/crossarchiveextract
+    install -D -m 755 -o root ./Linux/{item.name}/crossc /usr/local/bin/crossc
+    install -D -m 755 -o root ./Linux/{item.name}/crossdump /usr/local/bin/crossdump
+    install -D -m 755 -o root ./Linux/{item.name}/crossint /usr/local/bin/crossint
+    install -D -m 755 -o root ./Linux/{item.name}/crosslang /usr/local/bin/crosslang
+    install -D -m 755 -o root ./Linux/{item.name}/crossthumbnailer /usr/local/bin/crossthumbnailer
+    install -D -m 755 -o root ./Linux/{item.name}/crossvm /usr/local/bin/crossvm
+    install -D -m 644 -o root ./Linux/crosslang.thumbnailer /usr/local/share/thumbnailers/crosslang.thumbnailer
+    install -D -m 644 -o root ./Linux/crosslang.xml /usr/local/share/mime/crosslang.xml
+    install -D -m 644 -o root ./Linux/crossvm-binfmt.conf /usr/local/lib/binfmt.d/crossvm-binfmt.conf
+    install -D -m 644 -o root ./Linux/crosslang.png /usr/local/share/icons/crosslang.png
+    install -D -m 644 -o root ./Common/ShellPackage.crvm /usr/local/share/Tesses/CrossLang/Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm
+    
+    
+fi
+    ";
+    }
+
+    file += $"
+cd \"{working.GetParent()}\"
+cd \"{working}\"
+chmod 755 DvdFiles/install.sh
+cp Source/crosslang/crosslang.png DvdFiles/Linux/crosslang.png
+cp Source/crosslang/winicon.ico DvdFiles/cross.ico
+cd DvdFiles
+xorriso -outdev ../Output/crosslang.iso -add *
+    ";
+   
+    
+    FS.WriteAllText(FS.Local,"script.sh", file);
+    FS.WriteAllText(FS.Local,./"Working"/"DvdFiles"/"install.sh", install);
+    FS.WriteAllText(FS.Local,./"Working"/"DvdFiles"/"Linux"/"crossvm-binfmt.conf",":CrossVM:M::TCROSSVM::/usr/local/bin/crossvm:\n");
+    FS.WriteAllText(FS.Local,./"Working"/"DvdFiles"/"Linux"/"crosslang.thumbnailer","[Thumbnailer Entry]
+TryExec=crossthumbnailer
+Exec=crossthumbnailer %i %o
+MimeType=application/crvm;
+");
+   FS.WriteAllText(FS.Local,"Working"/"DvdFiles"/"ReadmeWindows.txt", "When installing make sure to enable path\nRun ShellInstaller.bat from each user (if offline)");
+   
+   FS.WriteAllText(FS.Local,"Working"/"DvdFiles"/"ShellInstaller.bat", "@echo off\r\ncrossarchiveextract Common\\ShellPackage.crvm %APPDATA%\\Tesses\\CrossLang");
+   FS.WriteAllText(FS.Local,./"Working"/"DvdFiles"/"autorun.inf","[autorun]\r\nicon=cross.ico\r\nopen=setup.exe\r\nlabel=CrossLang");
+   FS.WriteAllText(FS.Local,./"Working"/"DvdFiles"/"Linux"/"crosslang.xml","<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<mime-info xmlns=\"http://www.freedesktop.org/standards/shared-mime-info\">
+   <mime-type type=\"application/crvm\">
+     <sub-class-of type=\"application/octet-stream\"/>
+     <comment>CrossLang Executable</comment>
+     <comment xml:lang=\"en\">CrossLang Executable</comment>
+     <glob pattern=\"*.crvm\"/>
+     <icon name=\"crosslang\"/>
+   </mime-type>
+   <mime-type type=\"text/tcross\">
+     <sub-class-of type=\"text/plain\"/>
+     <comment>CrossLang Source</comment>
+     <comment xml:lang=\"en\">CrossLang Source</comment>
+     <glob pattern=\"*.tcross\"/>
+     <icon name=\"crosslang\"/>
+   </mime-type>
+</mime-info>"
+   );
+}
+
