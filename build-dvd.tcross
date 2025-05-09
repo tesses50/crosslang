@@ -108,14 +108,16 @@ export CPU=`uname -m`
 ";
 var file = $"cd {working / \"Source\"}
 if [ ! -d \"{mbedversion}\" ]; then
-wget -O ../DvdFiles/LICENSE.txt https://downloads.tesses.net/gpl-3.0.txt
+wget -O ../DvdFiles/crosslang-license.txt https://downloads.tesses.net/gpl-3.0.txt
+cp ../DvdFiles/crosslang-license.txt ../Output/crosslang-license.txt
 wget -O {mbedversion}.tar.bz2 https://downloads.tesses.net/cache/libraries/source/{mbedversion}.tar.bz2
 tar xf {mbedversion}.tar.bz2
 rm {mbedversion}.tar.bz2
 fi
 git clone --depth=1 https://onedev.site.tesses.net/tesses-framework
 git clone --depth=1 https://onedev.site.tesses.net/crosslang
-zip \"{working / \"DvdFiles\" / \"source.zip\"}\" ./*
+zip \"{working / \"DvdFiles\" / \"crosslang-source.zip\"}\" ./*
+cp ../DvdFiles/crosslang-source.zip ../Output/crosslang-source.zip
 wget -O \"{working / \"DvdFiles\" / \"Common\" / \"ShellPackage.crvm\"}\" https://downloads.tesses.net/ShellPackage.crvm
 ";
     var w32_toolchain = $"
@@ -154,9 +156,9 @@ make -j16
 cpack -G NSIS
 cpack -G ZIP
 cp TessesCrossLang-*-win32.exe \"{working/\"DvdFiles\"/\"setup.exe\"}\"
-cp TessesCrossLang-*-win32.zip \"{working/\"DvdFiles\"/\"TessesCrossLang-win32.zip\"}\"
-cp TessesCrossLang-*-win32.exe \"{working/\"Output\"/\"TessesCrossLang-win32.exe\"}\"
-cp TessesCrossLang-*-win32.zip \"{working/\"Output\"/\"TessesCrossLang-win32.zip\"}\"
+cp TessesCrossLang-*-win32.zip \"{working/\"DvdFiles\"/\"crosslang-win32.zip\"}\"
+cp TessesCrossLang-*-win32.exe \"{working/\"Output\"/\"crosslang-win32.exe\"}\"
+cp TessesCrossLang-*-win32.zip \"{working/\"Output\"/\"crosslang-win32.zip\"}\"
     ";
     each(var item : cpus)
     {
