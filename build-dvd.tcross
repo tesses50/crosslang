@@ -108,14 +108,14 @@ export CPU=`uname -m`
 ";
 var file = $"cd {working / \"Source\"}
 if [ ! -d \"{mbedversion}\" ]; then
-wget -O ../DvdFiles/LICENSE.txt https://www.gnu.org/licenses/gpl-3.0.txt
+wget -O ../DvdFiles/LICENSE.txt https://downloads.tesses.net/gpl-3.0.txt
 wget -O {mbedversion}.tar.bz2 https://downloads.tesses.net/cache/libraries/source/{mbedversion}.tar.bz2
 tar xf {mbedversion}.tar.bz2
 rm {mbedversion}.tar.bz2
 fi
 git clone --depth=1 https://onedev.site.tesses.net/tesses-framework
 git clone --depth=1 https://onedev.site.tesses.net/crosslang
-zip \"{working / \"DvdFiles\" / \"source.zip\"}\" ./
+zip \"{working / \"DvdFiles\" / \"source.zip\"}\" ./*
 wget -O \"{working / \"DvdFiles\" / \"Common\" / \"ShellPackage.crvm\"}\" https://downloads.tesses.net/ShellPackage.crvm
 ";
     var w32_toolchain = $"
