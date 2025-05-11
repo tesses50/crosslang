@@ -83,9 +83,19 @@ namespace Tesses::CrossLang
         dict->DeclareFunction(gc,"AddValue","Add item",{"key","value"},[dict0](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
             std::string key;
             std::string value;
-            if(GetArgument(args2,0,key) && GetArgument(args2,1,value))
+            int64_t i64;
+            double d64;
+            TDateTime da;
+            if(GetArgument(args2,0,key) )
             {
-                dict0->AddValue(key,value);
+                if(GetArgument(args2,1,value))
+                    dict0->AddValue(key,value);
+                else if(GetArgument(args2,1,i64))
+                    dict0->AddValue(key,i64);
+                else if(GetArgument(args2,1,d64))
+                    dict0->AddValue(key, d64);
+                else if(GetArgument(args2,1,da))
+                    dict0->AddValue(key, da.GetDate());
             }
             return nullptr;
         });
@@ -93,9 +103,19 @@ namespace Tesses::CrossLang
         dict->DeclareFunction(gc,"SetValue","Set item",{"key","value"},[dict0](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
             std::string key;
             std::string value;
-            if(GetArgument(args2,0,key) && GetArgument(args2,1,value))
+            int64_t i64;
+            double d64;
+            TDateTime da;
+            if(GetArgument(args2,0,key) )
             {
-                dict0->SetValue(key,value);
+                if(GetArgument(args2,1,value))
+                    dict0->SetValue(key,value);
+                else if(GetArgument(args2,1,i64))
+                    dict0->SetValue(key,i64);
+                else if(GetArgument(args2,1,d64))
+                    dict0->SetValue(key, d64);
+                else if(GetArgument(args2,1,da))
+                    dict0->SetValue(key, da.GetDate());
             }
             return nullptr;
         });
@@ -135,6 +155,15 @@ namespace Tesses::CrossLang
             std::string key;
             int64_t value;
             if(GetArgument(args2,0,key) && dict0->TryGetFirstInt(key,value))
+            {
+                return value;
+            }
+            return nullptr;
+        });
+        dict->DeclareFunction(gc,"TryGetFirstDate","Try Get first date",{"key"},[dict0](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
+            std::string key;
+            Tesses::Framework::Date::DateTime value;
+            if(GetArgument(args2,0,key) && dict0->TryGetFirstDate(key,value))
             {
                 return value;
             }
@@ -205,6 +234,16 @@ namespace Tesses::CrossLang
         dict->DeclareFunction(gc,"ReadString","Read string from request",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
             return ctx->ReadString();
         });
+        dict->DeclareFunction(gc, "ReadJson","Read json from request",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
+            return Json_Decode(ls2,ctx->ReadString());
+        });
+        dict->DeclareFunction(gc,"SendJson","Send object as json",{"object"},[ctx](Tesses::CrossLang::GCList& ls2, std::vector<TObject> args2)->TObject{
+            if(args2.size() > 0)
+            {
+                ctx->WithMimeType("application/json").SendText(Json_Encode(args2[0]));
+            }
+            return nullptr;
+        });
 
         dict->DeclareFunction(gc,"SendText","Send response text",{"text"},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
             std::string text;
@@ -216,6 +255,12 @@ namespace Tesses::CrossLang
             std::string text;
             if(GetArgument(args2,0,text))
                 ctx->WithMimeType(text);
+            return dict;
+        });
+        dict->DeclareFunction(gc,"WithLastModified","Set last modified date",{"date"},[ctx,dict](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
+            TDateTime da;
+            if(GetArgument(args2,0,da))
+                ctx->WithLastModified(da.GetDate());
             return dict;
         });
         dict->DeclareFunction(gc,"WithContentDisposition","Set content disposition",{"filename","inline"},[ctx,dict](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
@@ -486,6 +531,21 @@ namespace Tesses::CrossLang
             TObjectHttpServer httpServer(ls.GetGC(),args[0]);
             uint16_t p = (uint16_t)port;
             HttpServer server(p,httpServer);
+            server.StartAccepting();
+            Tesses::Framework::TF_RunEventLoop();
+        }
+        return nullptr;
+    }
+    static TObject Net_Http_ListenOnUnusedPort(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.size() > 0)
+        {
+            TObjectHttpServer httpServer(ls.GetGC(),args[0]);
+            
+            
+            uint16_t port=0;
+            HttpServer server(port,httpServer, false);
+            std::cout << "Port: " << server.GetPort() << std::endl;
             server.StartAccepting();
             Tesses::Framework::TF_RunEventLoop();
         }
@@ -818,6 +878,7 @@ namespace Tesses::CrossLang
         });
         http->DeclareFunction(gc, "MakeRequest", "Create an http request", {"url","$extra"}, Net_Http_MakeRequest);
         http->DeclareFunction(gc, "ListenSimpleWithLoop", "Listen (creates application loop)", {"server","port"},Net_Http_ListenSimpleWithLoop);
+        http->DeclareFunction(gc, "ListenOnUnusedPort","Listen on unused localhost port and print Port: theport",{"server"},Net_Http_ListenOnUnusedPort);
         //FileServer svr()
         http->DeclareFunction(gc, "FileServer","Create a file server",{"path","allowlisting","spa"}, [](GCList& ls, std::vector<TObject> args)->TObject{
             
@@ -842,6 +903,21 @@ namespace Tesses::CrossLang
         });
         dict->DeclareFunction(gc, "NetworkStream","Create a network stream",{"ipv6","datagram"},Net_NetworkStream);
         smtp->DeclareFunction(gc, "Send","Send email via smtp server",{"messageStruct"},Net_Smtp_Send);
+        dict->DeclareFunction(gc, "getIPAddresses","Get the ip addresses of this machine",{"$ipv6"},[](GCList& ls, std::vector<TObject> args)->TObject{
+            TList* a = TList::Create(ls);
+            bool ipv6=false;
+            GetArgument(args,0,ipv6);
+            ls.GetGC()->BarrierBegin();
+            for(auto item : Tesses::Framework::Streams::NetworkStream::GetIPs(ipv6))
+            {
+                a->Add(TDictionary::Create(ls,{
+                    TDItem("Interface", item.first),
+                    TDItem("Address", item.second)
+                }));
+            }
+            ls.GetGC()->BarrierEnd();;
+            return a;
+        });
         gc->BarrierBegin();
         dict->SetValue("Http", http);
         dict->SetValue("Smtp", smtp);

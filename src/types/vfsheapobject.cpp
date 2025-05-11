@@ -556,7 +556,7 @@ namespace Tesses::CrossLang {
         }
         return Tesses::Framework::Filesystem::VFSPath();
     }
-    void TObjectVFS::GetDate(Tesses::Framework::Filesystem::VFSPath path, time_t& lastWrite, time_t& lastAccess)
+    void TObjectVFS::GetDate(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Date::DateTime& lastWrite, Tesses::Framework::Date::DateTime& lastAccess)
     {
 
         TVFSHeapObject* vfs;
@@ -573,17 +573,20 @@ namespace Tesses::CrossLang {
             {
                 this->ls->GetGC()->BarrierBegin();
                 res = dict->GetValue("LastWrite");
-                int64_t v;
-                if(GetObject(res,v)) lastWrite=(time_t)v;
+                TDateTime d;
+                if(GetObject(res,d))
+                lastWrite =d.GetDate();
 
                 res = dict->GetValue("LastAccess");
-                if(GetObject(res,v)) lastAccess=(time_t)v;
+                
+                if(GetObject(res,d))
+                lastWrite =d.GetDate();
 
                 this->ls->GetGC()->BarrierEnd();
             }
         }
     }
-    void TObjectVFS::SetDate(Tesses::Framework::Filesystem::VFSPath path, time_t lastWrite, time_t lastAccess)
+    void TObjectVFS::SetDate(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Date::DateTime lastWrite, Tesses::Framework::Date::DateTime lastAccess)
     {
 
         TVFSHeapObject* vfs;
@@ -595,7 +598,7 @@ namespace Tesses::CrossLang {
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
-            dict->CallMethod(ls, "SetDate",{path,(int64_t)lastWrite,(int64_t)lastAccess});
+            dict->CallMethod(ls, "SetDate",{path,lastWrite,lastAccess});
             
         }
     }

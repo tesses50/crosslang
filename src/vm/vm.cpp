@@ -42,6 +42,12 @@ namespace Tesses::CrossLang {
         {
             return std::get<char>(obj) != 0;
         }
+        else if(std::holds_alternative<TDateTime>(obj))
+        {
+            auto& dt = std::get<TDateTime>(obj).GetDate();
+            return !(dt.Year() == 1970 && dt.Month() == 1 && dt.Day() == 1 && dt.Hour() == 0 && dt.Minute() == 0 && dt.Second() == 0 && !dt.IsLocal());
+           
+        }
         else if(std::holds_alternative<THeapObjectHolder>(obj))
         {
             auto o = std::get<THeapObjectHolder>(obj).obj;
@@ -50,6 +56,8 @@ namespace Tesses::CrossLang {
             auto ba = dynamic_cast<TByteArray*>(o);
             auto nat = dynamic_cast<TNative*>(o);
             auto thrd = dynamic_cast<ThreadHandle*>(o);
+            auto dt = dynamic_cast<TDateTime*>(o);
+           
             if(ls != nullptr)
             {
                 return ls->Count() != 0;
@@ -72,7 +80,7 @@ namespace Tesses::CrossLang {
             }
             return true;
         }
-
+        
         return false;
     }
 
@@ -129,6 +137,10 @@ namespace Tesses::CrossLang {
         else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<char>(right))
         {
             return std::get<int64_t>(left) == std::get<char>(right);
+        }
+        else if(std::holds_alternative<TDateTime>(left) && std::holds_alternative<TDateTime>(right))
+        {
+            return std::get<TDateTime>(left).GetDate().ToEpoch() == std::get<TDateTime>(right).GetDate().ToEpoch();
         }
         else if(std::holds_alternative<TVMVersion>(left) && std::holds_alternative<TVMVersion>(right))
         {
@@ -692,6 +704,7 @@ namespace Tesses::CrossLang {
                 cse.back()->Push(gc,dynDict->CallMethod(ls,"operator!",{}));
                 return false;
             }
+            
             else
             {
                 cse.back()->Push(gc, !ToBool(left));
@@ -796,12 +809,17 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc, std::get<std::string>(left) < std::get<std::string>(right));
         }
+        else if(std::holds_alternative<TDateTime>(left) && std::holds_alternative<TDateTime>(right))
+        {
+            cse.back()->Push(gc, std::get<TDateTime>(left).GetDate().ToEpoch() < std::get<TDateTime>(right).GetDate().ToEpoch());
+        }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
+          
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
@@ -875,12 +893,17 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc, std::get<std::string>(left) > std::get<std::string>(right));
         }
+        else if(std::holds_alternative<TDateTime>(left) && std::holds_alternative<TDateTime>(right))
+        {
+            cse.back()->Push(gc, std::get<TDateTime>(left).GetDate().ToEpoch() > std::get<TDateTime>(right).GetDate().ToEpoch());
+        }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
+            
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
@@ -953,12 +976,17 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc, std::get<std::string>(left) <= std::get<std::string>(right));
         }
+        else if(std::holds_alternative<TDateTime>(left) && std::holds_alternative<TDateTime>(right))
+        {
+            cse.back()->Push(gc, std::get<TDateTime>(left).GetDate().ToEpoch() <= std::get<TDateTime>(right).GetDate().ToEpoch());
+        }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
+           
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
@@ -971,6 +999,7 @@ namespace Tesses::CrossLang {
                 cse.back()->Push(gc,dynDict->CallMethod(ls,"operator<=",{right}));
                 return false;
             }
+          
             else
             {
                 cse.back()->Push(gc,Undefined());
@@ -1032,12 +1061,17 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc, std::get<std::string>(left) >= std::get<std::string>(right));
         }
+        else if(std::holds_alternative<TDateTime>(left) && std::holds_alternative<TDateTime>(right))
+        {
+            cse.back()->Push(gc, std::get<TDateTime>(left).GetDate().ToEpoch() >= std::get<TDateTime>(right).GetDate().ToEpoch());
+        }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
+           
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
@@ -1050,6 +1084,7 @@ namespace Tesses::CrossLang {
                 cse.back()->Push(gc,dynDict->CallMethod(ls,"operator>=",{right}));
                 return false;
             }
+            
             else
             {
                 cse.back()->Push(gc,Undefined());
@@ -1128,6 +1163,10 @@ namespace Tesses::CrossLang {
             auto r = lver.CompareTo(rver);
             cse.back()->Push(gc, r == 0);
         }
+        else if(std::holds_alternative<TDateTime>(left) && std::holds_alternative<TDateTime>(right))
+        {
+            cse.back()->Push(gc, std::get<TDateTime>(left).GetDate().ToEpoch() == std::get<TDateTime>(right).GetDate().ToEpoch());
+        }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
@@ -1135,6 +1174,8 @@ namespace Tesses::CrossLang {
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             auto native = dynamic_cast<TNative*>(obj);
+           
+
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
@@ -1154,6 +1195,7 @@ namespace Tesses::CrossLang {
                     return false;
                 }
             }
+            
             else if(native != nullptr && std::holds_alternative<std::nullptr_t>(right)){
                 cse.back()->Push(gc, native->GetDestroyed());
                 return false;
@@ -1260,6 +1302,10 @@ namespace Tesses::CrossLang {
             auto r = lver.CompareTo(rver);
             cse.back()->Push(gc, r != 0);
         }
+        else if(std::holds_alternative<TDateTime>(left) && std::holds_alternative<TDateTime>(right))
+        {
+            cse.back()->Push(gc, std::get<TDateTime>(left).GetDate().ToEpoch() != std::get<TDateTime>(right).GetDate().ToEpoch());
+        }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
@@ -1286,6 +1332,7 @@ namespace Tesses::CrossLang {
                     return false;
                 }
             }
+            
             else if(native != nullptr && std::holds_alternative<std::nullptr_t>(right)){
                 cse.back()->Push(gc, !native->GetDestroyed());
                 return false;
@@ -2369,14 +2416,7 @@ namespace Tesses::CrossLang {
                     std::string _str={};
                     if(GetArgument(args,0,oldStr) && GetArgument(args,1,newStr))
                     {
-                        bool first=true;
-
-                        for(auto txt : Tesses::Framework::Http::HttpUtils::SplitString(str,oldStr))
-                        {
-                            if(!first) _str.append(newStr);
-                            first=false;
-                            _str.append(txt);
-                        }
+                        _str = Tesses::Framework::Http::HttpUtils::Replace(str, oldStr,newStr);
 
                         
                     }
@@ -2449,6 +2489,48 @@ namespace Tesses::CrossLang {
                 cse.back()->Push(gc, Undefined());
                 return false;
             }
+            else if(std::holds_alternative<TDateTime>(instance))
+            {
+                auto& date = std::get<TDateTime>(instance).GetDate();
+                
+                
+                if(key == "ToString")
+                {
+                    std::string fmt;
+                    if(GetArgument(args,0,fmt))
+                    {
+                        cse.back()->Push(gc, date.ToString(fmt));
+                    }
+                    else
+                    {
+                        cse.back()->Push(gc, date.ToString());
+                    }
+                    return false;
+                }
+                if(key == "ToHttpDate")
+                {
+                    cse.back()->Push(gc, date.ToHttpDate());
+                    return false;
+                }
+                if(key == "ToEpoch")
+                {
+                    cse.back()->Push(gc, date.ToEpoch());
+                    return false;
+                }
+                if(key == "ToLocal")
+                {
+                    cse.back()->Push(gc, date.ToLocal());
+                    return false;
+                }
+                if(key == "ToUTC")
+                {
+                    cse.back()->Push(gc, date.ToUTC());
+                    return false;
+                }
+                cse.back()->Push(gc, nullptr);
+                return false;
+                
+            }
             else if(std::holds_alternative<THeapObjectHolder>(instance))
             {
                 auto obj = std::get<THeapObjectHolder>(instance).obj;
@@ -2464,6 +2546,7 @@ namespace Tesses::CrossLang {
                 auto rootEnv = dynamic_cast<TRootEnvironment*>(obj);
                 auto callable = dynamic_cast<TCallable*>(obj);
                 auto callstackEntry = dynamic_cast<CallStackEntry*>(obj);
+                
                 
                 auto svr = dynamic_cast<TServerHeapObject*>(obj);
                 
@@ -2721,13 +2804,7 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc,nullptr);
                         return false;
                     }
-                    if(key == "RegisterTime")
-                    {
-                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterTime) && !rootEnv->permissions.locked)
-                        TStd::RegisterTime(gc, rootEnv);
-                        cse.back()->Push(gc,nullptr);
-                        return false;
-                    }
+                    
                     if(key == "SetSqliteRoot")
                     {
                         Tesses::Framework::Filesystem::VFSPath p;
@@ -2974,11 +3051,11 @@ namespace Tesses::CrossLang {
                     if(key == "SetDate")
                     {
                         Tesses::Framework::Filesystem::VFSPath path;
-                        int64_t lastWrite;
-                        int64_t lastAccess;
+                        TDateTime lastWrite;
+                        TDateTime lastAccess;
                         if(GetArgumentAsPath(args,0,path) && GetArgument(args,1,lastWrite) && GetArgument(args,2,lastAccess))
                         {
-                            vfs->vfs->SetDate(path,(time_t)lastWrite,(time_t)lastAccess);
+                            vfs->vfs->SetDate(path,lastWrite.GetDate(), lastAccess.GetDate());
                         }
                         cse.back()->Push(gc, nullptr);
                         return false;
@@ -2988,13 +3065,15 @@ namespace Tesses::CrossLang {
                         Tesses::Framework::Filesystem::VFSPath path;
                         if(GetArgumentAsPath(args,0,path))
                         {
-                            time_t lastWrite;
-                            time_t lastAccess;
+                            Tesses::Framework::Date::DateTime lastWrite;
+                            Tesses::Framework::Date::DateTime lastAccess;
                             vfs->vfs->GetDate(path,lastWrite,lastAccess);
+                            
                             auto dict = TDictionary::Create(ls);
                     ls.GetGC()->BarrierBegin();
-                    dict->SetValue("LastWrite", (int64_t)lastWrite);
-                    dict->SetValue("LastAccess", (int64_t)lastAccess);
+                    
+                    dict->SetValue("LastWrite", TDateTime(lastWrite));
+                    dict->SetValue("LastAccess", TDateTime(lastAccess));
                     ls.GetGC()->BarrierEnd();
 
                         cse.back()->Push(gc, dict);
@@ -3244,6 +3323,7 @@ namespace Tesses::CrossLang {
                 {
                     auto memStrm = dynamic_cast<Tesses::Framework::Streams::MemoryStream*>(strm->stream);
                     auto netStrm = dynamic_cast<Tesses::Framework::Streams::NetworkStream*>(strm->stream);
+                    
                     auto mystrm = dynamic_cast<TObjectStream*>(strm->stream);
 
                     if(mystrm != nullptr)
@@ -3271,6 +3351,11 @@ namespace Tesses::CrossLang {
                     }
                     if(netStrm != nullptr)
                     {
+                        if(key == "GetPort")
+                        {
+                            cse.back()->Push(gc, netStrm->GetPort());
+                            return false;
+                        }
                         if(key == "Bind")
                         {
                             std::string ip;
@@ -3522,6 +3607,7 @@ namespace Tesses::CrossLang {
                     cse.back()->Push(gc, nullptr);
                     return false;
                 }
+               
                 else if(bArray != nullptr)
                 {
                     if(key == "Count" || key == "Length")
@@ -4092,6 +4178,53 @@ namespace Tesses::CrossLang {
                             stk->Push(gc,"prod");
                             break;
                     }
+                    return false;
+                }
+                
+                stk->Push(gc, Undefined());
+                return false;
+            }
+            if(std::holds_alternative<TDateTime>(instance))
+            {
+                auto& date = std::get<TDateTime>(instance).GetDate();
+                if(key == "IsLocal")
+                {
+                    stk->Push(gc, date.IsLocal());
+                    return false;
+                }
+                if(key == "Year")
+                {
+                    stk->Push(gc, (int64_t)date.Year());
+                    return false;
+                }
+                if(key == "Month")
+                {
+                    stk->Push(gc, (int64_t)date.Month());
+                    return false;
+                }
+                if(key == "Day")
+                {
+                    stk->Push(gc, (int64_t)date.Day());
+                    return false;
+                }
+                if(key == "Hour")
+                {
+                    stk->Push(gc, (int64_t)date.Hour());
+                    return false;
+                }
+                if(key == "Minute")
+                {
+                    stk->Push(gc, (int64_t)date.Minute());
+                    return false;
+                }
+                if(key == "Second")
+                {
+                    stk->Push(gc, (int64_t)date.Second());
+                    return false;
+                }
+                if(key == "DayOfWeek")
+                {
+                    stk->Push(gc, (int64_t)date.DayOfWeek());
                     return false;
                 }
                 
@@ -5791,13 +5924,17 @@ namespace Tesses::CrossLang {
         {
             return std::get<bool>(o) ? "true" : "false";
         }
-
+        if(std::holds_alternative<TDateTime>(o))
+        {
+            return std::get<TDateTime>(o).GetDate().ToString();
+        }
         if(std::holds_alternative<THeapObjectHolder>(o))
         {
             auto obj = std::get<THeapObjectHolder>(o).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
             auto list = dynamic_cast<TList*>(obj);
             auto bArray = dynamic_cast<TByteArray*>(obj);
+            
             if(dict != nullptr)
             {
                 GCList ls(gc);

@@ -124,7 +124,7 @@ src/runtime_methods/ogc.cpp
 src/runtime_methods/path.cpp
 src/runtime_methods/env.cpp
 src/runtime_methods/process.cpp
-src/runtime_methods/time.cpp
+src/types/datetime.cpp
 src/types/ittr.cpp
 src/types/closure.cpp
 src/types/dictionary.cpp

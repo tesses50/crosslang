@@ -1348,11 +1348,21 @@ class Parser {
     class MethodInvoker {
 
     };
+
+    class TDateTime {
+        Tesses::Framework::Date::DateTime* dt;
+        public:
+            TDateTime();
+            TDateTime(Tesses::Framework::Date::DateTime t);
+            TDateTime(const TDateTime& dt);
+            Tesses::Framework::Date::DateTime& GetDate();
+            ~TDateTime();
+    };
     /**
      * @brief A script object
      * 
      */
-using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder,TVMVersion>;
+using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder,TVMVersion,TDateTime>;
 class TRootEnvironment;
 class GC;
 class GC {
@@ -1500,7 +1510,6 @@ class GC {
 
     };
     using TDItem = std::pair<std::string, TObject>;
-
     class TDictionary : public THeapObject
     {
         public:
@@ -1609,7 +1618,6 @@ class GC {
             bool canRegisterPath;
             bool canRegisterOGC;
             bool canRegisterEnv;
-            bool canRegisterTime;
             bool sqlite3Scoped;
             bool locked;
     };
@@ -1660,7 +1668,6 @@ class GC {
             static void RegisterOGC(GC* gc, TRootEnvironment* env);
             static void RegisterEnv(GC* gc, TRootEnvironment* env);
             static void RegisterProcess(GC* gc, TRootEnvironment* env);
-            static void RegisterTime(GC* gc, TRootEnvironment* env);
 
     };
 
@@ -1863,8 +1870,8 @@ class GC {
             Tesses::Framework::Filesystem::VFSPath ReadLink(Tesses::Framework::Filesystem::VFSPath path);
             std::string VFSPathToSystem(Tesses::Framework::Filesystem::VFSPath path);
             Tesses::Framework::Filesystem::VFSPath SystemToVFSPath(std::string path);
-            void GetDate(Tesses::Framework::Filesystem::VFSPath path, time_t& lastWrite, time_t& lastAccess);
-            void SetDate(Tesses::Framework::Filesystem::VFSPath path, time_t lastWrite, time_t lastAccess);
+            void GetDate(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Date::DateTime& lastWrite, Tesses::Framework::Date::DateTime& lastAccess);
+            void SetDate(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Date::DateTime lastWrite, Tesses::Framework::Date::DateTime lastAccess);
             ~TObjectVFS();
     };
 

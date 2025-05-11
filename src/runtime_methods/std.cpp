@@ -2,10 +2,28 @@
 #if defined(CROSSLANG_ENABLE_SHARED)
 #if defined(_WIN32)
 #include <windows.h>
+
+#include <time.h>
+#undef min
+#undef max
 #else
 #include <dlfcn.h>
+#include <unistd.h>
+#endif
+#else
+#if defined(_WIN32)
+#include <windows.h>
+
+#include <time.h>
+#undef min
+#undef max
+#else
+#include <unistd.h>
 #endif
 #endif
+
+
+
 namespace Tesses::CrossLang
 {
     #if defined(CROSSLANG_ENABLE_SHARED)
@@ -118,6 +136,13 @@ namespace Tesses::CrossLang
         TVFSHeapObject* vfs;
         return GetArgumentHeap(args,0,vfs);
     }
+
+    static TObject TypeIsDateTime(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        TDateTime* dt;
+        return GetArgumentHeap(args,0,dt);
+    }
     static TObject New_SubdirFilesystem(GCList& ls, std::vector<TObject> args)
     {
         TVFSHeapObject* vfsho;
@@ -172,6 +197,38 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }
+    static TObject New_DateTime(GCList& ls, std::vector<TObject> args)
+    {
+        int64_t year;
+        if(GetArgument(args,0,year))
+        {
+            if(args.size()==1)
+            {
+               Tesses::Framework::Date::DateTime dt(year);
+               return dt;
+            }
+            else
+            {
+                int64_t month=1;
+                int64_t day=1;
+                int64_t hour=0;
+                int64_t minute=0;
+                int64_t second=0;
+                bool isLocal=true;
+                GetArgument(args,1,month);
+                GetArgument(args,2,day);
+                GetArgument(args,3,hour);
+                GetArgument(args,4,minute);
+                GetArgument(args,5,second);
+                GetArgument(args,6,isLocal);
+
+                
+                Tesses::Framework::Date::DateTime dt((int)year,(int)month,(int)day,(int)hour,(int)minute,(int)second,isLocal);
+                return dt;
+            }
+        }
+        return nullptr;
+    }
   
     static TObject TypeOf(GCList& ls, std::vector<TObject> args)
     {
@@ -187,6 +244,7 @@ namespace Tesses::CrossLang
         if(std::holds_alternative<std::string>(args[0])) return "String";
         
         if(std::holds_alternative<Tesses::Framework::Filesystem::VFSPath>(args[0])) return "Path";
+        if(std::holds_alternative<TDateTime>(args[0])) return "DateTime";
         if(std::holds_alternative<THeapObjectHolder>(args[0]))
         {
             auto obj = std::get<THeapObjectHolder>(args[0]).obj;
@@ -207,6 +265,7 @@ namespace Tesses::CrossLang
             auto rootEnv = dynamic_cast<TRootEnvironment*>(obj);
             auto subEnv = dynamic_cast<TSubEnvironment*>(obj);
             auto env = dynamic_cast<TEnvironment*>(obj);
+           
 
             if(rootEnv != nullptr) return "RootEnvironment";
             if(subEnv != nullptr) return "SubEnvironment";
@@ -390,12 +449,69 @@ namespace Tesses::CrossLang
         return Undefined();
     }
 
+    
+    static TObject DateTime_Sleep(GCList& ls, std::vector<TObject> args)
+    {
+        int64_t msec;
+        if(GetArgument(args,0,msec))
+        {
+            #if defined(_WIN32)
+            Sleep((int)msec);
+            #else
+            usleep(1000*msec);   
+            #endif
+        }
+        return nullptr;
+    }
+    static TObject DateTime_getNow(GCList& ls, std::vector<TObject> args)
+    {
+        
+        return Tesses::Framework::Date::DateTime::Now();
+    }
+    static TObject DateTime_getNowUTC(GCList& ls, std::vector<TObject> args)
+    {
+        return Tesses::Framework::Date::DateTime::NowUTC();
+    }
+    static TObject DateTime_getNowEpoch(GCList& ls, std::vector<TObject> args)
+    {
+        
+        return (int64_t)time(NULL);
+    }
+    static TObject DateTime_TryParseHttpDate(GCList& ls, std::vector<TObject> args)
+    {
+        std::string d;
+        Tesses::Framework::Date::DateTime dt;
+        if(GetArgument(args,0,d) && Tesses::Framework::Date::DateTime::TryParseHttpDate(d,dt))
+        {
+            return dt;
+        }
+        return nullptr;
+    }
     void TStd::RegisterRoot(GC* gc, TRootEnvironment* env)
     {
         GCList ls(gc);        
         
         env->permissions.canRegisterRoot=true;
+        
+        TDictionary* date = TDictionary::Create(ls);
+        date->DeclareFunction(gc, "Sleep","Sleep for a specified amount of milliseconds (multiply seconds by 1000 to get milliseconds)", {"ms"},DateTime_Sleep);
+        date->DeclareFunction(gc, "getNow", "Get the current time",{},DateTime_getNow);
+        date->DeclareFunction(gc, "getNowUTC","Get the current time in UTC",{},DateTime_getNowUTC);
+        date->DeclareFunction(gc, "getNowEpoch","Get the time_t time now",{},DateTime_getNowEpoch);
+        date->DeclareFunction(gc, "TryParseHttpDate","Parse the http date",{},DateTime_TryParseHttpDate);
+        
+        
+        gc->BarrierBegin();
+	
+        date->SetValue("Zone", Tesses::Framework::Date::GetTimeZone());
+        date->SetValue("SupportsDaylightSavings",Tesses::Framework::Date::TimeZoneSupportDST());
+	
+        env->DeclareVariable("DateTime", date);
+
+        gc->BarrierEnd();
         TDictionary* newTypes = TDictionary::Create(ls);
+
+        newTypes->DeclareFunction(gc, "DateTime","Create a DateTime object, if only one arg is provided year is epoch, isLocal defaults to true unless epoch",{"year","$month","$day","$hour","$minute","$second","$isLocal"},New_DateTime);
 
         newTypes->DeclareFunction(gc, "MountableFilesystem","Create a mountable filesystem",{"root"}, New_MountableFilesystem);
         newTypes->DeclareFunction(gc, "SubdirFilesystem","Create a subdir filesystem",{"fs","subdir"}, New_SubdirFilesystem);
@@ -444,6 +560,7 @@ namespace Tesses::CrossLang
         env->DeclareFunction(gc, "TypeIsList","Get whether object is a list or dynamic list",{"object"},TypeIsList);
         env->DeclareFunction(gc, "TypeIsStream","Get whether object is a stream",{"object"},TypeIsStream);
         env->DeclareFunction(gc, "TypeIsVFS","Get whether object is a virtual filesystem",{"object"},TypeIsVFS);
+        env->DeclareFunction(gc, "TypeIsDateTime","Get whether object is a DateTime",{"object"},TypeIsDateTime);
         
         
         newTypes->DeclareFunction(gc, "Regex", "Create regex object",{"regex"},[](GCList& ls,std::vector<TObject> args)->TObject {
@@ -569,7 +686,6 @@ namespace Tesses::CrossLang
         RegisterCrypto(gc,env);
         RegisterOGC(gc, env);
         RegisterProcess(gc,env);
-        RegisterTime(gc, env);
 
         gc->RegisterEverything(env);
 
