@@ -9,7 +9,7 @@
 #include <variant>
 namespace Tesses::CrossLang {
     
-     thread_local CallStackEntry* current_function=nullptr;
+    thread_local CallStackEntry* current_function=nullptr;
 
     bool ToBool(TObject obj)
     {
@@ -2535,8 +2535,10 @@ namespace Tesses::CrossLang {
             {
                 auto obj = std::get<THeapObjectHolder>(instance).obj;
                 auto list = dynamic_cast<TList*>(obj);
+                auto dynList = dynamic_cast<TDynamicList*>(obj);
                 auto bArray = dynamic_cast<TByteArray*>(obj);
                 auto dict = dynamic_cast<TDictionary*>(obj);
+                auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
                 auto ittr = dynamic_cast<TEnumerator*>(obj);
                 auto strm = dynamic_cast<TStreamHeapObject*>(obj);
                 auto vfs = dynamic_cast<TVFSHeapObject*>(obj);
@@ -3996,6 +3998,139 @@ namespace Tesses::CrossLang {
                     cse.back()->Push(gc, Undefined());
                     return false;
                 }
+                else if(dynList != nullptr)
+                {
+
+                    if(key == "GetEnumerator")
+                    {
+                        cse.back()->Push(gc, TDynamicListEnumerator::Create(ls, dynList));
+                        return false;
+                    }
+                    else if(key == "ToString")
+                    {
+                        cse.back()->Push(gc, dynList->ToString(ls));
+                        return false;
+                    }
+                    else if(key == "Insert")
+                    {
+                        if(args.size() != 2)
+                        {
+                            throw VMException("List.Insert must only accept two arguments");
+                        }
+                        int64_t index;
+
+                        if(!GetArgument(args,0,index))
+                        {
+                            throw VMException("List.Insert first argument must be Long");
+                        }
+
+                        cse.back()->Push(gc, dynList->Insert(ls,index,args[0]));
+                        return false;
+                    }
+                    if(key == "Add")
+                    {
+                        if(args.size() != 1)
+                        {
+                            throw VMException("List.Add must only accept one argument");
+                        }
+                       
+                        cse.back()->Push(gc,dynList->Add(ls,args[0]));
+                        return false;
+                    }
+                    if(key == "RemoveAllEqual")
+                    {
+                        if(args.size() != 1)
+                        {
+                            throw VMException("List.RemoveAllEqual must only accept one argument");
+                        }
+
+                        cse.back()->Push(gc,dynList->RemoveAllEqual(ls, args[0]));
+                        return false;
+                    }
+                    if(key == "Remove")
+                    {
+                        if(args.size() != 1)
+                        {
+                            throw VMException("List.Remove must only accept one argument");
+                        }
+
+
+                                                
+                        cse.back()->Push(gc,dynList->Remove(ls, args[0]));
+                        return false;
+                    }
+                    if(key == "RemoveAt")
+                    {
+                        if(args.size() != 1)
+                        {
+                            throw VMException("List.RemoveAt must only accept one argument");
+                        }
+
+                        if(!std::holds_alternative<int64_t>(args[0])) 
+                        {
+                            throw VMException("List.RemoveAt must only accept a long");
+                        }
+                        cse.back()->Push(gc,dynList->RemoveAt(ls,std::get<int64_t>(args[0])));
+                        
+                        return false;
+                    }
+                    if(key == "Clear")
+                    {
+                        
+                      
+                        cse.back()->Push(gc, dynList->Clear(ls));
+                        return false;
+                    }
+                    if(key == "GetAt")
+                    {
+                        if(args.size() != 1)
+                        {
+                            throw VMException("List.GetAt must only accept one argument");
+                        }
+
+                        if(!std::holds_alternative<int64_t>(args[0])) 
+                        {
+                            throw VMException("List.GetAt must only accept a long");
+                        }
+
+                        int64_t index = std::get<int64_t>(args[0]);
+                        if(index >= 0)
+                        {
+                            cse.back()->Push(gc, dynList->GetAt(ls,index));
+                            return false;
+                        }
+                        
+                    }
+                    if(key == "SetAt")
+                    {
+                        if(args.size() != 2)
+                        {
+                            throw VMException("List.SetAt must only accept two arguments");
+                        }
+
+                        if(!std::holds_alternative<int64_t>(args[0])) 
+                        {
+                            throw VMException("List.SetAt first argument must only accept a long");
+                        }
+
+                        int64_t index = std::get<int64_t>(args[0]);
+                        if(index >= 0)
+                        {
+                            cse.back()->Push(gc,dynList->SetAt(ls,index,args[1]));
+                            return false;
+                        }
+                        
+                    }
+                    
+                    if(key == "Count" || key == "Length")
+                    {
+                        cse.back()->Push(gc, dynList->Count(ls));
+                       
+                        return false;
+                    }
+                    cse.back()->Push(gc, Undefined());
+                    return false;
+                }
                 else if(dict != nullptr)
                 {
                     if(key == "ToString" && !dict->MethodExists(ls, key) && args.empty())
@@ -4009,6 +4144,14 @@ namespace Tesses::CrossLang {
                    
 
                     return InvokeMethod(ls,o,dict,args);
+                }
+                else if(dynDict != nullptr)
+                {
+                    
+                    
+                    cse.back()->Push(gc,dict->CallMethod(ls, key, args));
+
+                    return false;
                 }
                 else if(callable != nullptr)
                 {
@@ -4237,6 +4380,8 @@ namespace Tesses::CrossLang {
                 auto bA = dynamic_cast<TByteArray*>(obj);
                 auto list = dynamic_cast<TList*>(obj);
                 auto dict = dynamic_cast<TDictionary*>(obj);
+                auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
+                auto dynList = dynamic_cast<TDynamicList*>(obj);
                 auto tcallable = dynamic_cast<TCallable*>(obj);
                 auto closure = dynamic_cast<TClosure*>(obj);
                 auto externalMethod = dynamic_cast<TExternalMethod*>(obj);
@@ -4246,6 +4391,7 @@ namespace Tesses::CrossLang {
                 auto callstackEntry = dynamic_cast<CallStackEntry*>(obj);
                 auto file = dynamic_cast<TFile*>(obj);
                 auto chunk = dynamic_cast<TFileChunk*>(obj);
+            
                
                 if(file != nullptr)
                 {
@@ -4538,6 +4684,29 @@ namespace Tesses::CrossLang {
                         return false;
                     }   
                 }
+                if(dynList != nullptr)
+                {
+                    if(key == "Count" || key == "Length")
+                    {
+                        int64_t len = dynList->Count(ls);
+                        if(len < 0) len = 0;
+
+                        stk->Push(gc, len);
+                        return false;
+                    }   
+                }
+                if(dynDict != nullptr)
+                {
+                    if(dynDict->MethodExists(ls,"get" + key))
+                    {
+                        cse.back()->Push(gc,dynDict->CallMethod(ls,"get" + key, {}));
+                    }
+                    else
+                    {
+                        cse.back()->Push(gc, dynDict->GetField(ls,key));
+                    }
+                    return false;
+                }
 
                 if(dict != nullptr)
                 {
@@ -4590,6 +4759,8 @@ namespace Tesses::CrossLang {
                 auto vfs = dynamic_cast<TVFSHeapObject*>(obj);
                 auto strm = dynamic_cast<TStreamHeapObject*>(obj);
                 auto dict = dynamic_cast<TDictionary*>(obj);
+                auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
+                
                 auto tcallable = dynamic_cast<TCallable*>(obj);
                 if(tcallable != nullptr)
                 {
@@ -4626,6 +4797,19 @@ namespace Tesses::CrossLang {
                         GetObjectHeap(d->obj,dict);
                         
                     }
+                }
+                if(dynDict != nullptr)
+                {
+                    if(dynDict->MethodExists(ls,"set" + key))
+                    {
+                        cse.back()->Push(gc,dynDict->CallMethod(ls,"set" + key, {value}));
+                    }
+                    else
+                    {
+                        dynDict->SetField(ls,key,value);
+                        cse.back()->Push(gc,value);
+                    }
+                    return false;
                 }
                 if(dict != nullptr)
                 {

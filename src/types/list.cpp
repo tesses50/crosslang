@@ -38,6 +38,76 @@ namespace Tesses::CrossLang {
         if(GetObject(res,n)) return n;
         return 0;
     }
+    TObject TDynamicList::Add(GCList& ls, TObject v)
+    {
+        
+        auto dict = TDictionary::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        dict->SetValue("Type", "Add");
+        dict->SetValue("Value",v);
+        ls.GetGC()->BarrierEnd();
+        return cb->Call(ls,{dict});
+        
+    }
+    TObject TDynamicList::Insert(GCList& ls, int64_t index, TObject v)
+    {
+        
+        auto dict = TDictionary::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        dict->SetValue("Type", "Insert");
+        dict->SetValue("Index",index);
+        dict->SetValue("Value",v);
+        ls.GetGC()->BarrierEnd();
+        return cb->Call(ls,{dict});
+        
+    }
+    TObject TDynamicList::Clear(GCList& ls)
+    {
+        auto dict = TDictionary::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        dict->SetValue("Type", "Clear");
+        ls.GetGC()->BarrierEnd();
+        return cb->Call(ls,{dict});
+    }
+    TObject TDynamicList::Remove(GCList& ls, TObject obj)
+    {
+        auto dict = TDictionary::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        dict->SetValue("Type", "Remove");
+        dict->SetValue("Value", obj);
+        ls.GetGC()->BarrierEnd();
+    
+        return cb->Call(ls,{dict});
+    }
+    TObject TDynamicList::RemoveAllEqual(GCList& ls, TObject obj)
+    {
+        auto dict = TDictionary::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        dict->SetValue("Type", "RemoveAllEqual");
+        dict->SetValue("Value", obj);
+        ls.GetGC()->BarrierEnd();
+    
+        return cb->Call(ls,{dict});
+    }
+    TObject TDynamicList::RemoveAt(GCList& ls, int64_t index)
+    {
+        auto dict = TDictionary::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        dict->SetValue("Type", "RemoveAt");
+        dict->SetValue("Index", index);
+        ls.GetGC()->BarrierEnd();
+    
+        return cb->Call(ls,{dict});
+    }
+    TObject TDynamicList::ToString(GCList& ls)
+    {
+        auto dict = TDictionary::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        dict->SetValue("Type", "ToString");
+        ls.GetGC()->BarrierEnd();
+    
+        return cb->Call(ls,{dict});
+    }
 
     TObject TDynamicList::GetAt(GCList& ls, int64_t index)
     {
@@ -50,7 +120,7 @@ namespace Tesses::CrossLang {
         return cb->Call(ls,{dict});
     }
 
-    void TDynamicList::SetAt(GCList& ls, int64_t index, TObject val)
+    TObject TDynamicList::SetAt(GCList& ls, int64_t index, TObject val)
     {
         auto dict = TDictionary::Create(ls);
         ls.GetGC()->BarrierBegin();
@@ -58,7 +128,7 @@ namespace Tesses::CrossLang {
         dict->SetValue("Index",index);
         dict->SetValue("Value",val);
         ls.GetGC()->BarrierEnd();
-        cb->Call(ls,{dict});
+        return cb->Call(ls,{dict});
     }
 
     TDynamicList::~TDynamicList()

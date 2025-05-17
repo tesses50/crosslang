@@ -311,7 +311,7 @@ namespace Tesses::CrossLang
             {
                 
             
-                ctx->StartWebSocketSession([dict,&ls](std::function<void(WebSocketMessage&)> sendMessage,std::function<void()> ping)->void{
+                ctx->StartWebSocketSession([dict,&ls](std::function<void(WebSocketMessage&)> sendMessage,std::function<void()> ping,std::function<void()> close)->void{
                     GCList ls2(ls.GetGC());
                     dict->CallMethod(ls2,"Open",{
                         TExternalMethod::Create(ls2,"Send a message",{"messageTextOrByteArray"},[sendMessage](GCList& ls,std::vector<TObject> args)->TObject{
@@ -331,6 +331,10 @@ namespace Tesses::CrossLang
                         }),
                         TExternalMethod::Create(ls2, "Ping client", {},[ping](GCList& ls,std::vector<TObject> args)->TObject {
                             ping();
+                            return nullptr;
+                        }),
+                        TExternalMethod::Create(ls2, "Close client",{},[close](GCList& ls,std::vector<TObject> args)->TObject {
+                            close();
                             return nullptr;
                         })
                     });
@@ -358,6 +362,8 @@ namespace Tesses::CrossLang
             }
             return nullptr;
         });      
+
+        
         
         //dict->DeclareFunction(gc,"getOriginalPathWithQuery","Get original path with query parameters",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {return ctx->GetOriginalPathWithQuery();});
         dict->DeclareFunction(gc,"getPath","Get path",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {return ctx->path;});
@@ -696,7 +702,7 @@ namespace Tesses::CrossLang
         
         return nullptr;
     }
-
+    
     static TObject Net_Smtp_Send(GCList& ls, std::vector<TObject> args)
     {
         TDictionary* dict;
@@ -833,7 +839,119 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }
-    
+    static TObject Net_Http_WebSocketClient(GCList& ls, std::vector<TObject> args)
+    {
+        std::string url;
+        TList* headers;
+        TDictionary* dict;
+
+        TCallable* callable=nullptr;
+
+        TObject _obj;
+        if(GetArgument(args,0,url) && GetArgumentHeap(args,1,headers) && GetArgumentHeap(args,2,dict))
+        {
+            GetArgumentHeap(args,3,callable);
+            HttpDictionary hdict;
+            for(int64_t index = 0; index < headers->Count();index ++)
+            {
+                _obj = headers->Get(index);
+                TDictionary* dict;
+                if(GetObjectHeap(_obj,dict))
+                {
+                    std::string key={};
+                    std::string value={};
+                    _obj = dict->GetValue("Key");
+                    GetObject(_obj,key);
+                    _obj = dict->GetValue("Value");
+
+                    hdict.AddValue(key,value);
+                }
+            }
+            CallbackWebSocketConnection conn([dict,&ls](std::function<void(WebSocketMessage&)> sendMessage,std::function<void()> ping,std::function<void()> close)->void{
+                GCList ls2(ls.GetGC());
+                dict->CallMethod(ls2,"Open",{
+                    TExternalMethod::Create(ls2,"Send a message",{"messageTextOrByteArray"},[sendMessage](GCList& ls,std::vector<TObject> args)->TObject{
+                        std::string str;
+                        TByteArray* bArray;
+                        if(GetArgument(args,0,str))
+                        {
+                            WebSocketMessage msg(str);
+                            sendMessage(msg);
+                        }
+                        else if(GetArgumentHeap(args,0,bArray))
+                        {
+                            WebSocketMessage msg(bArray->data);
+                            sendMessage(msg);
+                        }
+                        return nullptr;
+                    }),
+                    TExternalMethod::Create(ls2, "Ping client", {},[ping](GCList& ls,std::vector<TObject> args)->TObject {
+                        ping();
+                        return nullptr;
+                    }),
+                    TExternalMethod::Create(ls2, "Close client",{},[close](GCList& ls,std::vector<TObject> args)->TObject {
+                        close();
+                        return nullptr;
+                    })
+                });
+            }, [dict,&ls](WebSocketMessage& msg)->void {
+                GCList ls2(ls.GetGC());
+
+                TObject v;
+
+                if(msg.isBinary)
+                {
+                    auto r = TByteArray::Create(ls2);
+                    r->data = msg.data;
+                    v = r;
+                }
+                else
+                {
+                    v = msg.ToString();
+                }
+                
+                dict->CallMethod(ls2,"Receive",{v});
+            }, [dict,&ls](bool close)->void {
+                GCList ls2(ls.GetGC());
+                dict->CallMethod(ls2,"Close",{close});
+            });
+            WebSocketClient(url, hdict, conn, [&ls,callable](Tesses::Framework::Http::HttpDictionary& dict, bool success)->bool {
+                if(callable != nullptr)
+                return ToBool(callable->Call(ls,{CreateDictionaryFromHttpDictionary(ls,&dict),success}));
+                return true;
+            });
+        }
+        return nullptr;
+        //Net.Http.CreateWebSocketConnection("wss://example.com/",[],conn, (dict, success)=>{ return true;})
+    }
+    static TObject Net_Http_DownloadToString(GCList& ls, std::vector<TObject> args)
+    {
+        std::string url;
+        if(GetArgument(args,0,url))
+        return DownloadToStringSimple(url);
+        return nullptr;
+    }
+    static TObject Net_Http_DownloadToStream(GCList& ls, std::vector<TObject> args)
+    {
+        std::string url;
+        TStreamHeapObject* strm;
+        if(GetArgument(args,0,url) && GetArgumentHeap(args,1,strm))
+        {
+            DownloadToStreamSimple(url,strm->stream);
+        }
+        return nullptr;
+    }
+    static TObject Net_Http_DownloadToFile(GCList& ls, std::vector<TObject> args)
+    {
+        std::string url;
+        TVFSHeapObject* vfs;
+        Tesses::Framework::Filesystem::VFSPath path;
+        if(GetArgument(args,0,url) && GetArgumentHeap(args,1,vfs) && GetArgumentAsPath(args,2, path))
+        {
+            DownloadToFileSimple(url,vfs->vfs,path);
+        }
+        return nullptr;
+    }
     void TStd::RegisterNet(GC* gc, TRootEnvironment* env)
     {
 
@@ -877,6 +995,10 @@ namespace Tesses::CrossLang
             return nullptr;
         });
         http->DeclareFunction(gc, "MakeRequest", "Create an http request", {"url","$extra"}, Net_Http_MakeRequest);
+        http->DeclareFunction(gc, "WebSocketClient", "Create a websocket connection",{"url","headers","conn","$successCB"},Net_Http_WebSocketClient);
+        http->DeclareFunction(gc, "DownloadToString","Return the http file's contents as a string",{"url"},Net_Http_DownloadToString);
+        http->DeclareFunction(gc, "DownloadToStream","Download file to stream",{"url","stream"},Net_Http_DownloadToStream);
+        http->DeclareFunction(gc, "DownloadToFile","Download file to file in vfs",{"url","vfs","path"},Net_Http_DownloadToFile);
         http->DeclareFunction(gc, "ListenSimpleWithLoop", "Listen (creates application loop)", {"server","port"},Net_Http_ListenSimpleWithLoop);
         http->DeclareFunction(gc, "ListenOnUnusedPort","Listen on unused localhost port and print Port: theport",{"server"},Net_Http_ListenOnUnusedPort);
         //FileServer svr()

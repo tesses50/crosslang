@@ -1945,7 +1945,15 @@ class GC {
 
             TObject GetAt(GCList& ls, int64_t index);
 
-            void SetAt(GCList& ls, int64_t index, TObject val);
+            TObject SetAt(GCList& ls, int64_t index, TObject val);
+
+            TObject Add(GCList& ls, TObject v);
+            TObject Insert(GCList& ls, int64_t index, TObject v);
+            TObject RemoveAllEqual(GCList& ls, TObject v);
+            TObject Remove(GCList& ls, TObject v);
+            TObject RemoveAt(GCList& ls, int64_t v);
+            TObject Clear(GCList& ls);
+            TObject ToString(GCList& ls);
 
             ~TDynamicList();
     };
@@ -1961,7 +1969,7 @@ class GC {
 
             TObject GetField(GCList& ls, std::string key);
 
-            void SetField(GCList& ls, std::string key, TObject value);
+            TObject SetField(GCList& ls, std::string key, TObject value);
 
             TObject CallMethod(GCList& ls, std::string name, std::vector<TObject> args);      
 

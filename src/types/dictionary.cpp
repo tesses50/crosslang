@@ -35,10 +35,10 @@ namespace Tesses::CrossLang  {
         dict->SetValue("Type", "GetField");
         dict->SetValue("Key", key);
         ls.GetGC()->BarrierEnd();
-        return cb->Call(ls,{dict});
+        return this->cb->Call(ls,{dict});
     }
 
-    void TDynamicDictionary::SetField(GCList& ls, std::string key, TObject value)
+    TObject TDynamicDictionary::SetField(GCList& ls, std::string key, TObject value)
     {
         auto dict = TDictionary::Create(ls);
         ls.GetGC()->BarrierBegin();
@@ -46,7 +46,7 @@ namespace Tesses::CrossLang  {
         dict->SetValue("Key", key);
         dict->SetValue("Value", value);
         ls.GetGC()->BarrierEnd();
-        cb->Call(ls,{dict});
+        return this->cb->Call(ls,{dict});
     }
 
     TObject TDynamicDictionary::CallMethod(GCList& ls, std::string name, std::vector<TObject> args)
@@ -59,7 +59,7 @@ namespace Tesses::CrossLang  {
         argVal->items = args;
         dict->SetValue("Arguments", argVal);
         ls.GetGC()->BarrierEnd();
-        return cb->Call(ls,{dict});
+        return this->cb->Call(ls,{dict});
     }
 
     TEnumerator* TDynamicDictionary::GetEnumerator(GCList& ls)
@@ -70,7 +70,7 @@ namespace Tesses::CrossLang  {
 
         ls.GetGC()->BarrierEnd();
 
-        return TEnumerator::CreateFromObject(ls,cb->Call(ls,{dict}));
+        return TEnumerator::CreateFromObject(ls,this->cb->Call(ls,{dict}));
     }
     bool TDictionary::MethodExists(GCList& ls,std::string method)
     {
@@ -90,7 +90,7 @@ namespace Tesses::CrossLang  {
 
         ls.GetGC()->BarrierEnd();
 
-        auto res = cb->Call(ls,{dict});
+        auto res = this->cb->Call(ls,{dict});
         bool r2;
         if(GetObject(res,r2)) return r2;
         return false;

@@ -628,6 +628,18 @@ namespace Tesses::CrossLang
             }
             return Undefined();
         });
+        newTypes->DeclareFunction(gc,"DynamicList","Create a dynamic list",{},[](GCList& ls,std::vector<TObject> args)->TObject {
+            TCallable* callable;
+            if(GetArgumentHeap(args,0,callable))
+            return TDynamicList::Create(ls,callable);
+            return nullptr;
+        });
+        newTypes->DeclareFunction(gc,"DynamicDictionary","Create a dynamic dictionary",{},[](GCList& ls, std::vector<TObject> args)->TObject {
+            TCallable* callable;
+            if(GetArgumentHeap(args,0,callable))
+            return TDynamicDictionary::Create(ls,callable);
+            return nullptr;
+        });
         newTypes->DeclareFunction(gc,"ByteArray","Create bytearray, with optional either size (to size it) or string argument (to fill byte array)",{"$data"},ByteArray);
         gc->BarrierBegin();
         env->DeclareVariable("Version", TDictionary::Create(ls,{

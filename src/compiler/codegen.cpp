@@ -1021,16 +1021,16 @@ namespace Tesses::CrossLang
                     instructions.push_back(new JumpStyleInstruction(JMP,myJmp));
                 }
             }
-            else if(adv.nodeName == GetVariableExpression && adv.nodes.size() == 1 && std::holds_alternative<std::string>(adv.nodes[0]))
+            else if(adv.nodeName == GetVariableExpression && adv.nodes.size() == 1)
             {
-                instructions.push_back(new StringInstruction(GetString(std::get<std::string>(adv.nodes[0]))));
+                GenNode(instructions,adv.nodes[0],scope,contscope,brkscope,contI,brkI);
                 instructions.push_back(new SimpleInstruction(GETVARIABLE));
             }
-            else if(adv.nodeName == GetFieldExpression && adv.nodes.size() == 2 && std::holds_alternative<std::string>(adv.nodes[1]))
+            else if(adv.nodeName == GetFieldExpression && adv.nodes.size() == 2)
             {
                 
                 GenNode(instructions,adv.nodes[0],scope,contscope,brkscope,contI,brkI);
-                instructions.push_back(new StringInstruction(GetString(std::get<std::string>(adv.nodes[1]))));
+                GenNode(instructions,adv.nodes[1],scope,contscope,brkscope,contI,brkI);
                 
                 instructions.push_back(new SimpleInstruction(GETFIELD));
              
@@ -1047,9 +1047,9 @@ namespace Tesses::CrossLang
             {
                 auto varNode = std::get<AdvancedSyntaxNode>(adv.nodes[0]);
 
-                if(varNode.nodeName == GetVariableExpression && varNode.nodes.size() == 1 && std::holds_alternative<std::string>(varNode.nodes[0]))
+                if(varNode.nodeName == GetVariableExpression && varNode.nodes.size() == 1)
                 {
-                    instructions.push_back(new StringInstruction(GetString(std::get<std::string>(varNode.nodes[0]))));
+                    GenNode(instructions,varNode.nodes[0],scope,contscope,brkscope,contI,brkI);
                     GenNode(instructions,adv.nodes[1],scope,contscope,brkscope,contI,brkI);
                     instructions.push_back(new SimpleInstruction(SETVARIABLE));
                 }
@@ -1067,7 +1067,7 @@ namespace Tesses::CrossLang
                 }
                 else if(varNode.nodeName == DeclareExpression && varNode.nodes.size() == 1 && std::holds_alternative<std::string>(varNode.nodes[0]))
                 {
-                    instructions.push_back(new StringInstruction(GetString(std::get<std::string>(varNode.nodes[0]))));
+                    GenNode(instructions,varNode.nodes[0],scope,contscope,brkscope,contI,brkI);
                     GenNode(instructions,adv.nodes[1],scope,contscope,brkscope,contI,brkI);
                     instructions.push_back(new SimpleInstruction(DECLAREVARIABLE));
                 }
@@ -1091,7 +1091,8 @@ namespace Tesses::CrossLang
                 else if(varNode.nodeName == GetFieldExpression && varNode.nodes.size() == 2 && std::holds_alternative<std::string>(varNode.nodes[1]))
                 {
                     GenNode(instructions,varNode.nodes[0],scope,contscope,brkscope,contI,brkI);
-                    instructions.push_back(new StringInstruction(GetString(std::get<std::string>(varNode.nodes[1]))));
+
+                    GenNode(instructions,varNode.nodes[1],scope,contscope,brkscope,contI,brkI);
                     GenNode(instructions,adv.nodes[1],scope,contscope,brkscope,contI,brkI);
                     instructions.push_back(new SimpleInstruction(SETFIELD));
                 }
@@ -1394,6 +1395,7 @@ namespace Tesses::CrossLang
                 {
                     name.push_back(GetString(std::get<std::string>(res.nodes[1])));
                 }
+                
             }
             else if(res.nodeName == GetVariableExpression && res.nodes.size() == 1)
             {

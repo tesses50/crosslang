@@ -547,6 +547,20 @@ namespace Tesses::CrossLang
             i++;
             
         }
+        else if(tokens[i].type == LexTokenType::Symbol && tokens[i].text == ".")
+        {
+            i++;
+            if(IsSymbol("["))
+            {
+                node = AdvancedSyntaxNode::Create(GetVariableExpression,true,{ParseExpression()});
+                EnsureSymbol("]");
+            }
+            else
+            {
+                node = AdvancedSyntaxNode::Create(RelativePathExpression, true, {});
+            
+            }
+        }
         else if(IsSymbol("<"))
         {
             uint32_t htmlId = NewId();
@@ -590,7 +604,15 @@ namespace Tesses::CrossLang
             auto variable = tokens[i];
 
                 i++;
-            if(variable.type == LexTokenType::Symbol && variable.text == "[")
+            if(variable.type == LexTokenType::Symbol && variable.text == ".")
+            {
+                EnsureSymbol("[");
+                node = AdvancedSyntaxNode::Create(DeclareExpression,true,{
+                    AdvancedSyntaxNode::Create(GetVariableExpression ,true,{ParseExpression()})
+                });
+                EnsureSymbol("]");
+            }
+            else if(variable.type == LexTokenType::Symbol && variable.text == "[")
             {
                 node = AdvancedSyntaxNode::Create(DeclareExpression,true,{
                     AdvancedSyntaxNode::Create(ArrayExpression ,true,{ParseExpression()})
@@ -725,6 +747,13 @@ namespace Tesses::CrossLang
             if(tkn.text == ".")
             {
                 if(i>=tokens.size()) throw std::out_of_range("End of file");
+                if(IsSymbol("["))
+                {
+
+                    node = AdvancedSyntaxNode::Create(GetFieldExpression, true, {node, ParseExpression()});
+                    EnsureSymbol("]");
+                    continue;
+                }
                 if(tokens[i].type != LexTokenType::Identifier) throw std::exception();
                 std::string name = tokens[i].text; 
                 if(name == "operator")
@@ -807,10 +836,7 @@ namespace Tesses::CrossLang
                 return AdvancedSyntaxNode::Create(RootPathExpression,true,{});
             }
         }
-        else if(IsSymbol("."))
-        {
-            return AdvancedSyntaxNode::Create(RelativePathExpression, true, {});
-        }
+       
         
         return ParseValue();
     }
