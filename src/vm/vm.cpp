@@ -5153,6 +5153,57 @@ namespace Tesses::CrossLang {
         }
         return false;
     }
+    bool InterperterThread::JumpIfBreak(GC* gc)
+    {
+        
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
+
+        if(stk->ip + 4 <= stk->callable->closure->code.size())
+        {
+            uint32_t n=BitConverter::ToUint32BE(stk->callable->closure->code[stk->ip]);
+                            
+            GCList ls(gc);
+            auto _res2 = stk->Pop(ls);
+                                
+            stk->ip = stk->ip + 4;
+            if(std::holds_alternative<TBreak>(_res2))
+                stk->ip = n;
+            else
+                stk->Push(gc,_res2);
+                            
+                            
+        }
+        else
+            throw VMException("Can't read jmpifbreak pc.");
+        return false;
+    }
+
+    bool InterperterThread::JumpIfContinue(GC* gc)
+    {
+        
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
+
+        if(stk->ip + 4 <= stk->callable->closure->code.size())
+        {
+            uint32_t n=BitConverter::ToUint32BE(stk->callable->closure->code[stk->ip]);
+                            
+            GCList ls(gc);
+            auto _res2 = stk->Pop(ls);
+                                
+            stk->ip = stk->ip + 4;
+            if(std::holds_alternative<TContinue>(_res2))
+                stk->ip = n;
+            else
+                stk->Push(gc,_res2);
+                            
+                            
+        }
+        else
+            throw VMException("Can't read jmpifcontinue pc.");
+        return false;
+    }
     bool InterperterThread::JumpUndefined(GC* gc)
     {
         
@@ -5200,6 +5251,24 @@ namespace Tesses::CrossLang {
         auto stk = cse.back();
        
         stk->Push(gc,nullptr);
+        return false;
+    }
+    bool InterperterThread::PushBreak(GC* gc)
+    {
+
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
+       
+        stk->Push(gc,TBreak());
+        return false;
+    }
+    bool InterperterThread::PushContinue(GC* gc)
+    {
+
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
+       
+        stk->Push(gc,TContinue());
         return false;
     }
      bool InterperterThread::PushUndefined(GC* gc)

@@ -991,6 +991,11 @@ namespace Tesses::CrossLang
                 {
                     std::cout << "WARN: continue does nothing here\n";
                 }
+                else if(contscope == -2)
+                {
+                    instructions.push_back(new SimpleInstruction(PUSHCONTINUE));
+                    instructions.push_back(new SimpleInstruction(RET));
+                }
                 else
                 {
                     auto cont = scope-contscope;
@@ -1008,6 +1013,11 @@ namespace Tesses::CrossLang
                 if( brkscope == -1)
                 {
                     std::cout << "WARN: break does nothing here\n";
+                }
+                else if(brkscope == -2)
+                {
+                    instructions.push_back(new SimpleInstruction(PUSHBREAK));
+                    instructions.push_back(new SimpleInstruction(RET));
                 }
                 else
                 {
@@ -1223,17 +1233,63 @@ namespace Tesses::CrossLang
                 }
                 if(std::holds_alternative<AdvancedSyntaxNode>(adv.nodes[0]) && std::holds_alternative<AdvancedSyntaxNode>(adv.nodes[1]) && std::holds_alternative<AdvancedSyntaxNode>(adv.nodes[2]))
                 {
-                    GenNode(instructions,AdvancedSyntaxNode::Create(ScopelessClosureExpression,true,{AdvancedSyntaxNode::Create(ParenthesesExpression,true,{}),adv.nodes[0]}),scope,contscope,brkscope,contI,brkI);
+                    GenNode(instructions,AdvancedSyntaxNode::Create(ScopelessClosureExpression,true,{AdvancedSyntaxNode::Create(ParenthesesExpression,true,{}),adv.nodes[0]}),scope,contscope == -1 ? -1 : -2,brkscope == -1 ? -1 : -2,contI,brkI);
                     GenNode(instructions,AdvancedSyntaxNode::Create(ScopelessClosureExpression,true,{
                        AdvancedSyntaxNode::Create(ParenthesesExpression,true,{adv.nodes[2]}),
                        adv.nodes[1]
-                    }),scope,contscope,brkscope,contI,brkI);
+                    }),scope,contscope == -1 ? -1 : -2,brkscope == -1 ? -1 : -2,contI,brkI);
                     instructions.push_back(new SimpleInstruction(TRYCATCH));
                     uint32_t compGenId = NewId();
                     std::string compGenIttr = "__compGenRetThing";
                     compGenIttr.append(std::to_string(compGenId));
+                    if(contscope != -1)
+                    {
+                        instructions.push_back(new JumpStyleInstruction(JMPIFCONTINUE,compGenIttr+"_cont"));
+                    }
+                    if(brkscope != -1)
+                    {
+                        instructions.push_back(new JumpStyleInstruction(JMPIFBREAK,compGenIttr+"_brk"));
+                    }
                     instructions.push_back(new JumpStyleInstruction(JMPUNDEFINED, compGenIttr));
                     instructions.push_back(new SimpleInstruction(RET));
+                    if(contscope == -2)
+                    {
+                        instructions.push_back(new LabelInstruction(compGenIttr+"_cont"));
+                        instructions.push_back(new SimpleInstruction(PUSHCONTINUE));
+                        instructions.push_back(new SimpleInstruction(RET));
+                    }
+                    else if(contscope != -1)
+                    {
+                        instructions.push_back(new LabelInstruction(compGenIttr+"_cont"));
+                    auto cont = scope-contscope;
+                    if(cont > 0)
+                    instructions.push_back(new ScopeEndTimesInstruction((uint32_t)cont));
+                    
+                    std::string myJmp = "__compGenCont";
+                    myJmp.append(std::to_string(contI));
+
+                    instructions.push_back(new JumpStyleInstruction(JMP,myJmp));
+                    }
+                    if(brkscope == -2)
+                    {
+                        instructions.push_back(new LabelInstruction(compGenIttr+"_brk"));
+                        instructions.push_back(new SimpleInstruction(PUSHBREAK));
+                        instructions.push_back(new SimpleInstruction(RET));
+                    }
+                    else if(brkscope != -1)
+                    {
+                        instructions.push_back(new LabelInstruction(compGenIttr+"_brk"));
+                        auto _brk = scope-brkscope;
+                    if(_brk > 0)
+                    instructions.push_back(new ScopeEndTimesInstruction((uint32_t)_brk));
+                    
+                    std::string myJmp = "__compGenBrk";
+                    myJmp.append(std::to_string(brkI));
+
+                    instructions.push_back(new JumpStyleInstruction(JMP,myJmp));
+                        
+                    }
+                    
                     instructions.push_back(new LabelInstruction(compGenIttr));
                 }
                 
@@ -1264,7 +1320,7 @@ namespace Tesses::CrossLang
                 }
                 
 
-                GenNode(fnInstructions,body,0,-1,-1,-1,-1);
+                GenNode(fnInstructions,body,0,contscope == -2 ? -2 : -1,brkscope == -2 ? -2 : -1,-1,-1);
 
                 this->chunks[fnindex] = std::pair<std::vector<uint32_t>,std::vector<ByteCodeInstruction*>>(args, fnInstructions);
                 instructions.push_back(new ClosureInstruction((uint32_t)fnindex,false));

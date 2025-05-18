@@ -659,7 +659,11 @@ typedef enum {
     YIELD,
     PUSHROOTPATH,
     PUSHRELATIVEPATH,
-    BREAKPOINT
+    BREAKPOINT,
+    PUSHBREAK,
+    PUSHCONTINUE,
+    JMPIFBREAK,
+    JMPIFCONTINUE
 } Instruction;
 /**
  * @brief Base type for bytecode instruction
@@ -1344,6 +1348,9 @@ class Parser {
                 
             }
     };
+
+
+
     //this is a dummy type with
     class MethodInvoker {
 
@@ -1358,11 +1365,19 @@ class Parser {
             Tesses::Framework::Date::DateTime& GetDate();
             ~TDateTime();
     };
+class TBreak {
+
+};
+class TContinue {
+
+};
     /**
      * @brief A script object
      * 
      */
-using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder,TVMVersion,TDateTime>;
+
+using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder,TVMVersion,TDateTime,TBreak,TContinue>;
+
 class TRootEnvironment;
 class GC;
 class GC {
@@ -2072,6 +2087,10 @@ class GC {
             bool Dup(GC* gc);
             bool Nop(GC* gc);
             bool Breakpoint(GC* gc);
+            bool PushBreak(GC* gc);
+            bool PushContinue(GC* gc);
+            bool JumpIfBreak(GC* gc);
+            bool JumpIfContinue(GC* gc);
         public:
             static InterperterThread* Create(GCList* ls);
             static InterperterThread* Create(GCList& ls);

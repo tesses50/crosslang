@@ -115,8 +115,6 @@ do(conditionLikeIf)
 
 #### Try statement
 
-Note: you can't yield, return, break or continue from inside a try statement (also applys to catch and finally due to these being internally closures)
-
 ```js
 try {
     Console.WriteLine("God is good.");
