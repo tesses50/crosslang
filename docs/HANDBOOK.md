@@ -115,6 +115,8 @@ do(conditionLikeIf)
 
 #### Try statement
 
+NOTE: you can't return undefined (but you can return other types) (It will just return from try and will still execute the body past the try statement) due to the try statement being a closure (you can still break and continue due to special TObjects being returned)
+
 ```js
 try {
     Console.WriteLine("God is good.");
