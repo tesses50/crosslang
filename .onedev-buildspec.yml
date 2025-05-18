@@ -1,4 +1,4 @@
-version: 38
+version: 39
 jobs:
 - name: Build for x86_64
   steps:
@@ -16,7 +16,7 @@ jobs:
       commands: |
         mkdir build
         cd build
-        cmake -S .. -B .
+        cmake -S .. -B . -DCROSSLANG_FETCHCONTENT=OFF
         make -j12
         make install DESTDIR=../out
     useTTY: true
