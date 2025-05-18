@@ -29,7 +29,26 @@ Tesses Cross Language
 - Install [mbedtls](https://github.com/Mbed-TLS/mbedtls) (use sudo apt install libmbedtls-dev on debian) for TessesFramework
 - Follow the commands bellow
 
-## Run these commands to install crosslang
+## Run these commands to install crosslang (with plugin support)
+```bash
+git clone https://onedev.site.tesses.net/tesses-framework
+cd tesses-framework
+mkdir build 
+cd build
+cmake -S .. -B .
+make
+sudo make install
+cd ../..
+git clone https://onedev.site.tesses.net/CrossLang
+cd CrossLang
+mkdir build 
+cd build
+cmake -S .. -B . -DCROSSLANG_FETCHCONTENT=OFF
+make
+sudo make install
+```
+
+## Run these commands to install crosslang (without plugin support)
 Or use binaries from [here](https://crosslang.tesseslanguage.com/download/)
 
 ```bash
