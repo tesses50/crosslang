@@ -2,8 +2,6 @@
 
 This is a book for my language found [here](https://crosslang.tesseslanguage.com/)
 
-
-
 ## Statements and loops
 
 
@@ -21,6 +19,25 @@ var myVariable = 42;
 ```js
 myVariable = "I have set the variable to a string";
 ```
+
+#### Reflective variables
+
+```js
+var nameOfVariable = "Var 1";
+.[nameOfVariable] = 42; //the variable name in this instance will be Var 1
+Console.WriteLine(.[nameOfVariable]); //prints 42
+
+
+var nameOfVariable2 = "Var 2";
+var nameOfField = "This field has spaces and \n New Lines";
+.[nameOfVariable2] = {
+    .[nameOfField] = "Hello, world"
+};
+
+Console.WriteLine(.[nameOfVariable2].[nameOfField]); //should print Hello, world
+
+```
+
 
 #### If statements
 
@@ -579,27 +596,3 @@ myHtml = <null>Hello</null>; //would just be Hello (useful for templating as it 
 
 myHtml = <raw(stringExpr)>; //allowing you to emit unescaped html from string into html litteral (useful for templating)
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

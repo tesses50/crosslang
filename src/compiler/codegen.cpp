@@ -766,18 +766,18 @@ namespace Tesses::CrossLang
                     if(std::holds_alternative<AdvancedSyntaxNode>(item))
                     {
                         auto tkn = std::get<AdvancedSyntaxNode>(item);
-                        if(tkn.nodeName == GetVariableExpression && !tkn.nodes.empty() && std::holds_alternative<std::string>(tkn.nodes[0]))
+                        if(tkn.nodeName == GetVariableExpression && !tkn.nodes.empty())
                         {
-                            instructions.push_back(new StringInstruction(GetString(std::get<std::string>(tkn.nodes[0]))));
+                            GenNode(instructions,tkn.nodes[0],scope,contscope,brkscope,contI,brkI);
                             GenNode(instructions,item,scope,contscope,brkscope,contI,brkI);
                             instructions.push_back(new SimpleInstruction(APPENDDICT));
                         }
                         else if(tkn.nodeName == AssignExpression && tkn.nodes.size()==2 && std::holds_alternative<AdvancedSyntaxNode>(tkn.nodes[0]))
                         {
                             auto myTn =  std::get<AdvancedSyntaxNode>(tkn.nodes[0]);
-                            if(myTn.nodeName == GetVariableExpression && !myTn.nodes.empty() && std::holds_alternative<std::string>(myTn.nodes[0]))
+                            if(myTn.nodeName == GetVariableExpression && !myTn.nodes.empty())
                             {
-                                instructions.push_back(new StringInstruction(GetString(std::get<std::string>(myTn.nodes[0]))));
+                                GenNode(instructions,myTn.nodes[0],scope,contscope,brkscope,contI,brkI);
                                 GenNode(instructions,tkn.nodes[1],scope,contscope,brkscope,contI,brkI);
                                 instructions.push_back(new SimpleInstruction(APPENDDICT));
                             }
@@ -1098,7 +1098,7 @@ namespace Tesses::CrossLang
 
                     }
                 }
-                else if(varNode.nodeName == GetFieldExpression && varNode.nodes.size() == 2 && std::holds_alternative<std::string>(varNode.nodes[1]))
+                else if(varNode.nodeName == GetFieldExpression && varNode.nodes.size() == 2)
                 {
                     GenNode(instructions,varNode.nodes[0],scope,contscope,brkscope,contI,brkI);
 
