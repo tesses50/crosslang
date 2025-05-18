@@ -10,7 +10,6 @@ Tesses Cross Language
 - CMake
 
 ## What libraries have I embeded from other people
-- [HodwardHinnart's date](https://github.com/HowardHinnant/date) (in folder src/HodwardHinnart_date, modified tz.cpp to point to correct header)
 - [Sqlite](https://www.sqlite.org/) (in folder src/sqlite also uses demo VFS (at least on Wii))
 - [Sago's platform_folders](https://github.com/sago007/PlatformFolders) (in folder src/sago)
 - [subprocess](https://github.com/sheredom/subprocess.h) (as file src/runtime_methods/subprocess.h)
