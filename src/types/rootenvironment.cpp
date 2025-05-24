@@ -2,6 +2,69 @@
 #include <iostream>
 #include <sstream>
 namespace Tesses::CrossLang {
+    bool TRootEnvironment::TryFindClass(std::vector<std::string>& name, size_t& index)
+    {
+        for(size_t i = 0; i < this->classes.size(); i++)
+        {
+            if(classes[i].first->classes.at(classes[i].second).name.size() != name.size()) continue;
+            for(size_t j = 0; j < name.size(); j++)
+                if(classes[i].first->classes.at(classes[i].second).name[j] != name[j]) continue;
+            index=i;
+            return true;
+        }
+        return false;
+    }
+    bool TRootEnvironment::HasVariableOrFieldRecurse(std::string key,bool setting)
+    {
+        std::string property=(setting? "set":"get") + key;
+        if(this->HasVariable(property))
+        {
+            auto res = this->GetVariable(property);
+            TCallable* callable;
+            if(GetObjectHeap(res,callable)) return true;
+        }
+
+        return this->HasVariable(key);
+    }
+    TObject TRootEnvironment::GetVariable(GCList& ls, std::string key)
+    {
+        ls.GetGC()->BarrierBegin();
+        if(this->HasVariable("get" + key))
+        {
+            auto item = this->GetVariable("get"+key);
+            TCallable* callable;
+            if(GetObjectHeap(item,callable))
+            {
+                ls.GetGC()->BarrierEnd();
+                return callable->Call(ls,{});
+            }
+        }
+        
+        auto item = this->GetVariable(key);
+        ls.GetGC()->BarrierEnd();
+
+        return item;
+    }
+    TObject TRootEnvironment::SetVariable(GCList& ls, std::string key, TObject value)
+    {
+        ls.GetGC()->BarrierBegin();
+        if(this->HasVariable("set" + key))
+        {
+            auto item = this->GetVariable("set"+key);
+            TCallable* callable;
+            if(GetObjectHeap(item,callable))
+            {
+                ls.GetGC()->BarrierEnd();
+                return callable->Call(ls,{value});
+            }
+        }
+        
+        this->SetVariable(key,value);
+        ls.GetGC()->BarrierEnd();
+
+        return value;
+    }
+            
     void TRootEnvironment::LoadDependency(GC* gc,Tesses::Framework::Filesystem::VFS* vfs, std::pair<std::string,TVMVersion> dep)
     {
          for(auto item : this->dependencies)
@@ -45,9 +108,115 @@ namespace Tesses::CrossLang {
             f->Load(ls.GetGC(),&ms);
         return this->LoadFile(ls.GetGC(), f);
     }
+    TDictionary* TEnvironment::EnsureDictionary(GC* gc, std::string key)
+    {
+        TObject item = this->GetVariable(key);
+        TDictionary* dict;
+        if(GetObjectHeap(item,dict)) return dict;
+        GCList ls(gc);
+        dict = TDictionary::Create(ls);
+        this->DeclareVariable(key, dict);
+        return dict;
+    }
+    void TEnvironment::DeclareVariable(GC* gc, std::vector<std::string> name, TObject o)
+    {
+        if(name.size() == 0)
+                throw VMException("name can't be empty.");
+
+            else if(name.size() == 1)
+            {
+                GCList ls(gc);
+               
+                gc->BarrierBegin();
+                this->DeclareVariable(name[0],o);
+                gc->BarrierEnd();
+            }
+            else
+            {
+                GCList ls(gc);
+               
+                TObject v = this->GetVariable(name[0]);
+                TDictionary* dict=nullptr;
+                if(std::holds_alternative<THeapObjectHolder>(v))
+                {
+                    dict=dynamic_cast<TDictionary*>(std::get<THeapObjectHolder>(v).obj);
+                    if(dict == nullptr)
+                    {
+                        dict = TDictionary::Create(ls);
+                        gc->BarrierBegin();
+                        this->SetVariable(name[0],dict);
+                        gc->BarrierEnd();
+                    }
+                }
+                else
+                {
+                    dict = TDictionary::Create(ls);
+                    gc->BarrierBegin();
+                    this->DeclareVariable(name[0],dict);
+                    gc->BarrierEnd();
+                }
+
+                for(size_t i = 1; i < name.size()-1; i++)
+                {
+                    gc->BarrierBegin();
+                    auto v = dict->GetValue(name[i]);
+                    gc->BarrierEnd();
+                    if(std::holds_alternative<THeapObjectHolder>(v))
+                    {
+                        auto dict2=dynamic_cast<TDictionary*>(std::get<THeapObjectHolder>(v).obj);
+                        if(dict2 == nullptr)
+                        {
+                            dict2 = TDictionary::Create(ls);
+                            gc->BarrierBegin();
+                            dict->SetValue(name[i],dict2);
+                            gc->BarrierEnd();
+                        }
+                        dict = dict2;
+                    }
+                    else
+                    {
+                        auto dict2 = TDictionary::Create(ls);
+                        gc->BarrierBegin();
+                        dict->SetValue(name[i],dict2);
+                        gc->BarrierEnd();
+                        dict = dict2;
+                    }
+                }
+                gc->BarrierBegin();
+                dict->SetValue(name[name.size()-1],o);
+                gc->BarrierEnd();
+            }
+    }
+
     TObject TEnvironment::LoadFile(GC* gc, TFile* file)
     {
-          for(auto fn : file->functions)
+        file->EnsureCanRunInCrossLang();
+        for(size_t i = 0; i < file->classes.size(); i++)
+        {
+            this->GetRootEnvironment()->classes.push_back(std::pair<TFile*,uint32_t>(file,(uint32_t)i));
+            std::vector<std::string> clsPart={"New"};
+            clsPart.insert(clsPart.end(),file->classes[i].name.begin(),file->classes[i].name.end());
+            GCList ls(gc);
+            std::vector<std::string> name=file->classes[i].name;
+            auto rootEnv = this->GetRootEnvironment();
+            this->DeclareVariable(gc, clsPart, TExternalMethod::Create(ls,"Create instance of the class",{"$$args"},[rootEnv,file,i](GCList& ls, std::vector<TObject> args)->TObject{
+                 return TClassObject::Create(ls, file,i,rootEnv,args);
+            }));
+            for(auto meth : file->classes[i].entry)
+            {
+
+                if(meth.isFunction && meth.modifier == TClassModifier::Static)
+                {
+                    std::vector<std::string> method=file->classes[i].name;
+                    method.push_back(meth.name);
+                    auto clo = TClosure::Create(ls,this,file,meth.chunkId);
+                    clo->documentation = meth.documentation;
+                    this->DeclareVariable(gc, method, clo);
+                }
+            }
+            
+        }
+        for(auto fn : file->functions)
         {
             
             std::string name;
@@ -59,76 +228,11 @@ namespace Tesses::CrossLang {
 
             if(fn.second >= file->chunks.size()) throw VMException("ChunkId out of bounds.");
             TFileChunk* chunk = file->chunks[fn.second];
+            GCList ls(gc);
+            TClosure* closure=TClosure::Create(ls,this,file,fn.second);
+            closure->documentation = fn.first[0];
+            this->DeclareVariable(gc,items,closure);
             
-
-            if(items.size() == 0)
-                throw VMException("Function name can't be empty.");
-
-            else if(items.size() == 1)
-            {
-                GCList ls(gc);
-                TClosure* closure=TClosure::Create(ls,this,file,fn.second);
-                closure->documentation = fn.first[0];
-                gc->BarrierBegin();
-                this->DeclareVariable(items[0],closure);
-                gc->BarrierEnd();
-            }
-            else
-            {
-                GCList ls(gc);
-                TClosure* closure=TClosure::Create(ls,this,file,fn.second);
-                closure->documentation = fn.first[0];
-                TObject v = this->GetVariable(items[0]);
-                TDictionary* dict=nullptr;
-                if(std::holds_alternative<THeapObjectHolder>(v))
-                {
-                    dict=dynamic_cast<TDictionary*>(std::get<THeapObjectHolder>(v).obj);
-                    if(dict == nullptr)
-                    {
-                        dict = TDictionary::Create(ls);
-                        gc->BarrierBegin();
-                        this->SetVariable(items[0],dict);
-                        gc->BarrierEnd();
-                    }
-                }
-                else
-                {
-                    dict = TDictionary::Create(ls);
-                    gc->BarrierBegin();
-                    this->DeclareVariable(items[0],dict);
-                    gc->BarrierEnd();
-                }
-
-                for(size_t i = 1; i < items.size()-1; i++)
-                {
-                    gc->BarrierBegin();
-                    auto v = dict->GetValue(items[i]);
-                    gc->BarrierEnd();
-                    if(std::holds_alternative<THeapObjectHolder>(v))
-                    {
-                        auto dict2=dynamic_cast<TDictionary*>(std::get<THeapObjectHolder>(v).obj);
-                        if(dict2 == nullptr)
-                        {
-                            dict2 = TDictionary::Create(ls);
-                            gc->BarrierBegin();
-                            dict->SetValue(items[i],dict2);
-                            gc->BarrierEnd();
-                        }
-                        dict = dict2;
-                    }
-                    else
-                    {
-                        auto dict2 = TDictionary::Create(ls);
-                        gc->BarrierBegin();
-                        dict->SetValue(items[i],dict2);
-                        gc->BarrierEnd();
-                        dict = dict2;
-                    }
-                }
-                gc->BarrierBegin();
-                dict->SetValue(items[items.size()-1],closure);
-                gc->BarrierEnd();
-            }
         }
         if(!file->chunks.empty())
         {
@@ -174,7 +278,7 @@ namespace Tesses::CrossLang {
     }
     void TRootEnvironment::SetVariable(std::string key, TObject value)
     {
-        return this->dict->SetValue(key,value);
+        this->dict->SetValue(key,value);
     }
      void TRootEnvironment::DeclareVariable(std::string key, TObject value)
     {

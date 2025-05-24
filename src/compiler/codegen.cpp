@@ -65,7 +65,8 @@ namespace Tesses::CrossLang
         
         if(!this->icon.empty())
             sections++;
-       
+        if(!this->classes.empty())
+            sections++;
        
         WriteInt(stream,sections);
         uint32_t strSz=4;
@@ -181,6 +182,54 @@ namespace Tesses::CrossLang
             Write(stream,buffer.data(),buffer.size());
         }
         
+        if(!classes.empty())
+        {
+            uint32_t len = 4;
+            for(auto& cls : classes)
+            {
+                len += 8;
+                len += cls.name.size() * 4;
+                len += 4;
+                len += cls.inherits.size() * 4;
+                len += 4;
+                for(auto& clsEnt : cls.entries)
+                {
+                    len += 17;
+                    for(auto& arg : clsEnt.arguments) len+=4;
+                }
+            }
+
+            memcpy(buffer,"CLSS",4);
+            Write(stream,buffer,4);
+            WriteInt(stream,len);
+            WriteInt(stream,(uint32_t)classes.size());
+            for(auto& cls : classes)
+            {
+                WriteInt(stream,cls.documentation);
+                WriteInt(stream,(uint32_t)cls.name.size());
+                for(auto namePart : cls.name) WriteInt(stream,namePart);
+
+                WriteInt(stream,(uint32_t)cls.inherits.size());
+                for(auto inhPart : cls.inherits) WriteInt(stream,inhPart);
+
+                WriteInt(stream,(uint32_t)cls.entries.size());
+                
+                for(auto& ent : cls.entries)
+                {
+                    buffer[0] = ent.type;
+                    Write(stream,buffer,1);
+                    WriteInt(stream,ent.documentation);
+                    WriteInt(stream,ent.name);
+                    WriteInt(stream,(uint32_t)ent.arguments.size());
+                    for(auto ar : ent.arguments)
+                    {
+                        WriteInt(stream,ar);
+                    }
+                    WriteInt(stream,ent.closure);
+                }
+            }            
+        }
+
         for(auto& reso : res)
         {
             memcpy(buffer,"RESO",4);
@@ -489,7 +538,122 @@ namespace Tesses::CrossLang
             TWO_EXPR(NotEqualsExpression, NEQ)
             TWO_EXPR(EqualsExpression, EQ)
             TWO_EXPR(XOrExpression, XOR)
-            if(adv.nodeName == RelativePathExpression)
+            if(adv.nodeName == ClassStatement && adv.nodes.size() >= 3 && std::holds_alternative<std::string>(adv.nodes[0]))
+            {
+                CodeGenClass cls;
+                cls.documentation = GetString(std::get<std::string>(adv.nodes[0]));
+                GetFunctionName(cls.name,adv.nodes[1]);
+                GetFunctionName(cls.inherits,adv.nodes[2]);
+                for(size_t i = 3; i < adv.nodes.size(); i++)
+                {
+                    auto& node = adv.nodes[i];
+                    if(std::holds_alternative<AdvancedSyntaxNode>(node))
+                    {
+                        auto& adv2 = std::get<AdvancedSyntaxNode>(node);
+                        CodeGenClassEntry ent;
+                        ent.type = 0;
+                        if(adv2.nodes.size() >= 2 && std::holds_alternative<std::string>(adv2.nodes[0]) && std::holds_alternative<std::string>(adv2.nodes[1]))
+                        {
+                            ent.documentation=GetString(std::get<std::string>(adv2.nodes[0]));
+                            std::string type=std::get<std::string>(adv2.nodes[1]);
+                            if(type == "private") ent.type = 0;
+                            else if(type == "protected") ent.type = 1;
+                            else if(type == "public") ent.type = 2;
+                            else if(type == "static") ent.type = 3;
+                        }
+
+                        if(adv2.nodeName == MethodStatement && adv2.nodes.size() == 4 && std::holds_alternative<AdvancedSyntaxNode>(adv2.nodes[2]) )
+                        {
+                            
+
+                            //documentation,myTkn.text,nameAndArgs,closureData
+                            size_t fnindex=this->chunks.size();
+                            ent.closure=(uint32_t)fnindex;
+                            this->chunks.resize(fnindex+1);
+                            auto& nameAndArgs= std::get<AdvancedSyntaxNode>(adv2.nodes[2]);
+                            if(nameAndArgs.nodeName == FunctionCallExpression && !nameAndArgs.nodes.empty() && std::holds_alternative<AdvancedSyntaxNode>(nameAndArgs.nodes[0]))
+                            {
+                                auto& getvar = std::get<AdvancedSyntaxNode>(nameAndArgs.nodes[0]);
+                                if(getvar.nodeName == GetVariableExpression && getvar.nodes.size() == 1 && std::holds_alternative<std::string>(getvar.nodes[0]))
+                                {
+                               
+                                    ent.name = GetString(std::get<std::string>(getvar.nodes[0]));
+                                    if(nameAndArgs.nodes.size() > 1)
+                                    {
+                                        GetFunctionArgs(ent.arguments, nameAndArgs.nodes[1]);
+                                    }
+                                }
+                                else continue;
+                            }
+
+                            std::vector<ByteCodeInstruction*> fnInstructions;
+                            
+                            GenNode(fnInstructions,adv2.nodes[3],0,-1,-1,-1,-1);
+
+                            this->chunks[fnindex] = std::pair<std::vector<uint32_t>,std::vector<ByteCodeInstruction*>>(ent.arguments, fnInstructions);
+                        }
+                        else if(adv2.nodeName == AbstractMethodStatement && adv2.nodes.size() == 3 && std::holds_alternative<AdvancedSyntaxNode>(adv2.nodes[2]))
+                        {
+                            ent.closure = 0;
+                            ent.type |= 0b00001000;
+                            //documentation,myTkn.text,nameAndArgs
+                            auto& nameAndArgs= std::get<AdvancedSyntaxNode>(adv2.nodes[2]);
+                            if(nameAndArgs.nodeName == FunctionCallExpression && !nameAndArgs.nodes.empty() && std::holds_alternative<AdvancedSyntaxNode>(nameAndArgs.nodes[0]))
+                            {
+                                auto& getvar = std::get<AdvancedSyntaxNode>(nameAndArgs.nodes[0]);
+                                if(getvar.nodeName == GetVariableExpression && getvar.nodes.size() == 1 && std::holds_alternative<std::string>(getvar.nodes[0]))
+                                {
+                                    ent.name = GetString(std::get<std::string>(getvar.nodes[0]));
+                                    if(nameAndArgs.nodes.size() > 1)
+                                    {
+                                        GetFunctionArgs(ent.arguments, nameAndArgs.nodes[1]);
+                                    }
+                                } else continue;
+
+                               
+                            }
+
+                        }
+                        else if(adv2.nodeName == FieldStatement && adv2.nodes.size() == 3 && std::holds_alternative<AdvancedSyntaxNode>(adv2.nodes[2]))
+                        {
+                            auto& setter = std::get<AdvancedSyntaxNode>(adv2.nodes[2]);    
+                            if(setter.nodeName == GetVariableExpression && setter.nodes.size() == 1 && std::holds_alternative<std::string>(setter.nodes[0]))
+                            {
+                                ent.closure = 0;
+                                ent.type |= 0b00001100;
+                               
+                                ent.name = GetString(std::get<std::string>(setter.nodes[0]));
+                                
+                            }
+                            else if(setter.nodeName == AssignExpression && setter.nodes.size() == 2 && std::holds_alternative<AdvancedSyntaxNode>(setter.nodes[0]))
+                            {
+                                auto& getvar = std::get<AdvancedSyntaxNode>(setter.nodes[0]);
+                                if(getvar.nodeName == GetVariableExpression && getvar.nodes.size() == 1 && std::holds_alternative<std::string>(getvar.nodes[0]))
+                                {
+                                    ent.type |= 0b00000100;
+                                    ent.name = GetString(std::get<std::string>(getvar.nodes[0]));
+                                    size_t fnindex=this->chunks.size();
+                                    ent.closure=(uint32_t)fnindex;
+                                    ent.arguments={};
+                                
+                                    this->chunks.resize(fnindex+1);
+
+                                    std::vector<ByteCodeInstruction*> fnInstructions;
+                            
+                                    GenNode(fnInstructions,AdvancedSyntaxNode::Create(ReturnStatement,false,{setter.nodes[1]}),0,-1,-1,-1,-1);
+
+                                    this->chunks[fnindex] = std::pair<std::vector<uint32_t>,std::vector<ByteCodeInstruction*>>({}, fnInstructions);
+                                }
+                                else continue;
+                            }
+                            else continue;
+                        }
+                        cls.entries.push_back(ent);
+                    }
+                }
+                classes.push_back(cls);
+            }
+            else if(adv.nodeName == RelativePathExpression)
             {
                 instructions.push_back(new SimpleInstruction(Instruction::PUSHRELATIVEPATH));
             }

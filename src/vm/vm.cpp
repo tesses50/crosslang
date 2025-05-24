@@ -57,6 +57,13 @@ namespace Tesses::CrossLang {
             auto nat = dynamic_cast<TNative*>(o);
             auto thrd = dynamic_cast<ThreadHandle*>(o);
             auto dt = dynamic_cast<TDateTime*>(o);
+            auto natObj = dynamic_cast<TNativeObject*>(o);
+
+            auto any = dynamic_cast<TAny*>(o);
+            auto cls = dynamic_cast<TClassObject*>(o);
+            if(cls!=nullptr) return true;
+            if(natObj != nullptr) return natObj->ToBool();
+            if(any != nullptr) return any->any.has_value();
            
             if(ls != nullptr)
             {
@@ -156,6 +163,37 @@ namespace Tesses::CrossLang {
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             auto native = dynamic_cast<TNative*>(obj);
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue("","operator==");
+                gc->BarrierEnd();
+                TCallable* callable;
+                
+                if(GetObjectHeap(obj,callable))
+                {
+                    return ToBool(callable->Call(ls,{}));
+                   
+                }
+                else if(std::holds_alternative<std::nullptr_t>(right)) {
+                    return false;
+                }
+                else if(std::holds_alternative<Undefined>(right)) 
+                {
+                    return false;
+                }
+                else if(std::holds_alternative<THeapObjectHolder>(right))
+                {
+                    return cls == std::get<THeapObjectHolder>(right).obj;
+                }
+            }
+             else 
+            if(natObj != nullptr)
+            {
+                return natObj->Equals(gc, right);
+            }
             if(dict != nullptr)
             {
                 gc->BarrierBegin();
@@ -405,7 +443,37 @@ namespace Tesses::CrossLang {
             auto dict = dynamic_cast<TDictionary*>(obj);
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
 
-            if(dict != nullptr)
+             auto natObj = dynamic_cast<TNativeObject*>(obj);
+           
+            
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator-");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{right});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{right}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+            else  if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->CallMethod(ls,"operator-",{right}));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator-");
@@ -459,7 +527,37 @@ namespace Tesses::CrossLang {
             auto dict = dynamic_cast<TDictionary*>(obj);
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
-            if(dict != nullptr)
+             auto natObj = dynamic_cast<TNativeObject*>(obj);
+           
+            
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator*");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{right});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{right}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+            else  if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->CallMethod(ls,"operator*",{right}));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator*");
@@ -537,7 +635,45 @@ namespace Tesses::CrossLang {
             auto dict = dynamic_cast<TDictionary*>(obj);
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
-            if(dict != nullptr)
+             auto natObj = dynamic_cast<TNativeObject*>(obj);
+           
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator/");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{right});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{right}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+            else 
+             if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->CallMethod(ls,"operator/",{right}));
+                return false;
+            }
+            else  
+           
+            
+             if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->CallMethod(ls,"operator/",{right}));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator/");
@@ -592,7 +728,38 @@ namespace Tesses::CrossLang {
             auto dict = dynamic_cast<TDictionary*>(obj);
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
-            if(dict != nullptr)
+
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
+           
+            
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator%");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{right});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{right}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+            else  if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->CallMethod(ls,"operator%",{right}));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator%");
@@ -635,9 +802,38 @@ namespace Tesses::CrossLang {
         {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
-            
-            auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
-            if(dict != nullptr)
+             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
+          
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
+           
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator-");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+             else if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->CallMethod(ls,"operator-",{}));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject negfn = dict->GetValue("operator-");
@@ -692,7 +888,36 @@ namespace Tesses::CrossLang {
             auto dict = dynamic_cast<TDictionary*>(obj);
             
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
-            if(dict != nullptr)
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator!");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+             else 
+            if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, !natObj->ToBool());
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject negfn = dict->GetValue("operator!");
@@ -736,7 +961,35 @@ namespace Tesses::CrossLang {
             auto dict = dynamic_cast<TDictionary*>(obj);
            
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
-            if(dict != nullptr)
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator~");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+             else if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->CallMethod(ls,"operator~",{}));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject negfn = dict->GetValue("operator~");
@@ -819,8 +1072,35 @@ namespace Tesses::CrossLang {
             auto dict = dynamic_cast<TDictionary*>(obj);
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
-          
-            if(dict != nullptr)
+             auto natObj = dynamic_cast<TNativeObject*>(obj);
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator<");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{right});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{right}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+            else if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->CallMethod(ls,"operator<",{right}));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator<");
@@ -904,7 +1184,35 @@ namespace Tesses::CrossLang {
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             
-            if(dict != nullptr)
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator>");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{right});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{right}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+            else if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->CallMethod(ls,"operator>",{right}));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator>");
@@ -987,7 +1295,35 @@ namespace Tesses::CrossLang {
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
            
-            if(dict != nullptr)
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator<=");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{right});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{right}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+            else if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->CallMethod(ls,"operator<=",{right}));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator<=");
@@ -1072,7 +1408,36 @@ namespace Tesses::CrossLang {
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
            
-            if(dict != nullptr)
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator>=");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{right});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{right}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+            else 
+            if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->CallMethod(ls,"operator>=",{right}));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator>=");
@@ -1174,9 +1539,35 @@ namespace Tesses::CrossLang {
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             auto native = dynamic_cast<TNative*>(obj);
-           
-
-            if(dict != nullptr)
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator==");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{right});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{right}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+            else if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->Equals(gc,right));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator==");
@@ -1311,9 +1702,37 @@ namespace Tesses::CrossLang {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
             auto native = dynamic_cast<TNative*>(obj);
-
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
-            if(dict != nullptr)
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator!=");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{right});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{right}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+            else 
+            if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, !natObj->Equals(gc,right));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator!=");
@@ -1393,7 +1812,35 @@ namespace Tesses::CrossLang {
             auto dict = dynamic_cast<TDictionary*>(obj);
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
-            if(dict != nullptr)
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator<<");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{right});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{right}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+            else if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->CallMethod(ls,"operator<<",{right}));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator<<");
@@ -1436,7 +1883,36 @@ namespace Tesses::CrossLang {
             auto dict = dynamic_cast<TDictionary*>(obj);
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
-            if(dict != nullptr)
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator>>");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{right});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{right}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+            else 
+            if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->CallMethod(ls,"operator>>",{right}));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator>>");
@@ -1479,7 +1955,36 @@ namespace Tesses::CrossLang {
             auto dict = dynamic_cast<TDictionary*>(obj);
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
-            if(dict != nullptr)
+
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator|");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{right});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{right}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+            else if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->CallMethod(ls,"operator|",{right}));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator|");
@@ -1522,7 +2027,36 @@ namespace Tesses::CrossLang {
             auto dict = dynamic_cast<TDictionary*>(obj);
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
-            if(dict != nullptr)
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator^");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{right});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{right}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+            else 
+            if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->CallMethod(ls,"operator^",{right}));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator^");
@@ -1565,7 +2099,35 @@ namespace Tesses::CrossLang {
             auto dict = dynamic_cast<TDictionary*>(obj);
 
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
-            if(dict != nullptr)
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator&");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{right});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{right}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+            else if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->CallMethod(ls,"operator&",{right}));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator&");
@@ -1705,7 +2267,35 @@ namespace Tesses::CrossLang {
             auto obj = std::get<THeapObjectHolder>(left).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
-            if(dict != nullptr)
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                gc->BarrierBegin();
+                auto obj=cls->GetValue(cse.back()->callable->className,"operator+");
+                gc->BarrierEnd();
+                TClosure* clos;
+                TCallable* callable;
+                if(GetObjectHeap(obj,clos)) 
+                {
+                    this->AddCallStackEntry(ls,clos,{right});
+                    return true;
+                }
+                else if(GetObjectHeap(obj,callable))
+                {
+                    cse.back()->Push(gc,callable->Call(ls,{right}));
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+               
+            }
+            else if(natObj != nullptr)
+            {
+                cse.back()->Push(gc, natObj->CallMethod(ls,"operator+",{right}));
+                return false;
+            }
+            else if(dict != nullptr)
             {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("operator+");
@@ -2551,6 +3141,13 @@ namespace Tesses::CrossLang {
                 
                 
                 auto svr = dynamic_cast<TServerHeapObject*>(obj);
+                auto natObj = dynamic_cast<TNativeObject*>(obj);
+                auto cls = dynamic_cast<TClassObject*>(obj);
+                if(natObj != nullptr)
+                {
+                    cse.back()->Push(gc, natObj->CallMethod(ls,key,args));
+                    return false;
+                }
                 
                 if(callstackEntry != nullptr)
                 {
@@ -4131,6 +4728,26 @@ namespace Tesses::CrossLang {
                     cse.back()->Push(gc, Undefined());
                     return false;
                 }
+                else if(cls != nullptr)
+                {
+                    gc->BarrierBegin();
+                    auto obj=cls->GetValue(cse.back()->callable->className,key);
+                    gc->BarrierEnd();
+                    TClosure* clos;
+                    TCallable* callable;
+                    if(GetObjectHeap(obj,clos)) 
+                    {
+                        this->AddCallStackEntry(ls,clos,args);
+                        return true;
+                    }
+                    else if(GetObjectHeap(obj,callable))
+                    {
+                        cse.back()->Push(gc,callable->Call(ls,args));
+                        return false;
+                    }
+                    cse.back()->Push(gc,Undefined());
+                    return false;
+                }
                 else if(dict != nullptr)
                 {
                     if(key == "ToString" && !dict->MethodExists(ls, key) && args.empty())
@@ -4391,7 +5008,35 @@ namespace Tesses::CrossLang {
                 auto callstackEntry = dynamic_cast<CallStackEntry*>(obj);
                 auto file = dynamic_cast<TFile*>(obj);
                 auto chunk = dynamic_cast<TFileChunk*>(obj);
-            
+                auto natObj = dynamic_cast<TNativeObject*>(obj);
+                auto cls = dynamic_cast<TClassObject*>(obj);
+                if(cls != nullptr)
+                {
+                    gc->BarrierBegin();
+                    auto obj=cls->GetValue(cse.back()->callable->className,"get"+key);
+                    gc->BarrierEnd();
+                    TClosure* clos;
+                    TCallable* callable;
+                    if(GetObjectHeap(obj,clos)) 
+                    {
+                        this->AddCallStackEntry(ls,clos,{});
+                        return true;
+                    }
+                    else if(GetObjectHeap(obj,callable))
+                    {
+                        cse.back()->Push(gc,callable->Call(ls,{}));
+                        return false;
+                    }
+                    cse.back()->Push(gc,cls->GetValue(cse.back()->callable->className,key));
+                    return false;
+               
+                }
+                else
+                if(natObj != nullptr)
+                {
+                    cse.back()->Push(gc,natObj->CallMethod(ls,"get"+key,{}));
+                    return false;
+                }
                
                 if(file != nullptr)
                 {
@@ -4451,6 +5096,46 @@ namespace Tesses::CrossLang {
                         gc->BarrierEnd();
 
                         cse.back()->Push(gc, list);
+                        return false;
+                    }
+                    else if(key == "Sections")
+                    {
+                        TList* sections = TList::Create(ls);
+                        gc->BarrierBegin();
+                        for(auto& item : file->sections)
+                        {
+                            TByteArray* ba = TByteArray::Create(ls);
+                            ba->data = item.second;
+                            sections->Add(TDictionary::Create(ls,{
+                                TDItem("Name", item.first),
+                                TDItem("Data", ba)
+                            }));
+                        }
+                        gc->BarrierEnd();
+
+                        cse.back()->Push(gc, sections);
+                        return false;
+                    }
+                    else if(key == "SupportedVMs")
+                    {
+                        TList* supported = TList::Create(ls);
+                        gc->BarrierBegin();
+                        if(file->vms.empty()) 
+                        {
+                            supported->Add(TDictionary::Create(ls,{
+                                TDItem("Name",std::string(VMName)),
+                                TDItem("HowToGet",std::string(VMHowToGet))
+                            }));
+                        }
+                        else {
+                            for(auto item : file->vms)
+                                supported->Add(TDictionary::Create(ls,{
+                                    TDItem("Name",item.first),
+                                    TDItem("HowToGet",item.second)
+                                }));
+                        }
+                        gc->BarrierEnd();
+                        cse.back()->Push(gc, supported);
                         return false;
                     }
                     else if(key == "Chunks")
@@ -4760,7 +5445,36 @@ namespace Tesses::CrossLang {
                 auto strm = dynamic_cast<TStreamHeapObject*>(obj);
                 auto dict = dynamic_cast<TDictionary*>(obj);
                 auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
-                
+                auto natObj = dynamic_cast<TNativeObject*>(obj);
+                auto cls = dynamic_cast<TClassObject*>(obj);
+                if(cls != nullptr)
+                {
+                    gc->BarrierBegin();
+                    auto obj=cls->GetValue(cse.back()->callable->className,"set"+key);
+                    gc->BarrierEnd();
+                    TClosure* clos;
+                    TCallable* callable;
+                    if(GetObjectHeap(obj,clos)) 
+                    {
+                        this->AddCallStackEntry(ls,clos,{value});
+                        return true;
+                    }
+                    else if(GetObjectHeap(obj,callable))
+                    {
+                        cse.back()->Push(gc,callable->Call(ls,{value}));
+                        return false;
+                    }
+                    cls->SetValue(cse.back()->callable->className,key,value);
+                    cse.back()->Push(gc,value);
+                    return false;
+               
+                }
+                else 
+                if(natObj != nullptr)
+                {
+                    cse.back()->Push(gc,natObj->CallMethod(ls,"set"+key,{value}));
+                    return false;
+                }
                 auto tcallable = dynamic_cast<TCallable*>(obj);
                 if(tcallable != nullptr)
                 {
@@ -4849,7 +5563,7 @@ namespace Tesses::CrossLang {
             {
                 gc->BarrierBegin();
                 stk->Push(gc, 
-                    stk->env->GetVariable(std::get<std::string>(key)));
+                    stk->env->GetVariable(ls,std::get<std::string>(key)));
                 gc->BarrierEnd();
             }
             else
@@ -4872,8 +5586,8 @@ namespace Tesses::CrossLang {
             if(std::holds_alternative<std::string>(key))
             {
                 gc->BarrierBegin();
-                stk->env->SetVariable(std::get<std::string>(key),value);
-                stk->Push(gc, value);
+                stk->Push(gc,stk->env->SetVariable(ls,std::get<std::string>(key),value));
+                 
                 gc->BarrierEnd();
             }
             else if(GetObjectHeap(key,mls))
@@ -4896,7 +5610,7 @@ namespace Tesses::CrossLang {
                         {
                             auto val = valueLs->Get(i);
                             result->SetValue(mkey, val);
-                            stk->env->SetVariable(mkey,val);
+                            stk->env->SetVariable(ls,mkey,val);
                         }
                     }
                     stk->Push(gc,result);
@@ -4917,7 +5631,7 @@ namespace Tesses::CrossLang {
                             auto val = valueDynList->GetAt(ls,i);
                             gc->BarrierBegin();
                             result->SetValue(mkey, val);
-                            stk->env->SetVariable(mkey,val);
+                            stk->env->SetVariable(ls,mkey,val);
                         }
                     }
                     stk->Push(gc,result);
@@ -4935,7 +5649,7 @@ namespace Tesses::CrossLang {
                         {
                             auto val = valueDict->GetValue(mkey);
                             result->SetValue(mkey, val);
-                            stk->env->SetVariable(mkey,val);
+                            stk->env->SetVariable(ls,mkey,val);
                         }
                     }
                     stk->Push(gc,result);
@@ -4955,7 +5669,7 @@ namespace Tesses::CrossLang {
                             gc->BarrierBegin();
 
                             result->SetValue(mkey, val);
-                            stk->env->SetVariable(mkey,val);
+                            stk->env->SetVariable(ls,mkey,val);
                         }
                     }
                     stk->Push(gc,result);
@@ -4968,7 +5682,7 @@ namespace Tesses::CrossLang {
                         auto item = mls->Get(i);
                         if(GetObject(item,mkey))
                         {
-                            stk->env->SetVariable(mkey, value);
+                            stk->env->SetVariable(ls,mkey, value);
                         }
                     }
                     stk->Push(gc, value);
@@ -5489,6 +6203,7 @@ namespace Tesses::CrossLang {
                 gc->BarrierBegin();
                 GCList ls(gc);
                 TClosure* closure = TClosure::Create(ls,stk->env,stk->callable->file,n,true);
+                closure->className = cse.back()->callable->className;
                 stk->Push(gc,closure);
                 gc->BarrierEnd();
             }
@@ -5516,6 +6231,7 @@ namespace Tesses::CrossLang {
                 gc->BarrierBegin();
                 GCList ls(gc);
                 TClosure* closure = TClosure::Create(ls,stk->env,stk->callable->file,n,false);
+                closure->className = stk->callable->className;
                 stk->Push(gc,closure);
                 gc->BarrierEnd();
             }
@@ -6187,6 +6903,24 @@ namespace Tesses::CrossLang {
             auto dict = dynamic_cast<TDictionary*>(obj);
             auto list = dynamic_cast<TList*>(obj);
             auto bArray = dynamic_cast<TByteArray*>(obj);
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
+            auto cls = dynamic_cast<TClassObject*>(obj);
+            if(cls != nullptr)
+            {
+                auto res = cls->GetValue("","ToString");
+                TCallable* call;
+                GCList ls(gc);
+                if(GetObjectHeap(res,call)) return ToString(gc, call->Call(ls,{}));
+                return cls->TypeName();
+            }
+            if(natObj != nullptr)
+            {
+                GCList ls(gc);
+                TObject o=natObj->CallMethod(ls,"ToString",{});
+               
+
+                return ToString(gc, o);
+            }
             
             if(dict != nullptr)
             {

@@ -2,6 +2,11 @@
 
 namespace Tesses::CrossLang 
 {
+    TNativeObject::~TNativeObject()
+    {
+
+    }
+
     TNative::TNative(void* ptr,std::function<void(void*)> destroy)
     {
         this->ptr = ptr;
@@ -33,6 +38,18 @@ namespace Tesses::CrossLang
             this->destroyed=true;
             this->destroy(this->ptr);
         }
+    }
+    bool TNativeObject::ToBool()
+    {
+        return true;
+    }
+    bool TNativeObject::Equals(GC* gc, TObject right)
+    {
+        if(std::holds_alternative<THeapObjectHolder>(right))
+        {
+            return this == std::get<THeapObjectHolder>(right).obj;
+        }
+        return false;
     }
     TNative* TNative::Create(GCList& ls, void* ptr,std::function<void(void*)> destroy)
     {

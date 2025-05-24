@@ -928,11 +928,15 @@ namespace Tesses::CrossLang
     }
     SyntaxNode Parser::ParseNode(bool isRoot)
     {
+        std::string documentation="";
         if(i < tokens.size() && !isRoot && tokens[i].type == Documentation)
         {
             auto txt = tokens[i].text;
             i++;
-            return AdvancedSyntaxNode::Create(DocumentationStatement,false,{txt,ParseNode()});
+            if(i < tokens.size() && tokens[i].text == "class" && tokens[i].type == LexTokenType::Identifier)
+                documentation = txt;
+            else 
+                return AdvancedSyntaxNode::Create(DocumentationStatement,false,{txt,ParseNode()});
         }
         if(IsSymbol("{") || isRoot)
         {
@@ -1056,99 +1060,93 @@ namespace Tesses::CrossLang
             }
             return AdvancedSyntaxNode::Create(EachStatement,false,{item,list,body});
         }
-        if(IsIdentifier("object"))
+        if(IsIdentifier("class"))
         {
-            //TODO: complete this
             if(i < tokens.size())
             {
-                std::string name = tokens[i++].text;
-                EnsureSymbol("{");
-                std::vector<SyntaxNode> name_and_methods;
+                std::vector<SyntaxNode> name_and_methods={documentation};
+                
+                auto name = ParseExpression();
                 name_and_methods.push_back(name);
+
+                if(IsSymbol(":",true))
+                {
+                    name_and_methods.push_back(ParseExpression());
+                }
+                else 
+                {
+                    name_and_methods.push_back(AdvancedSyntaxNode::Create(GetVariableExpression,true,{"ClassObject"}));
+                }
+                EnsureSymbol("{");
+                
 
                 while(!IsSymbol("}",false) && i < tokens.size())
                 {
-                    std::string documentation = "";
-                    bool hasDocumentation=false;
-
+                    documentation="";
                     
 
                     if(tokens[i].type == LexTokenType::Documentation)
                     {
-                        hasDocumentation=true;
                         documentation = tokens[i++].text;
                     }
 
                     if(i < tokens.size())
                     {
-                        if(IsIdentifier("method")) 
+                        if(IsAnyIdentifier({"public","private","protected","static"})) 
                         {
-                            auto nameAndArgs = ParseExpression();
-            
-                            if(IsSymbol("{",false))
+                            auto myTkn = tkn;
+                            if(IsIdentifier("abstract"))
                             {
-                                auto r = AdvancedSyntaxNode::Create(MethodDeclaration,false,{nameAndArgs,ParseNode()});
-                                if(hasDocumentation)
-                                {
-                                    name_and_methods.push_back(AdvancedSyntaxNode::Create(DocumentationStatement,false,{documentation,r}));
-                                }
-                                else 
-                                {
-                                    name_and_methods.push_back(r);    
-                                }
-                            }
-                            else
-                            {
-                                auto v = ParseExpression();
-
+                                if(myTkn.text == "static") throw SyntaxException(myTkn.lineInfo,"Static abstract function doesn't make sense");
+                                auto nameAndArgs = ParseExpression();
                                 EnsureSymbol(";");
-                                auto r= AdvancedSyntaxNode::Create(MethodDeclaration,false,{nameAndArgs,AdvancedSyntaxNode::Create(ReturnStatement,false,{v})});
-                                if(hasDocumentation)
-                                {
-                                    name_and_methods.push_back(AdvancedSyntaxNode::Create(DocumentationStatement,false,{documentation,r}));
-                                }
-                                else 
-                                {
-                                    name_and_methods.push_back(r);    
-                                }
+                                
+                                
+                                name_and_methods.push_back(AdvancedSyntaxNode::Create(AbstractMethodStatement,false,{documentation,myTkn.text,nameAndArgs}));
+                                
+                                
+                                
                             }
-                        }
-                        else if(IsIdentifier("static")) 
-                        {
-                            auto nameAndArgs = ParseExpression();
-            
-                            if(IsSymbol("{",false))
+                            else if(i + 1 < tokens.size() && (tokens[i+1].text == "=" || tokens[i+1].text == ";") && tokens[i+1].type == LexTokenType::Symbol)
                             {
-                                auto r = AdvancedSyntaxNode::Create(StaticStatement,false,{nameAndArgs,ParseNode()});
-                                if(hasDocumentation)
-                                {
-                                    name_and_methods.push_back(AdvancedSyntaxNode::Create(DocumentationStatement,false,{documentation,r}));
-                                }
-                                else 
-                                {
-                                    name_and_methods.push_back(r);    
-                                }
-                            }
-                            else
-                            {
-                                auto v = ParseExpression();
-
+                                auto setter = ParseExpression();
                                 EnsureSymbol(";");
-                                auto r= AdvancedSyntaxNode::Create(StaticStatement,false,{nameAndArgs,AdvancedSyntaxNode::Create(ReturnStatement,false,{v})});
-                                if(hasDocumentation)
+
+                                SyntaxNode field = AdvancedSyntaxNode::Create(FieldStatement,false,{
+                                    documentation,
+                                    myTkn.text,
+                                    
+                                    setter
+                                });
+
+                                name_and_methods.push_back(field);
+                                
+                            }
+                            else 
+                            {
+                                auto nameAndArgs = ParseExpression();
+                                
+                                if(IsSymbol("{",false))
                                 {
-                                    name_and_methods.push_back(AdvancedSyntaxNode::Create(DocumentationStatement,false,{documentation,r}));
+
+                                
+                                    name_and_methods.push_back(AdvancedSyntaxNode::Create(MethodStatement,false,{documentation,myTkn.text,nameAndArgs,ParseNode()}));
+                                   
                                 }
-                                else 
+                                else
                                 {
-                                    name_and_methods.push_back(r);    
+                                    auto v = ParseExpression();
+                                    EnsureSymbol(";");
+                                    name_and_methods.push_back(AdvancedSyntaxNode::Create(MethodStatement,false,{documentation,myTkn.text,nameAndArgs,AdvancedSyntaxNode::Create(ReturnStatement,false,{v})}));
+                                    
                                 }
+                           
                             }
                         }
                     }
                 }
                 EnsureSymbol("}");
-                return AdvancedSyntaxNode::Create(ObjectStatement, false, name_and_methods);
+                return AdvancedSyntaxNode::Create(ClassStatement, false, name_and_methods);
             }
             else throw std::out_of_range("End of file");
         }

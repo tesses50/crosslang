@@ -5,6 +5,88 @@ namespace Tesses::CrossLang  {
     {
         return this->dict;
     }
+    bool TSubEnvironment::HasVariableOrFieldRecurse(std::string key,bool setting)
+    {
+        std::string property=(setting? "set":"get") + key;
+        if(this->HasVariable(property))
+        {
+            auto res = this->GetVariable(property);
+            TCallable* callable;
+            if(GetObjectHeap(res,callable)) return true;
+        }
+
+        if(this->HasVariable(key)) return true;
+
+        return this->env->HasVariableOrFieldRecurse(key,setting);
+    }
+    TObject TSubEnvironment::GetVariable(GCList& ls, std::string key)
+    {
+        ls.GetGC()->BarrierBegin();
+        if(this->HasVariable("get" + key))
+        {
+            auto item = this->GetVariable("get"+key);
+            TCallable* callable;
+            if(GetObjectHeap(item,callable))
+            {
+                ls.GetGC()->BarrierEnd();
+                return callable->Call(ls,{});
+            }
+        }
+        
+        if(this->HasVariable(key))
+        {
+            auto item = this->GetVariable(key);
+            ls.GetGC()->BarrierEnd();
+            return item;
+        }
+        if(this->env->HasVariableOrFieldRecurse(key))
+        {
+            ls.GetGC()->BarrierEnd();
+            return this->env->GetVariable(ls,key);
+        }
+        ls.GetGC()->BarrierEnd();
+        
+        
+        
+        return Undefined();
+    }
+    TObject TSubEnvironment::SetVariable(GCList& ls, std::string key, TObject value)
+    {
+        ls.GetGC()->BarrierBegin();
+        if(this->HasVariable("set" + key))
+        {
+            auto item = this->GetVariable("set"+key);
+            TCallable* callable;
+            if(GetObjectHeap(item,callable))
+            {
+                ls.GetGC()->BarrierEnd();
+                return callable->Call(ls,{value});
+            }
+        }
+        
+        if(this->HasVariable(key))
+        {
+            this->SetVariable(key,value);
+            ls.GetGC()->BarrierEnd();
+            return value;
+        }
+        if(this->env->HasVariableOrFieldRecurse(key,true))
+        {
+            ls.GetGC()->BarrierEnd();
+            return this->env->SetVariable(ls,key,value);
+        }
+        else
+        {
+            this->env->SetVariable(key,value);
+
+            ls.GetGC()->BarrierEnd();
+            return value;
+        }
+        ls.GetGC()->BarrierEnd();
+        
+        
+    }
+            
     TObject TSubEnvironment::GetVariable(std::string key)
     {
         if(this->dict->HasValue(key))

@@ -23,6 +23,7 @@ option(CROSSLANG_ENABLE_TIME "Enable Time" ON)
 option(CROSSLANG_SHARED_EXECUTABLES "Link with libcrosslang_shared" ON)
 option(CROSSLANG_FETCHCONTENT "Use fetchcontent" ON)
 option(CROSSLANG_ENABLE_CONFIG_ENVVAR "Allow setting config directory via the environment variable CROSSLANG_CONFIG" ON)
+option(CROSSLANG_ENABLE_FFI "Enable libffi" OFF)
 
 option(CROSSLANG_CUSTOM_CONSOLE "Enable custom Console" OFF)
 
@@ -60,7 +61,21 @@ FetchContent_MakeAvailable(TessesFramework)
 else()
 find_package(TessesFramework REQUIRED)
 endif()
+
+if(CROSSLANG_ENABLE_FFI)
+find_package(PkgConfig)
+endif()
+
+if(CROSSLANG_ENABLE_FFI AND CROSSLANG_ENABLE_SHARED)
+pkg_check_modules(LIBFFI REQUIRED IMPORTED_TARGET libffi)
+endif()
 function(CROSSLANG_LINK_DEPS CROSSLANG_TARGET_NAME)
+if(CROSSLANG_ENABLE_FFI AND CROSSLANG_ENABLE_SHARED)
+
+target_compile_definitions(${CROSSLANG_TARGET_NAME} PUBLIC CROSSLANG_ENABLE_FFI)
+target_link_libraries(${CROSSLANG_TARGET_NAME} PUBLIC PkgConfig::LIBFFI)
+
+endif()
 if(CROSSLANG_ENABLE_TIME)
 target_compile_definitions(${CROSSLANG_TARGET_NAME} PUBLIC CROSSLANG_ENABLE_TIME)
 endif()
@@ -123,6 +138,7 @@ src/runtime_methods/ogc.cpp
 src/runtime_methods/path.cpp
 src/runtime_methods/env.cpp
 src/runtime_methods/process.cpp
+src/types/any.cpp
 src/types/datetime.cpp
 src/types/ittr.cpp
 src/types/closure.cpp
@@ -134,6 +150,8 @@ src/types/rootenvironment.cpp
 src/types/subenvironment.cpp
 src/types/vfsheapobject.cpp
 src/types/streamheapobject.cpp
+src/types/class.cpp
+src/types/classenvironment.cpp
 src/vm/filereader.cpp
 src/vm/gc.cpp
 src/vm/gclist.cpp
@@ -232,7 +250,7 @@ endif()
 if(CROSSLANG_ENABLE_BINARIES)
 if(CROSSLANG_ENABLE_SHARED AND CROSSLANG_SHARED_EXECUTABLES)
 set(CMAKE_MACOSX_RPATH 1)
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
 add_executable(crossc src/crosslangcompiler.cpp ${CROSSLANG_WIN32_EXE_SRC})
 add_executable(crossvm src/crosslangvm.cpp ${CROSSLANG_WIN32_EXE_SRC})
 add_executable(crossint src/crosslanginterperter.cpp ${CROSSLANG_WIN32_EXE_SRC})

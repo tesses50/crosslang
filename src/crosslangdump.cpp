@@ -86,6 +86,83 @@ void DumpFile(std::filesystem::path p)
                 {
                     std::cout << "Name: " << strs.at((size_t)EnsureInt(strm)) << std::endl;
                 }
+                else if(tableName == "CLSS")
+                {
+                    std::cout << "Classes:\n";
+                    uint32_t clss_cnt= EnsureInt(strm);
+                    for(uint32_t j = 0; j < clss_cnt; j++)
+                    {
+                        std::cout << "\t/^" << strs.at(EnsureInt(strm)) << "^/" << std::endl;
+                        uint32_t fnPartsC = EnsureInt(strm);
+                        std::cout << "\tName: ";
+                        for(uint32_t k = 0; k < fnPartsC; k++)
+                        {
+                            if(k > 0) std::cout << ".";
+                            std::cout << strs.at(EnsureInt(strm));
+                        }
+                        std::cout << std::endl;
+                        fnPartsC = EnsureInt(strm);
+                        std::cout << "\tInherits: ";
+                        for(uint32_t k = 0; k < fnPartsC; k++)
+                        {
+                            if(k > 0) std::cout << ".";
+                            std::cout << strs.at(EnsureInt(strm));
+                        }
+                        std::cout << std::endl;
+
+                        uint32_t ents = EnsureInt(strm);
+
+                        for(uint8_t k = 0; k < ents; k++)
+                        {
+                            Ensure(strm,main_header,1);
+                            uint8_t flags = main_header[0];
+                            std::cout << "\t\t/^" << strs.at(EnsureInt(strm)) << "^/" << std::endl;
+                            std::string fnname = strs.at(EnsureInt(strm));
+                            std::string fnargs;
+                            uint32_t argParts = EnsureInt(strm);
+
+                            for(uint32_t l = 0; l < argParts; l++)
+                            {
+                                if(l > 0) fnargs += ", ";
+                                fnargs += strs.at(EnsureInt(strm));
+                            }
+                            uint32_t fnchunk = EnsureInt(strm);
+                            switch(flags & 3)
+                            {
+                                case 0:
+                                    std::cout << "\t\tprivate ";
+                                    break;
+                                case 1:
+                                    std::cout << "\t\tprotected ";
+                                    break;
+                                case 2:
+                                    std::cout << "\t\tpublic ";
+                                    break;
+                                case 3:
+                                    std::cout << "\t\tstatic ";
+                                    break;
+                            }
+
+                            switch((flags >> 2) & 3)
+                            {
+                                case 0:
+                                    std::cout << "func " << fnname << "(" << fnargs << "), chunk = " << fnchunk << std::endl;
+                                
+                                    break;
+                                case 1:
+                                    std::cout << "field " << fnname << ", chunk = " << fnchunk << std::endl;
+                                    break;
+                                case 2:
+                                    std::cout << "abstract " << fnname << "(" << fnargs << ")" << std::endl;
+                                    break;
+                                case 3:
+                                    std::cout << "unset_field " << fnname << std::endl;
+                                    break;
+                            }
+                            std::cout << std::endl;
+                        }
+                    }
+                }
                 else if(tableName == "CHKS")
                 {
                     size_t chunkCount = (size_t)EnsureInt(strm);

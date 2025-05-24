@@ -52,6 +52,7 @@ namespace Tesses::CrossLang {
     TClosure* TClosure::Create(GCList& ls,TEnvironment* env,TFile* file,uint32_t chunkId,bool ownScope)
     {
         TClosure* closure = new TClosure();
+        closure->className="";
         closure->ownScope=ownScope;
         GC* _gc = ls.GetGC();
         ls.Add(closure);
@@ -68,6 +69,7 @@ namespace Tesses::CrossLang {
     TClosure* TClosure::Create(GCList* ls,TEnvironment* env,TFile* file,uint32_t chunkId,bool ownScope)
     {
         TClosure* closure = new TClosure();
+        closure->className="";
         closure->ownScope=ownScope;
         GC* _gc = ls->GetGC();
         ls->Add(closure);

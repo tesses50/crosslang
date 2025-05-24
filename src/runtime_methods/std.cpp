@@ -1,5 +1,8 @@
 #include "CrossLang.hpp"
 #if defined(CROSSLANG_ENABLE_SHARED)
+#if defined(CROSSLANG_ENABLE_FFI)
+#include <ffi.h>
+#endif
 #if defined(_WIN32)
 #include <windows.h>
 
@@ -21,6 +24,7 @@
 #include <unistd.h>
 #endif
 #endif
+
 
 
 
@@ -59,6 +63,357 @@ namespace Tesses::CrossLang
                 #endif
             }
     };
+    #endif
+    #if defined(CROSSLANG_ENABLE_FFI)
+    typedef union {
+        ffi_arg v_arg;
+        ffi_sarg v_sarg;
+        uint64_t v_u64;
+        int64_t v_i64;
+        double v_f64;
+        void* v_ptr;
+
+    } ffi_tmp_type_t;
+
+    template<typename T>
+    class ffi_my_struct_t {
+        char ffi_my_struct_chr;
+        T ffi_my_struct_val;
+
+        public:
+            static int64_t GetPadding()
+            {
+                ffi_my_struct_t<T> s;
+                return ((int64_t)&s.ffi_my_struct_val - (int64_t)&s.ffi_my_struct_chr);
+            }
+    };
+
+
+
+    ffi_tmp_type_t FFI_ConvertTObjectToFFIType(TObject& arg,std::string t)
+    {
+        
+        if(std::holds_alternative<char>(arg))
+        {
+            if(t == "char" || t == "i8" || t == "i16" || t == "i32")
+            {
+                return (ffi_tmp_type_t){.v_sarg = std::get<char>(arg)};
+            }
+            else if(t == "u8" || t == "u16" || t == "u32")
+            {
+                return (ffi_tmp_type_t){.v_arg = (uint8_t)std::get<char>(arg)};
+            }
+            else if(t == "u64")
+            {
+                return (ffi_tmp_type_t){.v_u64 = (uint8_t)std::get<char>(arg)};
+            }
+            else if(t == "i64")
+            {
+                return (ffi_tmp_type_t){.v_i64 = std::get<char>(arg)};
+            }
+        }
+        else if(std::holds_alternative<int64_t>(arg))
+        {
+            if(t == "u8" || t == "u16" || t == "u32")
+            {
+                return (ffi_tmp_type_t){.v_arg = (ffi_arg)(uint64_t)std::get<int64_t>(arg)};
+            }
+            else if(t == "char" || t == "i8" || t == "i16" || t == "i32")
+            {
+                return (ffi_tmp_type_t){.v_sarg = (ffi_sarg)std::get<int64_t>(arg)};
+            }
+            else if(t == "u64")
+            {
+                return (ffi_tmp_type_t){.v_u64 = (uint64_t)std::get<int64_t>(arg)};
+            }
+            else if(t == "i64")
+            {
+                return (ffi_tmp_type_t){.v_i64 =std::get<int64_t>(arg)};
+            }
+            else if(t == "pointer" || t == "string")
+            {
+                return (ffi_tmp_type_t){.v_ptr = (void*)std::get<int64_t>(arg)};
+            }
+        }
+        else if(std::holds_alternative<double>(arg))
+        {
+            if(t == "f64")
+            {
+                return (ffi_tmp_type_t){.v_f64 =std::get<double>(arg)};
+            }
+        }
+        else if(std::holds_alternative<std::string>(arg))
+        {
+            if(t == "pointer" || t == "string")
+            {
+                return (ffi_tmp_type_t){.v_ptr = (void*)std::get<std::string>(arg).c_str()};
+            }
+        }
+        else if(std::holds_alternative<THeapObjectHolder>(arg))
+        {
+            auto obj = std::get<THeapObjectHolder>(arg).obj;
+            auto bA = dynamic_cast<TByteArray*>(obj);
+            auto nat = dynamic_cast<TNative*>(obj);
+            if(bA != nullptr)
+            {
+                if(t == "pointer" || t == "string")
+                {
+                    return (ffi_tmp_type_t){.v_ptr = (void*)bA->data.data() };
+                }
+            }
+            if(nat != nullptr)
+            {
+                if(t == "pointer" || t == "string")
+                {
+                    return (ffi_tmp_type_t){.v_ptr = nat->GetPointer() };
+                }
+            }
+        }
+
+
+        return {0};
+    }
+
+    ffi_type* FFI_ConvertStringToFFIType(std::string t)
+    {
+        if(t == "char")
+        {
+            return &ffi_type_schar;
+        }
+        else if(t == "i8")
+        {
+            return &ffi_type_sint8;
+        }
+        else if(t == "u8")
+        {
+            return &ffi_type_uint8;
+        }
+        else if(t == "i16")
+        {
+            return &ffi_type_sint16;
+        }
+        else if(t == "u16")
+        {
+            return &ffi_type_uint16;
+        }
+        else if(t == "i32")
+        {
+            return &ffi_type_sint32;
+        }
+        else if(t == "u32")
+        {
+            return &ffi_type_uint32;
+        }
+        else if(t == "i64")
+        {
+            return &ffi_type_sint64;
+        }
+        else if(t == "u64")
+        {
+            return &ffi_type_uint64;
+        }
+        else if(t == "float")
+        {
+            return &ffi_type_float;
+        }
+        else if(t == "double")
+        {
+            return &ffi_type_double;
+        }
+        else if(t == "void")
+        {
+            return &ffi_type_void;
+        }
+        else if(t == "pointer" || t == "string")
+        {
+            return &ffi_type_pointer;
+        }
+        return nullptr;
+    }
+    TExternalMethod* FFI_CreateFunction(GCList& ls,TNative* native,std::string retVal,std::vector<std::string> listArgs,ffi_abi abi,bool freeRet)
+    {
+        ffi_type* retTypeT = FFI_ConvertStringToFFIType(retVal);
+        std::vector<ffi_type*> argTypes;
+
+        argTypes.resize(listArgs.size());
+        for(size_t i = 0; i < listArgs.size();i++)
+        {
+            argTypes[i] = FFI_ConvertStringToFFIType(listArgs[i]);
+        }
+        auto cb = TExternalMethod::Create(ls,"FFI Generated function, returns: " + retVal,listArgs, [retVal,listArgs,abi,native,freeRet,argTypes,retTypeT](GCList& ls, std::vector<TObject> args)->TObject {
+                    if(args.size() != listArgs.size()) throw VMException("Args must be " + std::to_string(listArgs.size()) + "but got " + std::to_string(args.size()) + ".");
+                    ffi_cif cif;
+                    
+                    std::vector<void*> argVals;
+                    std::vector<ffi_tmp_type_t> tmpTypes;
+                    argVals.resize(listArgs.size());
+                    tmpTypes.resize(listArgs.size());
+                    for(size_t i = 0; i < argTypes.size(); i++)
+                    {
+                        
+                        tmpTypes[i] = FFI_ConvertTObjectToFFIType(args[i],listArgs[i]);
+                        if(listArgs[i] == "char" || listArgs[i] == "i8" || listArgs[i] == "i16" || listArgs[i] == "i32" || listArgs[i] == "u8" || listArgs[i] == "u16" || listArgs[i] == "u32")
+                        {
+                            argVals[i] = (void*)&(tmpTypes[i].v_arg);
+                        }
+                       
+                        else if(listArgs[i] == "u64" || listArgs[i] == "i64")
+                        {
+                            argVals[i] = (void*)&(tmpTypes[i].v_u64);
+                        }
+                        else if(listArgs[i] == "pointer" || listArgs[i] == "string")
+                        {
+                            argVals[i] = (void*)&(tmpTypes[i].v_ptr);
+                        }
+                        else if(listArgs[i] == "f64")
+                        {
+                            argVals[i] = (void*)&(tmpTypes[i].v_f64);
+                        }
+                    }
+                    ffi_prep_cif(&cif, abi,(unsigned int)listArgs.size(),retTypeT,(ffi_type**)argTypes.data());
+
+                    ffi_tmp_type_t retObj;
+                    void* retPtr=NULL;
+                    if(retVal == "char" || retVal == "i8" || retVal == "u8" || retVal == "i16" || retVal == "u16" || retVal == "i32" || retVal == "u32")
+                    {
+                        retPtr = (void*)&(retObj.v_arg);
+                    }
+                    else if(retVal == "i64" || retVal == "u64")
+                    {
+                        retPtr = (void*)&(retObj.v_u64);
+                    }
+                    else if(retVal == "f64")
+                    {
+                        retPtr = (void*)&(retObj.v_f64);
+                    }
+                    else if(retVal == "pointer" || retVal == "string")
+                    {
+                        retPtr = (void*)&(retObj.v_ptr);
+                    }
+                    
+
+                    ffi_call(&cif, (void(*)())native->GetPointer() , retPtr, argVals.data());
+
+                    
+
+                    if(retVal == "char") return (char)retObj.v_sarg;
+                    if(retVal == "i8" || retVal == "i16" || retVal == "i32") return (int64_t)retObj.v_sarg;
+                    if(retVal == "u8" || retVal == "u16" || retVal == "u32") return (int64_t)retObj.v_arg;
+                    if(retVal == "i64" || retVal == "u64") return retObj.v_i64;
+                    if(retVal == "f64") return retObj.v_f64;
+                    if(retVal == "string")
+                    {
+                        std::string res = (char*)retObj.v_ptr;
+                        if(freeRet)
+                            free(retObj.v_ptr);
+                        return res;
+                    }
+                    if(retVal == "pointer")
+                    {
+                        TNative* native3 = TNative::Create(ls,retObj.v_ptr,[freeRet](void* _ptr)->void {
+                            if(freeRet) free(_ptr);
+                        });
+                        native3->other = native;
+                        return native3;
+                    }
+                    return nullptr;
+                });
+                cb->watch.push_back(native);
+                return cb;
+    }
+
+    
+    
+
+    void RegisterFFI(GC* gc, TDictionary* dict)
+    {
+        dict->SetValue("SizeOfChar",(int64_t)sizeof(char));
+        dict->SetValue("SizeOfShort",(int64_t)sizeof(short));
+        dict->SetValue("SizeOfInt",(int64_t)sizeof(int));
+        dict->SetValue("SizeOfLong",(int64_t)sizeof(long));
+        dict->SetValue("SizeOfLongLong",(int64_t)sizeof(long long));
+        dict->SetValue("SizeOfInt8",(int64_t)sizeof(int8_t));
+        dict->SetValue("SizeOfInt16",(int64_t)sizeof(int16_t));
+        dict->SetValue("SizeOfInt32",(int64_t)sizeof(int32_t));
+        dict->SetValue("SizeOfInt64",(int64_t)sizeof(int64_t));
+        dict->SetValue("SizeOfFloat",(int64_t)sizeof(float));
+        dict->SetValue("SizeOfDouble",(int64_t)sizeof(double));
+        dict->SetValue("SizeOfPointer",(int64_t)sizeof(void*));
+        dict->SetValue("PaddingOfShort",ffi_my_struct_t<short>::GetPadding());
+        dict->SetValue("PaddingOfInt",ffi_my_struct_t<int>::GetPadding());
+        dict->SetValue("PaddingOfLong",ffi_my_struct_t<long>::GetPadding());
+        dict->SetValue("PaddingOfLongLong",ffi_my_struct_t<long long>::GetPadding());
+        dict->SetValue("PaddingOfInt16",ffi_my_struct_t<int16_t>::GetPadding());
+        dict->SetValue("PaddingOfInt32",ffi_my_struct_t<int32_t>::GetPadding());
+        dict->SetValue("PaddingOfInt64",ffi_my_struct_t<int64_t>::GetPadding());
+        dict->SetValue("PaddingOfFloat",ffi_my_struct_t<float>::GetPadding());
+        dict->SetValue("PaddingOfDouble",ffi_my_struct_t<double>::GetPadding());
+        dict->SetValue("PaddingOfPointer",ffi_my_struct_t<void*>::GetPadding());
+
+        union {
+            uint8_t c[2];
+            uint16_t num;
+        } endian;
+        endian.c[0] = 0x01;
+        endian.c[1] = 0xA4;
+
+        dict->SetValue("IsLittleEndian", (bool)(endian.num != 420));
+
+
+        dict->DeclareFunction(gc, "Open","Open a shared object",{"path"},[](GCList& ls, std::vector<TObject> args)->TObject {
+            Tesses::Framework::Filesystem::VFSPath path;
+            if(GetArgumentAsPath(args,0,path))
+            {
+                return TNative::Create(ls,static_cast<void*>(new DL(path)),[](void* ptr)->void {
+                    delete static_cast<DL*>(ptr);
+                });
+            }
+            return nullptr;
+        });
+        dict->DeclareFunction(gc, "Symbol","Get current symbol",{"sharedObj","name"},[](GCList& ls, std::vector<TObject> args)->TObject {
+            TNative* native;
+            std::string name;
+            if(GetArgumentHeap(args,0,native) && GetArgument(args,1,name)) {
+                if(native->GetDestroyed()) return nullptr;
+                DL* dl = static_cast<DL*>(native->GetPointer());
+                auto native2= TNative::Create(ls,dl->Resolve<void*>(name), [](void* _e)->void {});
+                native2->other = native;
+                return native2;
+            }
+            return nullptr;
+        });
+        dict->DeclareFunction(gc, "Close", "Closes the shared object",{"sharedObj"},[](GCList& ls, std::vector<TObject> args)->TObject {
+            TNative* native;
+            if(GetArgumentHeap(args,0,native)) native->Destroy();
+
+            return nullptr;
+        });
+        
+
+        dict->DeclareFunction(gc, "CreateFunction","Create a function", {"functionPtr","returnVal","args","$abi","$freeRet"},[](GCList& ls, std::vector<TObject> args)->TObject {
+            TNative* native;
+            std::string retVal;
+            TList* listArgsO;
+            int64_t abi=(int64_t)FFI_DEFAULT_ABI;
+            bool freeRet=false;
+            if(GetArgumentHeap(args,0,native) && GetArgument(args,1,retVal) && GetArgumentHeap(args,2,listArgsO))
+            {
+                GetArgument(args,3,abi);
+                GetArgument(args,4,freeRet);
+                std::vector<std::string> listArgs;
+                for(int64_t i = 0; i < listArgsO->Count(); i++)
+                {
+                    auto item = listArgsO->Get(i);
+                    std::string typ;
+                    if(GetObject(item, typ)) listArgs.push_back(typ);
+                }
+
+                
+                return FFI_CreateFunction(ls,native,retVal,listArgs,(ffi_abi)abi,freeRet);
+            }
+            return nullptr;
+        });
+    }
     #endif
     
     void LoadPlugin(GC* gc, TRootEnvironment* env, Tesses::Framework::Filesystem::VFSPath sharedObjectPath)
@@ -258,6 +613,7 @@ namespace Tesses::CrossLang
             auto externalMethod = dynamic_cast<TExternalMethod*>(obj);
             auto byteArray = dynamic_cast<TByteArray*>(obj);
             auto native = dynamic_cast<TNative*>(obj);
+            auto any = dynamic_cast<TAny*>(obj);
             auto vfs = dynamic_cast<TVFSHeapObject*>(obj);
             auto strm = dynamic_cast<TStreamHeapObject*>(obj);
             auto svr = dynamic_cast<TServerHeapObject*>(obj);
@@ -265,6 +621,7 @@ namespace Tesses::CrossLang
             auto rootEnv = dynamic_cast<TRootEnvironment*>(obj);
             auto subEnv = dynamic_cast<TSubEnvironment*>(obj);
             auto env = dynamic_cast<TEnvironment*>(obj);
+            auto natObj = dynamic_cast<TNativeObject*>(obj);
            
 
             if(rootEnv != nullptr) return "RootEnvironment";
@@ -274,6 +631,7 @@ namespace Tesses::CrossLang
             if(cse != nullptr) return "YieldedClosure";
             if(dynDict != nullptr) return "DynamicDictionary";
             if(dynList != nullptr) return "DynamicList";
+            if(natObj != nullptr) return natObj->TypeName();
             if(strm != nullptr)
             {
                 auto netStrm = dynamic_cast<Tesses::Framework::Streams::NetworkStream*>(strm->stream);
@@ -321,7 +679,7 @@ namespace Tesses::CrossLang
             if(externalMethod != nullptr) return "ExternalMethod";
             if(byteArray != nullptr) return "ByteArray";
             if(native != nullptr) return "Native";
-            
+            if(any != nullptr) return "Any";
 
             return "HeapObject";
         }
@@ -509,7 +867,7 @@ namespace Tesses::CrossLang
         env->DeclareVariable("DateTime", date);
 
         gc->BarrierEnd();
-        TDictionary* newTypes = TDictionary::Create(ls);
+        TDictionary* newTypes = env->EnsureDictionary(gc, "New");
 
         newTypes->DeclareFunction(gc, "DateTime","Create a DateTime object, if only one arg is provided year is epoch, isLocal defaults to true unless epoch",{"year","$month","$day","$hour","$minute","$second","$isLocal"},New_DateTime);
 
@@ -679,7 +1037,7 @@ namespace Tesses::CrossLang
             }))
         }));
         env->DeclareVariable("InvokeMethod",MethodInvoker());
-        env->DeclareVariable("New", newTypes);
+        
         gc->BarrierEnd();
     }
     void TStd::RegisterStd(GC* gc, TRootEnvironment* env)
@@ -705,6 +1063,10 @@ namespace Tesses::CrossLang
 
         TDictionary* dict = TDictionary::Create(ls);
          TDictionary* gc_dict = TDictionary::Create(ls);
+         #if defined(CROSSLANG_ENABLE_FFI)
+         TDictionary* ffi = TDictionary::Create(ls);
+         RegisterFFI(gc,ffi);
+         #endif
         dict->DeclareFunction(gc,"LoadNativePlugin","Load a native plugin, requires a dynamic linker and shared build of libcrosslang",{"path"},[gc,env](GCList& ls, std::vector<TObject> args)->TObject {
             Tesses::Framework::Filesystem::VFSPath path;
             if(GetArgumentAsPath(args,0,path))
@@ -726,6 +1088,9 @@ namespace Tesses::CrossLang
             return  nullptr;
         });
         gc->BarrierBegin();
+        #if defined(CROSSLANG_ENABLE_FFI)
+        env->SetVariable("FFI", ffi);
+        #endif
         env->SetVariable("Reflection",dict);
         env->SetVariable("GC", gc_dict);
         gc->BarrierEnd();

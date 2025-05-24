@@ -17,6 +17,7 @@
 #include <regex>
 #include <time.h>
 #include <cstdbool>
+#include <any>
 
 /**
  * @brief CrossLang Runtime Major version
@@ -53,6 +54,8 @@
  * 
  */
 namespace Tesses::CrossLang {
+    constexpr std::string_view VMName = "CrossLangVM";
+    constexpr std::string_view VMHowToGet = "https://crosslang.tesseslanguage.com/";
     /**
      * @brief Escape a crosslang string (for generating source code)
      * 
@@ -841,15 +844,23 @@ class CharInstruction : public ByteCodeInstruction {
 
 using SyntaxNode = std::variant<int64_t, double, std::string, char, bool, std::nullptr_t, Undefined, AdvancedSyntaxNode>;
 
-class ObjectEntry {
-    public:
-        std::vector<std::string> name;
-        std::string doc;
-        std::vector<std::pair<std::string,SyntaxNode>> variables;
-        std::vector<std::pair<std::pair<std::string,std::string>,uint32_t>> funcs;
-        std::vector<std::pair<std::pair<std::string,std::string>,uint32_t>> static_funcs;
 
+
+struct CodeGenClassEntry {
+    uint8_t type;
+    uint32_t documentation;
+    uint32_t name;
+    std::vector<uint32_t> arguments;
+    uint32_t closure;
 };
+
+struct CodeGenClass {
+    uint32_t documentation;
+    std::vector<uint32_t> name;
+    std::vector<uint32_t> inherits;
+    std::vector<CodeGenClassEntry> entries;
+};
+
 
 class CodeGen {
     uint32_t id;
@@ -867,7 +878,8 @@ class CodeGen {
     
     std::vector<std::pair<std::vector<uint32_t>, std::vector<ByteCodeInstruction*>>> chunks;
     std::vector<std::pair<std::vector<uint32_t>,uint32_t>> funcs;
-    std::vector<ObjectEntry> objectEntries;
+    std::vector<CodeGenClass> classes;
+   
 
     void GenNode(std::vector<ByteCodeInstruction*>& instructions, SyntaxNode n,int32_t scope, int32_t contscope, int32_t brkscope, int32_t contI, int32_t brkI);
     void GenPop(std::vector<ByteCodeInstruction*>& instrs,SyntaxNode n);
@@ -1202,22 +1214,25 @@ constexpr std::string_view CaseStatement = "caseStatement";
  */
 constexpr std::string_view DefaultStatement = "defaultStatement";
 /**
- * @brief Object statement (like class but not having inheritence) (not implemented)
+ * @brief Class statement (not implemented)
  * 
  */
-constexpr std::string_view ObjectStatement = "objectStatement";
+constexpr std::string_view ClassStatement = "classStatement";
 /**
- * @brief Static statement (static methods in object statement)
- * 
+ * @brief Method statement (in class statement)
+ *
  */
-constexpr std::string_view StaticStatement = "staticStatement";
-
+constexpr std::string_view MethodStatement = "methodStatement";
 /**
- * @brief Method declaration method fun() {} in object statement
- * 
+ * @brief Abstract method statement (in class statement)
+ *
  */
-
-constexpr std::string_view MethodDeclaration = "methodDeclaration";
+constexpr std::string_view AbstractMethodStatement = "abstractMethodStatement";
+/**
+ * @brief Field statement (in class statement)
+ *
+ */
+constexpr std::string_view FieldStatement = "fieldStatement";
 /**
  * @brief Root path expression / "path" / "to" / "file" (fullfils the first /)
  * 
@@ -1454,19 +1469,58 @@ class GC {
             static TByteArray* Create(GCList* gc);
             static TByteArray* Create(GCList& gc);
     };
+    enum class TClassModifier {
+        Private,
+        Protected,
+        Public,
+        Static
+    };
+    class TClassEntry {
+        public: 
+
+            TClassModifier modifier;
+            bool isFunction;
+            bool isAbstract;
+            std::vector<std::string> args;
+            std::string documentation;
+            std::string name;
+
+            uint32_t chunkId;
+    };
+    class TClass {
+        public:
+            std::string documentation;
+            std::vector<std::string> name;
+            std::vector<std::string> inherits;
+            std::vector<TClassEntry> entry;
+            
+    };
+    class TClassObjectEntry {
+        public:
+            TClassModifier modifier;
+            bool canSet;
+            std::string name;
+            std::string owner;
+            TObject value;
+
+    };
 
     class TFile : public THeapObject
     {
         public:
+            
             static TFile* Create(GCList* gc);
             static TFile* Create(GCList& gc);
             std::vector<TFileChunk*> chunks;
             
             std::vector<std::string> strings;
+            std::vector<std::pair<std::string,std::string>> vms;
             std::vector<std::pair<std::vector<std::string>, uint32_t>> functions;
             std::vector<std::pair<std::string,TVMVersion>> dependencies;
             std::vector<std::pair<std::string,TVMVersion>> tools;
+            std::vector<std::pair<std::string,std::vector<uint8_t>>> sections;
             std::vector<std::vector<uint8_t>> resources;
+            std::vector<TClass> classes;
             std::string name;
             TVMVersion version;
             std::string info;
@@ -1480,6 +1534,8 @@ class GC {
 
             std::string GetString(Tesses::Framework::Streams::Stream* strm);
             void Mark();
+
+            void EnsureCanRunInCrossLang();
     };
 
     class TList : public THeapObject
@@ -1597,9 +1653,18 @@ class GC {
             TObject Eval(GCList& ls,std::string code);
             virtual bool HasVariable(std::string key)=0;
             virtual bool HasVariableRecurse(std::string key)=0;
+            
+
+            virtual bool HasVariableOrFieldRecurse(std::string key,bool setting=false)=0;
             virtual TObject GetVariable(std::string key)=0;
+            
+            virtual TObject GetVariable(GCList& ls, std::string key)=0;
+            virtual TObject SetVariable(GCList& ls, std::string key, TObject v)=0;
+            
             virtual void SetVariable(std::string key, TObject value)=0;
+            TDictionary* EnsureDictionary(GC* gc, std::string key);
             virtual void DeclareVariable(std::string key, TObject value)=0;
+            void DeclareVariable(GC* gc,std::vector<std::string> key, TObject value);
             virtual TRootEnvironment* GetRootEnvironment()=0;
             virtual TEnvironment* GetParentEnvironment()=0;
             virtual TSubEnvironment* GetSubEnvironment(TDictionary* dict);
@@ -1613,7 +1678,55 @@ class GC {
             TObject CallFunction(GCList& ls, std::string key, std::vector<TObject> args);
     
     };
+    class TClassEnvironment;
+    class TClassObject : public THeapObject 
+    {
+        TClassObjectEntry* GetEntry(std::string classN, std::string key);
+        public:
+            TFile* file;
+            uint32_t classIndex;
+            TEnvironment* ogEnv;
+            TClassEnvironment* env;
+            std::string name;
+            std::vector<std::string> inherit_tree;
+            std::vector<TClassObjectEntry> entries;
+            
+            static TClassObject* Create(GCList& ls, TFile* f, uint32_t classIndex, TEnvironment* env, std::vector<TObject> args);
+            static TClassObject* Create(GCList* ls, TFile* f, uint32_t classIndex, TEnvironment* env, std::vector<TObject> args);
 
+            TObject GetValue(std::string className, std::string name);
+            void SetValue(std::string className, std::string name,TObject value);
+            bool HasValue(std::string className,std::string name);
+            bool HasField(std::string className,std::string name);
+            bool HasMethod(std::string className,std::string name);
+            std::string TypeName();
+            void Mark();
+    };
+    class TClassEnvironment : public TEnvironment
+    {
+        TEnvironment* env;
+        TClassObject* clsObj;
+        public:
+            static TClassEnvironment* Create(GCList* gc,TEnvironment* env,TClassObject* obj);
+            static TClassEnvironment* Create(GCList& gc,TEnvironment* env,TClassObject* obj);
+            TClassEnvironment(TEnvironment* env,TClassObject* obj);
+            bool HasVariable(std::string key);
+            bool HasVariableRecurse(std::string key);
+            bool HasVariableOrFieldRecurse(std::string key, bool setting=false);
+            
+            TObject GetVariable(std::string key);
+            void SetVariable(std::string key, TObject value);
+            TObject GetVariable(GCList& ls, std::string key);
+            TObject SetVariable(GCList& ls, std::string key, TObject v);
+            
+            void DeclareVariable(std::string key, TObject value);
+            TRootEnvironment* GetRootEnvironment();
+            TEnvironment* GetParentEnvironment();
+            
+            void Mark();
+    };
+   
+   
     class EnvironmentPermissions {
         public:
             EnvironmentPermissions();
@@ -1647,6 +1760,9 @@ class GC {
             EnvironmentPermissions permissions;
 
             std::vector<std::pair<std::string, TVMVersion>> dependencies;
+            std::vector<std::pair<TFile*, uint32_t>> classes;
+
+            bool TryFindClass(std::vector<std::string>& name, size_t& index);
             
             void LoadFileWithDependencies(GC* gc,Tesses::Framework::Filesystem::VFS* vfs, TFile* f);
             void LoadFileWithDependencies(GC* gc,Tesses::Framework::Filesystem::VFS* vfs, Tesses::Framework::Filesystem::VFSPath path);
@@ -1657,8 +1773,13 @@ class GC {
             TRootEnvironment(TDictionary* dict);
             bool HasVariable(std::string key);
             bool HasVariableRecurse(std::string key);
+            bool HasVariableOrFieldRecurse(std::string key,bool setting=false);
+            
             TObject GetVariable(std::string key);
             void SetVariable(std::string key, TObject value);
+            
+            TObject GetVariable(GCList& ls, std::string key);
+            TObject SetVariable(GCList& ls, std::string key, TObject v);
             void DeclareVariable(std::string key, TObject value);
             TRootEnvironment* GetRootEnvironment();
             TEnvironment* GetParentEnvironment();
@@ -1696,8 +1817,13 @@ class GC {
             TSubEnvironment(TEnvironment* env,TDictionary* dict);
             bool HasVariable(std::string key);
             bool HasVariableRecurse(std::string key);
+            bool HasVariableOrFieldRecurse(std::string key, bool setting=false);
+            
             TObject GetVariable(std::string key);
             void SetVariable(std::string key, TObject value);
+            TObject GetVariable(GCList& ls, std::string key);
+            TObject SetVariable(GCList& ls, std::string key, TObject v);
+            
             void DeclareVariable(std::string key, TObject value);
             TRootEnvironment* GetRootEnvironment();
             TEnvironment* GetParentEnvironment();
@@ -1944,6 +2070,7 @@ class GC {
             TFile* file;
             uint32_t chunkId;
             TEnvironment* env;
+            std::string className;
             TObject Call(GCList& ls,std::vector<TObject> args);
             void Mark();
     };
@@ -2121,6 +2248,43 @@ class GC {
             return error_message.c_str();
         }
     };
+    class TAny : public THeapObject {
+        public:
+            std::any any;
+            TObject other;    
+
+            static TAny* Create(GCList& ls);
+            static TAny* Create(GCList* ls);
+            void Mark();
+    };
+    class TNativeObject : public THeapObject 
+    {
+        public:
+        template<typename T,typename... TArgs>
+        static T* Create(GCList& ls,TArgs... args)
+        {
+            T* obj = new T(args...);
+            GC* gc = ls.GetGC();
+            ls.Add(obj);
+            gc->Watch(obj);
+            return obj;
+        }
+        template<typename T,typename... TArgs>
+        static T* Create(GCList* ls,TArgs... args)
+        {
+            T* obj = new T(args...);
+            GC* gc = ls->GetGC();
+            ls->Add(obj);
+            gc->Watch(obj);
+            return obj;
+        }
+
+        virtual TObject CallMethod(GCList& ls,std::string name, std::vector<TObject> args)=0;
+        virtual std::string TypeName()=0;
+        virtual bool ToBool();
+        virtual bool Equals(GC* gc, TObject right);
+        virtual ~TNativeObject();
+    };
     class TNative : public THeapObject
     {
         std::atomic<bool> destroyed;
@@ -2137,6 +2301,8 @@ class GC {
             static TNative* Create(GCList* ls, void* ptr,std::function<void(void*)> destroy);
             ~TNative();
     };
+
+   
 
     class ThreadHandle : public THeapObject {
         public:

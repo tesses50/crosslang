@@ -55,7 +55,7 @@ namespace Tesses::CrossLang
     
         for(auto item : this->chunks)
             item->Mark();
-       
+        
     }
     void TFile::Skip(Tesses::Framework::Streams::Stream* stream,size_t len)
     {
@@ -95,6 +95,27 @@ namespace Tesses::CrossLang
         uint32_t index=EnsureInt(stream);
         if(index >= this->strings.size()) throw VMException("String does not exist in TCrossVM file, expected string index: " + std::to_string(index) + ", total strings: " + std::to_string(this->strings.size()));
         return this->strings[index];
+    }
+    void TFile::EnsureCanRunInCrossLang()
+    {
+        if(this->vms.empty()) return;
+        
+        for(auto item : this->vms)
+        {
+            if(item.first == VMName)
+            {
+                return;
+            }
+        }
+
+
+        std::string errorMessage="The virtual machines supported are:\n";
+
+        for(auto item : this->vms)
+        {
+            errorMessage += item.first + "\n\t" + item.second + "\n";
+        }
+        throw VMException(errorMessage);
     }
 
     void TFile::Load(GC* gc, Tesses::Framework::Streams::Stream* stream)
@@ -204,9 +225,56 @@ namespace Tesses::CrossLang
             {
                 this->icon = (int32_t)EnsureInt(stream);
             }
+            else if(strncmp(table_name,"MACH",4) == 0) //machine
+            {
+                std::string name = GetString(stream);
+                std::string howToGet = GetString(stream);
+                this->vms.push_back(std::pair<std::string,std::string>(name,howToGet));
+            }
+            else if(strncmp(table_name,"CLSS",4) == 0) //classes
+            {
+                uint32_t clsCnt = EnsureInt(stream);
+                for(uint32_t j = 0; j < clsCnt; j++)
+                {
+                    TClass cls;
+                    cls.documentation= GetString(stream);
+                    uint32_t name_cnt = EnsureInt(stream);
+                    for(uint32_t k = 0; k < name_cnt; k++)
+                    {
+                        cls.name.push_back(GetString(stream));
+                    }
+                    name_cnt = EnsureInt(stream);
+                    for(uint32_t k = 0; k < name_cnt; k++)
+                    {
+                        cls.inherits.push_back(GetString(stream));
+                    }
+                    name_cnt = EnsureInt(stream);
+                    for(uint32_t k = 0; k < name_cnt; k++)
+                    {
+                        TClassEntry ent;
+                        Ensure(stream,main_header,1);
+                        uint8_t sig = main_header[0];
+                        ent.isAbstract = (sig & 0b00001000) != 0;
+                        ent.isFunction = (sig & 0b00000100) == 0;
+                        ent.modifier = (TClassModifier)(sig & 3);
+                        ent.documentation = GetString(stream);
+                        ent.name = GetString(stream);
+                        uint32_t arglen = EnsureInt(stream);
+                        for(uint32_t l = 0; l < arglen; l++)
+                            ent.args.push_back(GetString(stream));
+                        ent.chunkId = EnsureInt(stream);
+                        cls.entry.push_back(ent);
+                    }
+                    this->classes.push_back(cls);
+                }
+            }
             else
             {
-                Skip(stream,tableLen);
+                std::vector<uint8_t> data;
+                data.resize(tableLen);
+                Ensure(stream,data.data(), tableLen);
+                std::string key(std::string(table_name), 4);
+                this->sections.push_back(std::pair<std::string,std::vector<uint8_t>>(key,data));
             }
         }
         
