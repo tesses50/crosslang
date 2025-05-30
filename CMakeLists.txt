@@ -49,15 +49,16 @@ if(CROSSLANG_FETCHCONTENT)
 set(TESSESFRAMEWORK_ENABLE_EXAMPLES OFF)
 set(TESSESFRAMEWORK_ENABLE_APPS OFF)
 
-set(CROSSLANG_ENABLE_SHARED OFF)
-set(TESSESFRAMEWORK_ENABLE_SHARED OFF)
-set(CROSSLANG_SHARED_EXECUTABLES OFF)
+#set(CROSSLANG_ENABLE_SHARED OFF)
+#set(TESSESFRAMEWORK_ENABLE_SHARED OFF)
+#set(CROSSLANG_SHARED_EXECUTABLES OFF)
 include(FetchContent)
 FetchContent_Declare(
     TessesFramework
     GIT_REPOSITORY https://onedev.site.tesses.net/tesses-framework.git
 )
 FetchContent_MakeAvailable(TessesFramework)
+list(APPEND TessesCrossLangLibs ${TessesFrameworkTargets})
 else()
 find_package(TessesFramework REQUIRED)
 endif()
@@ -125,6 +126,7 @@ src/compiler/codegen.cpp
 src/compiler/lexer.cpp
 src/compiler/parser.cpp
 src/compiler/ast.cpp
+src/runtime_methods/class.cpp
 src/runtime_methods/console.cpp
 src/runtime_methods/io.cpp
 src/runtime_methods/std.cpp
@@ -138,6 +140,7 @@ src/runtime_methods/ogc.cpp
 src/runtime_methods/path.cpp
 src/runtime_methods/env.cpp
 src/runtime_methods/process.cpp
+src/types/associativearray.cpp
 src/types/any.cpp
 src/types/datetime.cpp
 src/types/ittr.cpp
@@ -189,6 +192,7 @@ if(CROSSLANG_ENABLE_STATIC)
 add_library(crosslang_static STATIC ${CROSSLANG_SOURCE})
 CROSSLANG_LINK_DEPS(crosslang_static)
 if(CROSSLANG_FETCHCONTENT)
+
 target_link_libraries(crosslang_static PUBLIC tessesframework)
 else()
 target_link_libraries(crosslang_static PUBLIC TessesFramework::tessesframework)

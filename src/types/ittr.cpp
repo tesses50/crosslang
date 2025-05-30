@@ -286,6 +286,53 @@ namespace Tesses::CrossLang
         this->ls->Mark();
     }
 
+    TAssociativeArrayEnumerator* TAssociativeArrayEnumerator::Create(GCList& ls, TAssociativeArray* list)
+    {
+        TAssociativeArrayEnumerator* liste=new TAssociativeArrayEnumerator();
+        liste->ls = list;
+        liste->index = -1;
+        GC* _gc = ls.GetGC();
+        ls.Add(liste);
+        _gc->Watch(liste);
+        return liste;
+    }
+    TAssociativeArrayEnumerator* TAssociativeArrayEnumerator::Create(GCList* ls, TAssociativeArray* list)
+    {
+        TAssociativeArrayEnumerator* liste=new TAssociativeArrayEnumerator();
+        liste->ls = list;
+        liste->index = -1;
+        GC* _gc = ls->GetGC();
+        ls->Add(liste);
+        _gc->Watch(liste);
+        return liste;
+    }
+    bool TAssociativeArrayEnumerator::MoveNext(GC* ls)
+    {
+        this->index++;
+        return this->index >= 0 && this->index < this->ls->Count();
+    }
+    TObject TAssociativeArrayEnumerator::GetCurrent(GCList& ls)
+    {
+        
+        if(this->index < -1) return nullptr;
+        if(this->ls->Count() == 0) return nullptr;
+        if(this->index >= this->ls->Count()) return nullptr;
+        ls.GetGC()->BarrierBegin();
+        TDictionary* dict = TDictionary::Create(ls);
+        dict->SetValue("Key",this->ls->GetKey(this->index));
+        dict->SetValue("Value",this->ls->GetValue(this->index));
+        ls.GetGC()->BarrierEnd();
+        return dict;
+    }
+    void TAssociativeArrayEnumerator::Mark()
+    {
+        if(this->marked) return;
+        this->marked = true;
+        this->ls->Mark();
+    }
+
+
+
     TDynamicListEnumerator* TDynamicListEnumerator::Create(GCList& ls, TDynamicList* list)
     {
         TDynamicListEnumerator* liste=new TDynamicListEnumerator();

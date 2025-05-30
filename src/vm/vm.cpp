@@ -52,6 +52,7 @@ namespace Tesses::CrossLang {
         {
             auto o = std::get<THeapObjectHolder>(obj).obj;
             auto ls = dynamic_cast<TList*>(o);
+            auto aarray = dynamic_cast<TAssociativeArray*>(o);
             auto dict = dynamic_cast<TDictionary*>(o);
             auto ba = dynamic_cast<TByteArray*>(o);
             auto nat = dynamic_cast<TNative*>(o);
@@ -68,6 +69,10 @@ namespace Tesses::CrossLang {
             if(ls != nullptr)
             {
                 return ls->Count() != 0;
+            }
+            if(aarray != nullptr)
+            {
+                return aarray->Count() != 0;
             }
             else if(dict != nullptr)
             {
@@ -963,6 +968,7 @@ namespace Tesses::CrossLang {
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             auto natObj = dynamic_cast<TNativeObject*>(obj);
             auto cls = dynamic_cast<TClassObject*>(obj);
+            
             if(cls != nullptr)
             {
                 gc->BarrierBegin();
@@ -3143,6 +3149,8 @@ namespace Tesses::CrossLang {
                 auto svr = dynamic_cast<TServerHeapObject*>(obj);
                 auto natObj = dynamic_cast<TNativeObject*>(obj);
                 auto cls = dynamic_cast<TClassObject*>(obj);
+                auto aArray=dynamic_cast<TAssociativeArray*>(obj);
+
                 if(natObj != nullptr)
                 {
                     cse.back()->Push(gc, natObj->CallMethod(ls,key,args));
@@ -4431,6 +4439,120 @@ namespace Tesses::CrossLang {
                     cse.back()->Push(gc, Undefined());
                     return false;
                 }
+                else if(aArray != nullptr)
+                {
+                    if(key == "ToString")
+                    {
+                        cse.back()->Push(gc,ToString(gc,aArray));
+                        return false;
+                    }
+                    else if(key == "GetAt")
+                    {
+                        if(args.size() != 1)
+                        {
+                            throw VMException("AArray.GetAt must only accept one argument");
+                        }
+                        cse.back()->Push(gc, aArray->Get(gc,args[0]));
+                        return false;
+                    }
+                    else if(key == "SetAt")
+                    {
+                        if(args.size() != 2)
+                        {
+                            throw VMException("AArray.SetAt must only accept two arguments");
+                        }
+                        aArray->Set(gc,args[0],args[1]);
+                        cse.back()->Push(gc, args[1]);
+                        return false;
+                    }
+                    else if(key == "GetKey")
+                    {
+                        if(args.size() != 1)
+                        {
+                            throw VMException("AArray.GetKey must only accept one argument");
+                        }
+
+                        if(!std::holds_alternative<int64_t>(args[0])) 
+                        {
+                            throw VMException("AArray.GetKey must only accept a long");
+                        }
+
+                        gc->BarrierBegin();
+                        auto res = aArray->GetKey(std::get<int64_t>(args[0]));
+                        gc->BarrierEnd();
+                        cse.back()->Push(gc, res);
+                        return false;
+                    }
+                    else if(key == "GetValue")
+                    {
+                        if(args.size() != 1)
+                        {
+                            throw VMException("AArray.GetValue must only accept one argument");
+                        }
+
+                        if(!std::holds_alternative<int64_t>(args[0])) 
+                        {
+                            throw VMException("AArray.GetValue must only accept a long");
+                        }
+
+                        gc->BarrierBegin();
+                        auto res = aArray->GetValue(std::get<int64_t>(args[0]));
+                        gc->BarrierEnd();
+                        cse.back()->Push(gc, res);
+                        return false;
+                    }
+                    else if(key == "SetKey")
+                    {
+                        if(args.size() != 2)
+                        {
+                            throw VMException("AArray.SetKey must only accept two arguments");
+                        }
+
+                        if(!std::holds_alternative<int64_t>(args[0])) 
+                        {
+                            throw VMException("AArray.SetKey first argument must only accept a long");
+                        }
+
+                        gc->BarrierBegin();
+                        aArray->SetKey(std::get<int64_t>(args[0]),args[1]);
+                        gc->BarrierEnd();
+                        cse.back()->Push(gc, args[1]);
+                        return false;
+                    }
+                    else if(key == "SetValue")
+                    {
+                        if(args.size() != 2)
+                        {
+                            throw VMException("AArray.SetValue must only accept two arguments");
+                        }
+
+                        if(!std::holds_alternative<int64_t>(args[0])) 
+                        {
+                            throw VMException("AArray.SetValue first argument must only accept a long");
+                        }
+
+                        gc->BarrierBegin();
+                        aArray->SetValue(std::get<int64_t>(args[0]),args[1]);
+                        gc->BarrierEnd();
+                        cse.back()->Push(gc, args[1]);
+                        return false;
+                    }
+                    else if(key == "Count" || key == "Length")
+                    {
+                        gc->BarrierBegin();
+                        cse.back()->Push(gc, aArray->Count());
+                        gc->BarrierEnd();
+                        return false;
+                    }
+                    else if(key == "GetEnumerator")
+                    {
+                        
+                        cse.back()->Push(gc,TAssociativeArrayEnumerator::Create(ls,aArray));
+                        return false;
+                    }
+                    cse.back()->Push(gc,Undefined());
+                    return false;
+                }
                 else if(list != nullptr)
                 {
                     
@@ -4465,7 +4587,7 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc, Undefined());
                         return false;
                     }
-                    if(key == "Add")
+                    else if(key == "Add")
                     {
                         if(args.size() != 1)
                         {
@@ -4477,7 +4599,57 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc, Undefined());
                         return false;
                     }
-                    if(key == "RemoveAllEqual")
+                    else if(key == "Contains")
+                    {
+                        if(args.size() != 1)
+                        {
+                            throw VMException("List.Contains must only accept one argument");
+                        }
+                        gc->BarrierBegin();
+                        for(int64_t i = 0; i < list->Count(); i++)
+                        {
+                            auto item = list->Get(i);
+                            gc->BarrierEnd();
+                            if(Equals(gc,args[0],item))
+                            {
+                                cse.back()->Push(gc, true);
+                                return false;
+                            }
+                            gc->BarrierBegin();
+                        }
+                        gc->BarrierEnd();
+                        cse.back()->Push(gc, false);
+                        return false;
+                    }
+                    else if(key == "IndexOf")
+                    {
+                        //IndexOf(obj, $idx)
+                        if(args.size() < 1 || args.size() > 2)
+                        {
+                            throw VMException("List.IndexOf must either have one or two arguments");
+                        }
+
+                        int64_t i=0;
+                        
+                        GetArgument(args,1,i);
+                        gc->BarrierBegin();
+                        for(; i < list->Count(); i++)
+                        {
+                            auto item = list->Get(i);
+                            gc->BarrierEnd();
+                            if(Equals(gc,args[0],item))
+                            {
+                                
+                                cse.back()->Push(gc,i);
+                                return false;
+                            }
+                            gc->BarrierBegin();
+                        }
+                        gc->BarrierEnd();
+                        cse.back()->Push(gc,(int64_t)-1);
+                        return false;
+                    }
+                    else if(key == "RemoveAllEqual")
                     {
                         if(args.size() != 1)
                         {
@@ -4488,17 +4660,20 @@ namespace Tesses::CrossLang {
                         gc->BarrierBegin();
                         for(int64_t i = 0; i < list->Count(); i++)
                         {
-                            if(Equals(gc,args[0],list->Get(i)))
+                            auto item = list->Get(i);
+                            gc->BarrierEnd();
+                            if(Equals(gc,args[0],item))
                             {
+                                gc->BarrierBegin();
                                 list->RemoveAt(i);
                                 i--;
-                            }
+                            }else gc->BarrierBegin();
                         }
                         gc->BarrierEnd();
                         cse.back()->Push(gc, Undefined());
                         return false;
                     }
-                    if(key == "Remove")
+                    else if(key == "Remove")
                     {
                         if(args.size() != 1)
                         {
@@ -4509,17 +4684,22 @@ namespace Tesses::CrossLang {
                         gc->BarrierBegin();
                         for(int64_t i = 0; i < list->Count(); i++)
                         {
-                            if(Equals(gc,args[0],list->Get(i)))
+                            auto item = list->Get(i);
+                            gc->BarrierEnd();
+                            if(Equals(gc,args[0],item))
                             {
+                                gc->BarrierBegin();
                                 list->RemoveAt(i);
+                                gc->BarrierEnd();
                                 break;
                             }
+                            gc->BarrierBegin();
                         }
                         gc->BarrierEnd();
                         cse.back()->Push(gc, Undefined());
                         return false;
                     }
-                    if(key == "RemoveAt")
+                    else if(key == "RemoveAt")
                     {
                         if(args.size() != 1)
                         {
@@ -4536,7 +4716,7 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc, Undefined());
                         return false;
                     }
-                    if(key == "Clear")
+                    else if(key == "Clear")
                     {
                         gc->BarrierBegin();
                         list->Clear();
@@ -4544,7 +4724,7 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc, Undefined());
                         return false;
                     }
-                    if(key == "GetAt")
+                    else if(key == "GetAt")
                     {
                         if(args.size() != 1)
                         {
@@ -4564,7 +4744,7 @@ namespace Tesses::CrossLang {
                         }
                         
                     }
-                    if(key == "SetAt")
+                    else if(key == "SetAt")
                     {
                         if(args.size() != 2)
                         {
@@ -4585,7 +4765,7 @@ namespace Tesses::CrossLang {
                         
                     }
                     
-                    if(key == "Count" || key == "Length")
+                    else if(key == "Count" || key == "Length")
                     {
                         gc->BarrierBegin();
                         cse.back()->Push(gc, list->Count());
@@ -5010,7 +5190,18 @@ namespace Tesses::CrossLang {
                 auto chunk = dynamic_cast<TFileChunk*>(obj);
                 auto natObj = dynamic_cast<TNativeObject*>(obj);
                 auto cls = dynamic_cast<TClassObject*>(obj);
-                if(cls != nullptr)
+                auto aarray = dynamic_cast<TAssociativeArray*>(obj);
+                if(aarray != nullptr)
+                {
+                    if(key == "Count" || key == "Length")
+                    {
+                        cse.back()->Push(gc,aarray->Count());
+                        return false;
+                    }
+                    cse.back()->Push(gc, Undefined());
+                    return false;
+                }
+                else if(cls != nullptr)
                 {
                     gc->BarrierBegin();
                     auto obj=cls->GetValue(cse.back()->callable->className,"get"+key);
@@ -5152,11 +5343,25 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc, list);
                         return false;
                     }
+                    else if(key == "Classes")
+                    {
+                        auto list = TList::Create(ls);
+                        gc->BarrierBegin();
+
+                        for(uint32_t i = 0; i < (uint32_t)file->classes.size(); i++)
+                        {
+                            list->Add(GetClassInfo(ls,file,i));
+                        }
+
+                        cse.back()->Push(gc, list);
+                        gc->BarrierEnd();
+                        return false;
+                    }
                     else if(key == "Functions")
                     {
                         auto list = TList::Create(ls);
                         gc->BarrierBegin();
-                        for(auto item : file->functions)
+                        for(auto& item : file->functions)
                         {
                             TDictionary* dict = TDictionary::Create(ls);
                             if(!item.first.empty())
@@ -6905,6 +7110,27 @@ namespace Tesses::CrossLang {
             auto bArray = dynamic_cast<TByteArray*>(obj);
             auto natObj = dynamic_cast<TNativeObject*>(obj);
             auto cls = dynamic_cast<TClassObject*>(obj);
+            auto aArray = dynamic_cast<TAssociativeArray*>(obj);
+            if(aArray != nullptr)
+            {
+
+                std::string str={};
+                
+                gc->BarrierBegin();
+                bool first=true;
+                for(auto item : aArray->items)
+                {
+                    if(!first) str.push_back('\n');
+                    first=false;
+                    str.push_back('[');
+                    str.append(Json_Encode(item.first));
+                    str.append("] = ");
+                    str.append(Json_Encode(item.second));
+                    str.append(";");
+                }
+                gc->BarrierEnd();
+                return str;
+            }
             if(cls != nullptr)
             {
                 auto res = cls->GetValue("","ToString");

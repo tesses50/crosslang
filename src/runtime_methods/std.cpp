@@ -622,15 +622,18 @@ namespace Tesses::CrossLang
             auto subEnv = dynamic_cast<TSubEnvironment*>(obj);
             auto env = dynamic_cast<TEnvironment*>(obj);
             auto natObj = dynamic_cast<TNativeObject*>(obj);
-           
+            auto cobj = dynamic_cast<TClassObject*>(obj);
+            auto aarray = dynamic_cast<TAssociativeArray*>(obj);
 
             if(rootEnv != nullptr) return "RootEnvironment";
             if(subEnv != nullptr) return "SubEnvironment";
             if(env != nullptr) return "Environment";
+            if(cobj != nullptr) return cobj->TypeName();
 
             if(cse != nullptr) return "YieldedClosure";
             if(dynDict != nullptr) return "DynamicDictionary";
             if(dynList != nullptr) return "DynamicList";
+            if(aarray != nullptr) return "AssociativeArray";
             if(natObj != nullptr) return natObj->TypeName();
             if(strm != nullptr)
             {
@@ -998,6 +1001,12 @@ namespace Tesses::CrossLang
             return TDynamicDictionary::Create(ls,callable);
             return nullptr;
         });
+        newTypes->DeclareFunction(gc,"AssociativeArray","Create a new AssociativeArray",{},[](GCList& ls, std::vector<TObject> args)->TObject {
+            return TAssociativeArray::Create(ls);
+        });
+        newTypes->DeclareFunction(gc,"AArray","alias for new AssociativeArray",{},[](GCList& ls, std::vector<TObject> args)->TObject {
+            return TAssociativeArray::Create(ls);
+        });
         newTypes->DeclareFunction(gc,"ByteArray","Create bytearray, with optional either size (to size it) or string argument (to fill byte array)",{"$data"},ByteArray);
         gc->BarrierBegin();
         env->DeclareVariable("Version", TDictionary::Create(ls,{
@@ -1056,6 +1065,7 @@ namespace Tesses::CrossLang
         RegisterCrypto(gc,env);
         RegisterOGC(gc, env);
         RegisterProcess(gc,env);
+        RegisterClass(gc,env);
 
         gc->RegisterEverything(env);
 

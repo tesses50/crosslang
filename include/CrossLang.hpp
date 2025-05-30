@@ -1537,6 +1537,22 @@ class GC {
 
             void EnsureCanRunInCrossLang();
     };
+    class TAssociativeArray : public THeapObject
+    {
+        public:
+            std::vector<std::pair<TObject,TObject>> items;
+            static TAssociativeArray* Create(GCList& ls);
+            static TAssociativeArray* Create(GCList* ls);
+            void Set(GC* gc, TObject key, TObject value);
+            TObject Get(GC* gc, TObject key);
+            TObject GetKey(int64_t index);
+            TObject GetValue(int64_t index);
+            void SetKey(int64_t index, TObject key);
+            void SetValue(int64_t index,TObject value);
+            int64_t Count();
+            void Mark();
+    };
+ 
 
     class TList : public THeapObject
     {
@@ -1746,6 +1762,7 @@ class GC {
             bool canRegisterPath;
             bool canRegisterOGC;
             bool canRegisterEnv;
+            bool canRegisterClass;
             bool sqlite3Scoped;
             bool locked;
     };
@@ -1804,7 +1821,7 @@ class GC {
             static void RegisterOGC(GC* gc, TRootEnvironment* env);
             static void RegisterEnv(GC* gc, TRootEnvironment* env);
             static void RegisterProcess(GC* gc, TRootEnvironment* env);
-
+            static void RegisterClass(GC* gc, TRootEnvironment* env);
     };
 
     class TSubEnvironment : public TEnvironment
@@ -1879,6 +1896,17 @@ class GC {
             virtual TObject GetCurrent(GCList& ls)=0;
             static TEnumerator* CreateFromObject(GCList& ls, TObject obj);
     };
+    class TAssociativeArrayEnumerator : public TEnumerator 
+    {
+        int64_t index;
+        TAssociativeArray* ls;
+        public:
+            static TAssociativeArrayEnumerator* Create(GCList& ls, TAssociativeArray* list);
+            static TAssociativeArrayEnumerator* Create(GCList* ls, TAssociativeArray* list);
+            bool MoveNext(GC* ls);
+            TObject GetCurrent(GCList& ls);
+            void Mark();
+    };
 
     class TCustomEnumerator : public TEnumerator {
         public:
@@ -1916,6 +1944,7 @@ class GC {
             bool MoveNext(GC* ls);
             TObject GetCurrent(GCList& ls);
     };
+   
     class TListEnumerator : public TEnumerator 
     {
         int64_t index;
@@ -2455,4 +2484,6 @@ class GC {
     MarkedTObject CreateMarkedTObject(GC& gc, TObject o);
     MarkedTObject CreateMarkedTObject(GCList* gc, TObject o);
     MarkedTObject CreateMarkedTObject(GCList& gc, TObject o);
+    std::string JoinPeriod(std::vector<std::string>& p);
+    TObject GetClassInfo(GCList& ls,TFile* f, uint32_t index);
 };
