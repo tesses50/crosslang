@@ -3960,7 +3960,7 @@ namespace Tesses::CrossLang {
                     {
                         if(key == "GetPort")
                         {
-                            cse.back()->Push(gc, netStrm->GetPort());
+                            cse.back()->Push(gc, (int64_t)netStrm->GetPort());
                             return false;
                         }
                         if(key == "Bind")
