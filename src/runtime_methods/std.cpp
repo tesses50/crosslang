@@ -864,7 +864,7 @@ namespace Tesses::CrossLang
         
         gc->BarrierBegin();
 	
-        date->SetValue("Zone", Tesses::Framework::Date::GetTimeZone());
+        date->SetValue("Zone", (int64_t)Tesses::Framework::Date::GetTimeZone());
         date->SetValue("SupportsDaylightSavings",Tesses::Framework::Date::TimeZoneSupportDST());
 	
         env->DeclareVariable("DateTime", date);
