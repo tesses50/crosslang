@@ -2208,7 +2208,7 @@ namespace Tesses::CrossLang {
         }
         else if(std::holds_alternative<char>(left) && std::holds_alternative<char>(right))
         {
-            cse.back()->Push(gc,std::get<char>(left) + std::get<char>(right));
+            cse.back()->Push(gc,(char)(std::get<char>(left) + std::get<char>(right)));
         }
         else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<char>(right))
         {
