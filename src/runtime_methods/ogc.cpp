@@ -58,6 +58,10 @@ namespace Tesses::CrossLang
         #if defined(HW_RVL)
         TDictionary* dict_rvl_wpad = TDictionary::Create(ls);
         dict_rvl_wpad->DeclareFunction(gc, "ScanPads","Scan wiimotes",{},OGC_WPAD_ScanPads);
+        dict_rvl_wpad->DeclareFunction(gc, "ButtonsDown","Is button down",{"pad"},OGC_WPAD_ButtonsDown);
+        dict_rvl_wpad->SetValue("BUTTON_A",(int64_t)WPAD_BUTTON_A);
+        dict_rvl_wpad->SetValue("BUTTON_B",(int64_t)WPAD_BUTTON_B);
+        dict_rvl_wpad->SetValue("BUTTON_HOME",(int64_t)WPAD_BUTTON_HOME);
         env->DeclareVariable("WPAD", dict_rvl_wpad);
         
         #endif

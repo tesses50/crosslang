@@ -34,7 +34,7 @@ int main(int argc, char** argv)
     ByteCodeVectorWriter w(data);
     gen.Save(std::filesystem::current_path(),w);
     */
-   TF_Init();
+   TF_InitWithConsole();
    std::filesystem::path outputDir = std::filesystem::current_path() / "bin";
    std::vector<std::filesystem::path> source;
    std::filesystem::path resourceDir = std::filesystem::current_path() / "res";

@@ -3,7 +3,7 @@ using namespace Tesses::Framework;
 using namespace Tesses::CrossLang;
 int main(int argc, char** argv)
 {
-    TF_Init();
+    TF_InitWithConsole();
     if(argc < 2)
     {
         printf("USAGE: %s <filename.crvm> <args...>\n",argv[0]);

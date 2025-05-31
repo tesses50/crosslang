@@ -48,7 +48,7 @@ bool Download(Tesses::Framework::Filesystem::VFSPath filename,Tesses::Framework:
 
 int main(int argc, char** argv)
 {
-    TF_Init();
+    TF_InitWithConsole();
 
     
     
