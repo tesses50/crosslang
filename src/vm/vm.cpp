@@ -5669,7 +5669,9 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc,callable->Call(ls,{value}));
                         return false;
                     }
+                    gc->BarrierBegin();
                     cls->SetValue(cse.back()->callable->className,key,value);
+                    gc->BarrierEnd();
                     cse.back()->Push(gc,value);
                     return false;
                
@@ -6277,11 +6279,25 @@ namespace Tesses::CrossLang {
                         if(std::holds_alternative<THeapObjectHolder>(objhold) && std::holds_alternative<std::string>(k))
                         {
                             auto dict= dynamic_cast<TDictionary*>(std::get<THeapObjectHolder>(objhold).obj);
-                           
+                            auto cls = dynamic_cast<TClassObject*>(std::get<THeapObjectHolder>(objhold).obj); 
                             
                             if(dict != nullptr)
                             {
                                 dict->SetValue(std::get<std::string>(k), value);
+                            }
+                            else if(cls != nullptr)
+                            {
+                                auto obj=cls->GetValue(cse.back()->callable->className,"set"+std::get<std::string>(k));
+                    TCallable* callable;
+                    if(GetObjectHeap(obj,callable))
+                    {
+                                     gc->BarrierEnd();
+                   
+                        callable->Call(ls,{value});
+                        gc->BarrierBegin();
+                    }else {
+                    cls->SetValue(cse.back()->callable->className,std::get<std::string>(k),value);
+                    }
                             }
                         }
 

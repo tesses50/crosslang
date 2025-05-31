@@ -81,7 +81,7 @@ namespace Tesses::CrossLang
         });
                         
         dict->DeclareFunction(ls.GetGC(),"getFinished","Get whether thread has finished",{},[th](GCList& _ls, std::vector<TObject> _args)-> TObject{
-            return th->hasReturned;
+            return (bool)(th->hasReturned==true);
         });
                         
         ls.GetGC()->BarrierEnd();  

@@ -59,6 +59,80 @@ namespace Tesses::CrossLang
             TDItem("Entries",EntriesToList(ls,f->classes.at(index).entry))
         });
     }
+    static TObject Class_CreateInstance(TRootEnvironment* env,GCList& ls, std::vector<TObject> args)
+    {
+        TList* args_ls;
+        if(!GetArgumentHeap(args,1,args_ls)) return nullptr;
+        TList* list;
+        TClassObject* obj;
+        std::string str;
+        if(GetArgumentHeap(args,0,list))
+        {
+            std::vector<std::string> clsName;
+            for(int64_t i = 0; i < list->Count(); i++)
+            {   
+                auto o = list->Get(i);
+                if(GetObject(o,str)) clsName.push_back(str);
+            }
+            for(auto& item : env->classes)
+            {
+                auto& f=item.first->classes.at(item.second);
+               
+                if(f.name.size() != clsName.size()) continue;
+                
+                bool found=true;
+                for(size_t i = 0; i < f.name.size(); i++)
+                    if(f.name[i] != clsName[i]) 
+                    {
+                        found=false;
+                        break;
+                    }
+                if(found)
+                {
+                    return TClassObject::Create(ls,item.first,item.second,env,args_ls->items);
+                }
+                else
+                    continue;
+            }
+        }
+        else if(GetArgument(args,0,str))
+        {
+            std::vector<std::string> clsName=Tesses::Framework::Http::HttpUtils::SplitString(str,".");
+            for(auto& item : env->classes)
+            {
+                auto& f=item.first->classes.at(item.second);
+               
+                if(f.name.size() != clsName.size()) continue;
+                
+                bool found=true;
+                for(size_t i = 0; i < f.name.size(); i++)
+                    if(f.name[i] != clsName[i]) 
+                    {
+                        found=false;
+                        break;
+                    }
+                if(found)
+                {
+                    return TClassObject::Create(ls,item.first,item.second,env,args_ls->items);
+                    
+                }
+                else
+                    continue;
+            }
+        }
+        return nullptr;
+    }
+    static TObject Class_GetClassNames(TRootEnvironment* env,GCList& ls, std::vector<TObject> args)
+    {
+        TList* list = TList::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        for(auto& item : env->classes)
+        {
+            list->Add(JoinPeriod(item.first->classes.at(item.second).name));
+        }
+        ls.GetGC()->BarrierEnd();
+        return list;
+    }
     static TObject Class_GetInfo(TRootEnvironment* env,GCList& ls, std::vector<TObject> args)
     {
        
@@ -138,6 +212,28 @@ namespace Tesses::CrossLang
         ext->watch.push_back(env);
         
         cls->SetValue("GetInfo",ext);
+
+        ext  = TExternalMethod::Create(ls ,"Get the class names",{},[env](GCList& ls, std::vector<TObject> args)->TObject {
+            return Class_GetClassNames(env,ls,args);
+        });
+        ext->watch.push_back(env);
+        
+        cls->SetValue("GetClassNames",ext);
+        ext  = TExternalMethod::Create(ls ,"Create an instance of class",{"name","args"},[env](GCList& ls, std::vector<TObject> args)->TObject {
+            return Class_CreateInstance(env,ls,args);
+        });
+        ext->watch.push_back(env);
+        
+        cls->SetValue("CreateInstance",ext);
+        cls->DeclareFunction(gc,"Name","Get class name via instance",{"instance"},[](GCList& ls, std::vector<TObject> args)->TObject {
+            TClassObject* cls;
+            if(GetArgumentHeap(args,0,cls))
+            {
+                return cls->name;
+            }
+            return "";
+        });
+        
         gc->BarrierEnd();
     }
 }

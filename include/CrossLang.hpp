@@ -16,7 +16,6 @@
 #include <TessesFramework/TessesFramework.hpp>
 #include <regex>
 #include <time.h>
-#include <cstdbool>
 #include <any>
 
 /**
