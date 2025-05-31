@@ -113,6 +113,9 @@ endif()
 if("${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoWii")
 target_link_libraries(${CROSSLANG_TARGET_NAME} PUBLIC wiisocket)
 endif()
+if(CROSSLANG_ENABLE_SHARED AND NOT ("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows"))
+target_include_directories(${CROSSLANG_TARGET_NAME} PUBLIC dl)
+endif()
 target_include_directories(${CROSSLANG_TARGET_NAME}
     PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
