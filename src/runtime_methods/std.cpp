@@ -428,6 +428,13 @@ namespace Tesses::CrossLang
         cb(gc,env);
         #endif
     }
+    static TObject TypeIsClass(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        if(args.empty()) return nullptr;
+        TClassObject* co;
+        return GetArgumentHeap(args,0,co);
+    }
 
     static TObject TypeIsDefined(GCList& ls,std::vector<TObject> args)
     {
@@ -917,6 +924,8 @@ namespace Tesses::CrossLang
         env->DeclareFunction(gc, "TypeIsDouble","Get whether object is a double (not a long)",{"object"},TypeIsDouble);
         env->DeclareFunction(gc, "TypeIsString","Get whether object is a string",{"object"},TypeIsString);
         env->DeclareFunction(gc, "TypeIsCallable","Get whether object is callable",{"object"},TypeIsCallable);
+
+        env->DeclareFunction(gc, "TypeIsClass","Get whether object is class instance",{"object"},TypeIsClass);
         env->DeclareFunction(gc, "TypeIsDictionary","Get whether object is a dictionary or dynamic dictionary",{"object"},TypeIsDictionary);
         env->DeclareFunction(gc, "TypeIsList","Get whether object is a list or dynamic list",{"object"},TypeIsList);
         env->DeclareFunction(gc, "TypeIsStream","Get whether object is a stream",{"object"},TypeIsStream);
