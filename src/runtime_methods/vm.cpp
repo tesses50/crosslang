@@ -5,6 +5,101 @@
 
 namespace Tesses::CrossLang
 {
+
+    class OnItterationObj : public TNativeObject
+    {
+        private:
+            GC* gc;
+            std::vector<TCallable*> callables;
+            std::shared_ptr<Tesses::Framework::FunctionalEvent<uint64_t>> fevent;
+        public:
+            OnItterationObj(GC* gc)
+            {
+                this->gc=gc;
+                this->fevent = std::make_shared<Tesses::Framework::FunctionalEvent<uint64_t>>(
+                    [this](uint64_t n)->void{
+                        this->Exec(n);
+                    }
+                );
+                Tesses::Framework::OnItteraton += this->fevent;
+            }
+            ~OnItterationObj()
+            {
+                Tesses::Framework::OnItteraton -= this->fevent;
+            }
+            std::string TypeName()
+            {
+                return "OnItteration";
+            }
+            TObject CallMethod(GCList& ls, std::string key, std::vector<TObject> args)
+            {
+                if(key == "operator+")
+                {
+                    TCallable* callable;
+                    if(GetArgumentHeap(args,0,callable))
+                    {
+                        gc->BarrierBegin();
+                        bool found=false;
+                        for(auto item : this->callables)
+                        {
+                            if(item == callable) {found=true; break;}
+                        }
+                        if(!found)
+                        {
+                            this->callables.push_back(callable);
+                        }
+                        gc->BarrierEnd();
+                    }
+                    return this;
+                }
+                if(key == "operator-")
+                {
+                    TCallable* callable;
+                    if(GetArgumentHeap(args,0,callable))
+                    {
+                        gc->BarrierBegin();
+                   
+                        for(auto index = this->callables.begin(); index < this->callables.end(); index++)
+                        {
+                            if(*index == callable) {
+                                this->callables.erase(index);
+                                 break;
+                            }
+                        }
+                   
+                        gc->BarrierEnd();
+                    }
+                    return this;
+                }
+                if(key == "ToString")
+                {
+                    gc->BarrierBegin();
+                    std::string str = "Registered: " + std::to_string(this->callables.size());
+                    gc->BarrierEnd();
+                    return str;
+                }
+                return Undefined();
+            }
+            void Mark()
+            {
+                if(this->marked) return;
+                this->marked=true;
+
+                for(auto item : callables) item->Mark();
+            }
+            void Exec(uint64_t n)
+            {
+                gc->BarrierBegin();
+                for(auto item : callables) 
+                {
+                    gc->BarrierEnd();
+                    GCList ls(gc);
+                    item->Call(ls,{(int64_t)n});
+                    gc->BarrierBegin();
+                }
+                gc->BarrierEnd();
+            }
+    };
     static TObject AstToTObject(GCList& ls,SyntaxNode node)
     {
         if(std::holds_alternative<std::nullptr_t>(node))
@@ -317,8 +412,24 @@ namespace Tesses::CrossLang
         dict->DeclareFunction(gc, "getRuntimeVersion","Get the runtime version",{},[](GCList& ls,std::vector<TObject> args)->TObject {
             return TVMVersion(TVM_MAJOR,TVM_MINOR,TVM_PATCH,TVM_BUILD,TVM_VERSIONSTAGE);
         });
+        dict->DeclareFunction(gc, "getIsRunning","Is the program still running",{},[](GCList& ls, std::vector<TObject> args)->TObject {
+            return Tesses::Framework::TF_IsRunning();
+        });
+        dict->DeclareFunction(gc, "RunEventLoopItteration","Run Event Loop Itteration",{},[](GCList& ls, std::vector<TObject> args)->TObject {
+            Tesses::Framework::TF_RunEventLoopItteration();
+            return Undefined();
+        });
+        dict->DeclareFunction(gc, "RunEventLoop","Run Event Loop",{},[](GCList& ls, std::vector<TObject> args)->TObject {
+            Tesses::Framework::TF_RunEventLoop();
+            return Undefined();
+        });
+        
         
         gc->BarrierBegin();
+        auto ittrobj = TNativeObject::Create<OnItterationObj>(ls,gc);
+        
+        
+        dict->SetValue("OnItteration", ittrobj);
         env->DeclareVariable("VM", dict);
         gc->BarrierEnd();
     }

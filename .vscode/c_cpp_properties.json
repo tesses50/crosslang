@@ -16,11 +16,10 @@
                 "CROSSLANG_ENABLE_TERMIOS=1",
                 "CROSSLANG_ENABLE_MBED=1",
                 "CROSSLANG_ENABLE_SQLITE=1",
-                "CROSSLANG_ENABLE_SDL2=1",
+                "TESSESFRAMEWORK_ENABLE_SDL2=1",
                 "CROSSLANG_ENABLE_PROCESS=1",
                 "CROSSLANG_ENABLE_FFI=1",
-                "CROSSLANG_ENABLE_SHARED=1",
-                "CROSSLANG_ENABLE_GOBJECT_FFI=1"
+                "CROSSLANG_ENABLE_SHARED=1"
             ],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c17",

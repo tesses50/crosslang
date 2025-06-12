@@ -933,6 +933,7 @@ namespace Tesses::CrossLang
         env->DeclareFunction(gc, "TypeIsDateTime","Get whether object is a DateTime",{"object"},TypeIsDateTime);
         
         
+        
         newTypes->DeclareFunction(gc, "Regex", "Create regex object",{"regex"},[](GCList& ls,std::vector<TObject> args)->TObject {
             std::string str;
             if(GetArgument(args,0,str))
@@ -1075,6 +1076,7 @@ namespace Tesses::CrossLang
         RegisterOGC(gc, env);
         RegisterProcess(gc,env);
         RegisterClass(gc,env);
+        RegisterSDL2(gc,env);
 
         gc->RegisterEverything(env);
 

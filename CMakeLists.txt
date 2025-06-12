@@ -143,6 +143,7 @@ src/runtime_methods/ogc.cpp
 src/runtime_methods/path.cpp
 src/runtime_methods/env.cpp
 src/runtime_methods/process.cpp
+src/runtime_methods/sdl2.cpp
 src/types/associativearray.cpp
 src/types/any.cpp
 src/types/datetime.cpp
