@@ -857,11 +857,13 @@ namespace Tesses::CrossLang
     }
     void TStd::RegisterRoot(GC* gc, TRootEnvironment* env)
     {
-        GCList ls(gc);        
+        GCList ls(gc);      
+        
+        gc->BarrierBegin();  
         
         env->permissions.canRegisterRoot=true;
-        
-        TDictionary* date = TDictionary::Create(ls);
+       
+        auto date =env->EnsureDictionary(gc,"DateTime");
         date->DeclareFunction(gc, "Sleep","Sleep for a specified amount of milliseconds (multiply seconds by 1000 to get milliseconds)", {"ms"},DateTime_Sleep);
         date->DeclareFunction(gc, "getNow", "Get the current time",{},DateTime_getNow);
         date->DeclareFunction(gc, "getNowUTC","Get the current time in UTC",{},DateTime_getNowUTC);
@@ -869,16 +871,29 @@ namespace Tesses::CrossLang
         date->DeclareFunction(gc, "TryParseHttpDate","Parse the http date",{},DateTime_TryParseHttpDate);
         
         
-        gc->BarrierBegin();
 	
         date->SetValue("Zone", (int64_t)Tesses::Framework::Date::GetTimeZone());
         date->SetValue("SupportsDaylightSavings",Tesses::Framework::Date::TimeZoneSupportDST());
 	
-        env->DeclareVariable("DateTime", date);
+        auto task = env->EnsureDictionary(gc,"Task");
 
-        gc->BarrierEnd();
+        task->DeclareFunction(gc,"AsyncClosure","Create async closure (internal for compiler to generate calls to)",{"closure"},[](GCList& ls, std::vector<TObject> args)->TObject {
+            TClosure* closure;
+            if(GetArgumentHeap(args,0,closure))
+            return TTask::FromClosure(ls,closure);
+            return nullptr;
+        });
+
+        task->DeclareFunction(gc,"Run","Run code async",{"callable"},[](GCList& ls, std::vector<TObject> args)->TObject {
+             TCallable* closure;
+            if(GetArgumentHeap(args,0,closure))
+            return TTask::Run(ls,closure);
+            return nullptr;
+        });
+
+
         TDictionary* newTypes = env->EnsureDictionary(gc, "New");
-
+       
         newTypes->DeclareFunction(gc, "DateTime","Create a DateTime object, if only one arg is provided year is epoch, isLocal defaults to true unless epoch",{"year","$month","$day","$hour","$minute","$second","$isLocal"},New_DateTime);
 
         newTypes->DeclareFunction(gc, "MountableFilesystem","Create a mountable filesystem",{"root"}, New_MountableFilesystem);
@@ -1018,7 +1033,7 @@ namespace Tesses::CrossLang
             return TAssociativeArray::Create(ls);
         });
         newTypes->DeclareFunction(gc,"ByteArray","Create bytearray, with optional either size (to size it) or string argument (to fill byte array)",{"$data"},ByteArray);
-        gc->BarrierBegin();
+        
         env->DeclareVariable("Version", TDictionary::Create(ls,{
             TDItem("Parse",TExternalMethod::Create(ls,"Parse version from string",{"versionStr"},[](GCList& ls, std::vector<TObject> args)->TObject{
                 std::string str;
@@ -1056,6 +1071,8 @@ namespace Tesses::CrossLang
             }))
         }));
         env->DeclareVariable("InvokeMethod",MethodInvoker());
+
+
         
         gc->BarrierEnd();
     }

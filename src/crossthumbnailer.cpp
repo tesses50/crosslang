@@ -9,7 +9,7 @@
 int main(int argc,char** argv)
 {
     std::string p = argv[0];
-    auto emptyThumb =Tesses::CrossLang::GetRealExecutablePath(p).GetParent().GetParent() / "share" / "icons" / "crosslang.png";
+    auto emptyThumb =Tesses::Framework::Platform::Environment::GetRealExecutablePath(p).GetParent().GetParent() / "share" / "icons" / "crosslang.png";
     
     if(argc < 3)
     {

@@ -3,6 +3,65 @@
 #include <stdexcept>
 namespace Tesses::CrossLang
 {
+    SyntaxNode TObject2SyntaxNode(TObject o)
+    {
+        if(std::holds_alternative<Undefined>(o)) return Undefined();
+        if(std::holds_alternative<std::nullptr_t>(o)) return nullptr;
+        if(std::holds_alternative<std::string>(o)) return std::get<std::string>(o);
+        if(std::holds_alternative<int64_t>(o)) return std::get<int64_t>(o);
+        if(std::holds_alternative<double>(o)) return std::get<double>(o);
+        if(std::holds_alternative<char>(o)) return std::get<char>(o);
+        if(std::holds_alternative<bool>(o)) return std::get<bool>(o);
+        TList* list;
+        TDictionary* dict;
+        TByteArray* byteArray;
+        
+
+        if(GetObjectHeap(o,list))
+        {
+            if(list->Count() == 0) return AdvancedSyntaxNode::Create(ArrayExpression, true, {});
+
+            SyntaxNode node = TObject2SyntaxNode(list->Get(0));
+
+            for(int64_t i = 1; i < list->Count(); i++)
+                node = AdvancedSyntaxNode::Create(CommaExpression,true,{node,TObject2SyntaxNode(list->Get(i))});
+
+            return AdvancedSyntaxNode::Create(ArrayExpression, true, {node});
+        }
+        if(GetObjectHeap(o,dict))
+        {
+            bool has=false;
+            SyntaxNode node=nullptr;
+
+            for(auto item : dict->items)
+            {
+                if(has)
+                {
+                    node = AdvancedSyntaxNode::Create(CommaExpression,true, {node,AdvancedSyntaxNode::Create(AssignExpression,true,{
+                        AdvancedSyntaxNode::Create(GetVariableExpression,true,{TObject2SyntaxNode(item.first)}),
+                        TObject2SyntaxNode(item.second)
+                    })});
+                }
+                else {
+                    node = AdvancedSyntaxNode::Create(AssignExpression,true,{
+                        AdvancedSyntaxNode::Create(GetVariableExpression,true,{TObject2SyntaxNode(item.first)}),
+                        TObject2SyntaxNode(item.second)
+                    });
+                    has=true;
+                    
+                }
+            }
+
+            if(has) return AdvancedSyntaxNode::Create(DictionaryExpression,true,{node});
+            return AdvancedSyntaxNode::Create(DictionaryExpression,true,{});
+        }
+        if(GetObjectHeap(o,byteArray)) {
+            return byteArray->data;
+        }
+        return Undefined();
+    }
+
+
     std::string LexTokenType_ToString(LexTokenType t)
     {  
         switch(t)
@@ -103,10 +162,16 @@ namespace Tesses::CrossLang
         }
         throw std::out_of_range("End of file");
     }
-    Parser::Parser(std::vector<LexToken> tokens)
+    Parser::Parser(std::vector<LexToken> tokens) : Parser(tokens,nullptr,nullptr)
+    {
+        
+    }
+    Parser::Parser(std::vector<LexToken> tokens, GC* gc, TRootEnvironment* env)
     {
         this->i = 0;
         this->tokens = tokens;
+        this->gc = gc;
+        this->env = env;
     }
     void Parser::ParseHtml(std::vector<SyntaxNode>& nodes,std::string var)
     {
@@ -625,6 +690,42 @@ namespace Tesses::CrossLang
             node = AdvancedSyntaxNode::Create(DeclareExpression,true,{variable.text});
             }
         }
+        else if(IsIdentifier("comptime"))
+        {
+            SyntaxNode n = nullptr;
+            if(IsSymbol("{",false))
+            {
+                n = ParseNode();
+                if(std::holds_alternative<AdvancedSyntaxNode>(n))
+                {
+                    std::get<AdvancedSyntaxNode>(n).nodeName = NodeList;
+                }
+            } else {
+                n = AdvancedSyntaxNode::Create(ReturnStatement,false,{ParseExpression()});
+            }
+            if(gc != nullptr && env != nullptr)
+            {
+                GCList ls(gc);
+
+                CodeGen gen;
+                gen.GenRoot(n);
+
+                Tesses::Framework::Streams::MemoryStream ms(true);
+                
+                gen.Save(nullptr,&ms);
+
+                ms.Seek(0, Tesses::Framework::Streams::SeekOrigin::Begin);
+
+                TFile* f = TFile::Create(ls);
+                f->Load(gc,&ms);
+
+                node = TObject2SyntaxNode(env->LoadFile(gc,f));
+            }
+            else {
+                node = Undefined();
+            }
+
+        }
         else if(IsIdentifier("operator"))
         {
             if(i >= tokens.size()) throw std::out_of_range("End of file");
@@ -822,6 +923,69 @@ namespace Tesses::CrossLang
         else if(IsSymbol("--"))
         {
             return AdvancedSyntaxNode::Create(PrefixDecrementExpression,true,{ParseUnary()});
+        }
+        else if(IsIdentifier("await"))
+        {
+            return AdvancedSyntaxNode::Create(YieldStatement,true,{ParseValue()});
+        }
+        else if(IsIdentifier("async"))
+        {
+            auto tkn = this->tkn;
+            auto v = ParseValue();
+            if(std::holds_alternative<AdvancedSyntaxNode>(v))
+            {
+                auto asn = std::get<AdvancedSyntaxNode>(v);
+                if(asn.nodeName != ClosureExpression)
+                    throw SyntaxException(tkn.lineInfo,"async must be used only with a closure");
+                if(asn.nodes.size() != 2)
+                    throw SyntaxException(tkn.lineInfo,"invalid closure");
+           
+
+
+                
+                return AdvancedSyntaxNode::Create(ClosureExpression,true,{
+                    asn.nodes[0],
+                    AdvancedSyntaxNode::Create(ReturnStatement,false,{
+                        AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                            AdvancedSyntaxNode::Create(GetFieldExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{"Task"}),"AsyncClosure"}),
+                            AdvancedSyntaxNode::Create(ClosureExpression,true,{AdvancedSyntaxNode::Create(ParenthesesExpression,true,{}), asn.nodes[1]})
+                        })
+                    })
+                });
+            }
+            else {
+                throw SyntaxException(tkn.lineInfo,"async must be used only with a closure, not a simple value");
+            }
+        }
+        else if(IsIdentifier("enumerable"))
+        {
+
+            auto tkn = this->tkn;
+            auto v = ParseValue();
+            if(std::holds_alternative<AdvancedSyntaxNode>(v))
+            {
+                auto asn = std::get<AdvancedSyntaxNode>(v);
+                if(asn.nodeName != ClosureExpression)
+                    throw SyntaxException(tkn.lineInfo,"enumerable must be used only with a closure");
+                if(asn.nodes.size() != 2)
+                    throw SyntaxException(tkn.lineInfo,"invalid closure");
+           
+
+
+                
+                return AdvancedSyntaxNode::Create(ClosureExpression,true,{
+                    asn.nodes[0],
+                    AdvancedSyntaxNode::Create(ReturnStatement,false,{
+                        AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                            AdvancedSyntaxNode::Create(GetVariableExpression,true,{"YieldEmumerable"}),
+                            AdvancedSyntaxNode::Create(ClosureExpression,true,{AdvancedSyntaxNode::Create(ParenthesesExpression,true,{}), asn.nodes[1]})
+                        })
+                    })
+                });
+            }
+            else {
+                throw SyntaxException(tkn.lineInfo,"enumerable must be used only with a closure, not a simple value");
+            }
         }
         else if(IsSymbol("/"))
         {
@@ -1124,21 +1288,83 @@ namespace Tesses::CrossLang
                             }
                             else 
                             {
-                                auto nameAndArgs = ParseExpression();
-                                
-                                if(IsSymbol("{",false))
+                                if(IsIdentifier("async"))
                                 {
+                                    auto nameAndArgs = ParseExpression();
+                                
+                                    if(IsSymbol("{",false))
+                                    {
 
                                 
-                                    name_and_methods.push_back(AdvancedSyntaxNode::Create(MethodStatement,false,{documentation,myTkn.text,nameAndArgs,ParseNode()}));
+                                        name_and_methods.push_back(AdvancedSyntaxNode::Create(MethodStatement,false,{documentation,myTkn.text,nameAndArgs,
+                                            AdvancedSyntaxNode::Create(ReturnStatement,false,{
+                                                    AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                                                        AdvancedSyntaxNode::Create(GetFieldExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{"Task"}),"AsyncClosure"}),
+                                                        AdvancedSyntaxNode::Create(ClosureExpression,true,{AdvancedSyntaxNode::Create(ParenthesesExpression,true,{}), ParseNode()})
+                                                    })
+                                            })
+                                        }));
                                    
-                                }
-                                else
-                                {
-                                    auto v = ParseExpression();
-                                    EnsureSymbol(";");
-                                    name_and_methods.push_back(AdvancedSyntaxNode::Create(MethodStatement,false,{documentation,myTkn.text,nameAndArgs,AdvancedSyntaxNode::Create(ReturnStatement,false,{v})}));
+                                    }
+                                    else
+                                    {
+                                        auto v = ParseExpression();
+                                        EnsureSymbol(";");
+
+                                          name_and_methods.push_back(AdvancedSyntaxNode::Create(MethodStatement,false,{documentation,myTkn.text,nameAndArgs,
+                                            AdvancedSyntaxNode::Create(ReturnStatement,false,{
+                                                AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                                                    AdvancedSyntaxNode::Create(GetFieldExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{"Task"}),"AsyncClosure"}),
+                                                    AdvancedSyntaxNode::Create(ClosureExpression,true,{AdvancedSyntaxNode::Create(ParenthesesExpression,true,{}), AdvancedSyntaxNode::Create(ReturnStatement,false,{v})})
+                                                })
+                                            })
+                                        }));
+                                   
                                     
+                                    }
+                                }
+                                else if(IsIdentifier("enumerable"))
+                                {
+                                    auto nameAndArgs = ParseExpression();
+                                
+                                    if(IsSymbol("{",false))
+                                    {
+
+                                
+                                        name_and_methods.push_back(AdvancedSyntaxNode::Create(MethodStatement,false,{documentation,myTkn.text,nameAndArgs,
+                                            AdvancedSyntaxNode::Create(ReturnStatement,false,{
+                                                AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                                                    AdvancedSyntaxNode::Create(GetVariableExpression,true,{"YieldEmumerable"}),
+                                                    AdvancedSyntaxNode::Create(ClosureExpression,true,{AdvancedSyntaxNode::Create(ParenthesesExpression,true,{}), ParseNode()})
+                                                })
+                                            })
+                                        }));
+                                   
+                                    }
+                                    else
+                                    {
+                                        throw SyntaxException(tokens[i].lineInfo, "expected the symbol \"{\" on enumerable but got the symbol or other token \"" + tokens[i].text + "\"");
+
+                                    
+                                    }
+                                }
+                                else {
+                                    auto nameAndArgs = ParseExpression();
+                                
+                                    if(IsSymbol("{",false))
+                                    {
+
+                                
+                                        name_and_methods.push_back(AdvancedSyntaxNode::Create(MethodStatement,false,{documentation,myTkn.text,nameAndArgs,ParseNode()}));
+                                   
+                                    }
+                                    else
+                                    {
+                                        auto v = ParseExpression();
+                                        EnsureSymbol(";");
+                                        name_and_methods.push_back(AdvancedSyntaxNode::Create(MethodStatement,false,{documentation,myTkn.text,nameAndArgs,AdvancedSyntaxNode::Create(ReturnStatement,false,{v})}));
+                                    
+                                    }
                                 }
                            
                             }
@@ -1150,21 +1376,66 @@ namespace Tesses::CrossLang
             }
             else throw std::out_of_range("End of file");
         }
-        if(IsIdentifier("enumerable"))
+        
+        if(IsIdentifier("enumerable",false) && i+1<tokens.size() && tokens[i+1].text == "func" && i+1<tokens.size() && tokens[i+1].type == LexTokenType::Identifier)
         {
+            i+=2;
             auto nameAndArgs = ParseExpression();
             
             if(IsSymbol("{",false))
             {
-                return AdvancedSyntaxNode::Create(EnumerableStatement,false,{nameAndArgs,ParseNode()});
+                return AdvancedSyntaxNode::Create(FunctionStatement,false,{
+                    nameAndArgs,
+                    AdvancedSyntaxNode::Create(ReturnStatement,false,{
+                        AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                            AdvancedSyntaxNode::Create(GetVariableExpression,true,{"YieldEmumerable"}),
+                            AdvancedSyntaxNode::Create(ClosureExpression,true,{AdvancedSyntaxNode::Create(ParenthesesExpression,true,{}), ParseNode()})
+                        })
+                    })
+                });
             }
             else
             {   
                 throw SyntaxException(tokens[i].lineInfo, "expected the symbol \"{\" on enumerable but got the symbol or other token \"" + tokens[i].text + "\"");
             }
         }
+        if(IsIdentifier("async",false) && i+1<tokens.size() && tokens[i+1].text == "func" && tokens[i+1].type == LexTokenType::Identifier)
+        {
+            i+=2;
+            //async func
+            auto nameAndArgs = ParseExpression();
+            
+            if(IsSymbol("{",false))
+            {
+                return AdvancedSyntaxNode::Create(FunctionStatement,false,{
+                    nameAndArgs,
+                    AdvancedSyntaxNode::Create(ReturnStatement,false,{
+                        AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                            AdvancedSyntaxNode::Create(GetFieldExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{"Task"}),"AsyncClosure"}),
+                            AdvancedSyntaxNode::Create(ClosureExpression,true,{AdvancedSyntaxNode::Create(ParenthesesExpression,true,{}), ParseNode()})
+                        })
+                    })
+                });
+            }
+            else
+            {   
+                auto v = ParseExpression();
+
+                EnsureSymbol(";");
+                return AdvancedSyntaxNode::Create(FunctionStatement,false,{
+                    nameAndArgs,
+                    AdvancedSyntaxNode::Create(ReturnStatement,false,{
+                        AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                            AdvancedSyntaxNode::Create(GetFieldExpression,true,{AdvancedSyntaxNode::Create(GetVariableExpression,true,{"Task"}),"AsyncClosure"}),
+                            AdvancedSyntaxNode::Create(ClosureExpression,true,{AdvancedSyntaxNode::Create(ParenthesesExpression,true,{}), AdvancedSyntaxNode::Create(ReturnStatement,false,{v})})
+                        })
+                    })
+                });
+            }
+        }
         if(IsIdentifier("func"))
         {
+
             auto nameAndArgs = ParseExpression();
             
             if(IsSymbol("{",false))

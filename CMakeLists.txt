@@ -15,11 +15,7 @@ option(CROSSLANG_ENABLE_SHARED "Enable Tesses CrossLang shared libraries" ON)
 option(CROSSLANG_ENABLE_BINARIES "Enable Tesses CrossLang binaries" ON)
 option(CROSSLANG_INSTALL_DEVELOPMENT "Enable Tesses CrossLang development files" ON)
 option(CROSSLANG_ENABLE_THREADING "Enable Tesses CrossLang threading" ON)
-option(CROSSLANG_ENABLE_SQLITE "Enable sqlite (Embedded database, supports Wii)" ON)
-option(CROSSLANG_ENABLE_PROCESS "Enable process" ON)
 option(CROSSLANG_ENABLE_TERMIOS "Enable termios (For changing terminal options)" ON)
-option(CROSSLANG_ENABLE_PLATFORM_FOLDERS "Enable platform folders" ON)
-option(CROSSLANG_ENABLE_TIME "Enable Time" ON)
 option(CROSSLANG_SHARED_EXECUTABLES "Link with libcrosslang_shared" ON)
 option(CROSSLANG_FETCHCONTENT "Use fetchcontent" ON)
 option(CROSSLANG_ENABLE_CONFIG_ENVVAR "Allow setting config directory via the environment variable CROSSLANG_CONFIG" ON)
@@ -144,6 +140,7 @@ src/runtime_methods/path.cpp
 src/runtime_methods/env.cpp
 src/runtime_methods/process.cpp
 src/runtime_methods/sdl2.cpp
+src/types/async.cpp
 src/types/associativearray.cpp
 src/types/any.cpp
 src/types/datetime.cpp
@@ -168,12 +165,6 @@ src/archive.cpp
 src/markedtobject.cpp
 )
 
-if(CROSSLANG_ENABLE_PLATFORM_FOLDERS)
-list(APPEND CROSSLANG_SOURCE src/sago/platform_folders.cpp)
-endif()
-if(CROSSLANG_ENABLE_SQLITE)
-list(APPEND CROSSLANG_SOURCE src/sqlite/sqlite3.c src/sqlite/vfs.c)
-endif()
 if(CROSSLANG_OFFLINE_SHELL_PACKAGE STREQUAL "")
 
 else()

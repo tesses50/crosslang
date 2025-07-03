@@ -64,7 +64,6 @@ namespace Tesses::CrossLang {
      */
     std::string EscapeString(std::string text,bool quote);
 
-    Tesses::Framework::Filesystem::VFSPath GetRealExecutablePath(Tesses::Framework::Filesystem::VFSPath realPath);
     /**
      * @brief Get the config folder used by crosslang
      * 
@@ -841,7 +840,7 @@ class CharInstruction : public ByteCodeInstruction {
         void Write(std::vector<uint8_t>& data);
 };
 
-using SyntaxNode = std::variant<int64_t, double, std::string, char, bool, std::nullptr_t, Undefined, AdvancedSyntaxNode>;
+using SyntaxNode = std::variant<int64_t, double, std::string, char, bool, std::nullptr_t, Undefined,std::vector<uint8_t>, AdvancedSyntaxNode>;
 
 
 
@@ -860,6 +859,35 @@ struct CodeGenClass {
     std::vector<CodeGenClassEntry> entries;
 };
 
+class ResourceBase {
+    public:
+        virtual uint32_t GetLength(Tesses::Framework::Filesystem::VFS* embedFS)=0;
+        virtual void Write(Tesses::Framework::Streams::Stream* output)=0;
+        virtual ~ResourceBase();
+        virtual bool IsEqual(ResourceBase* base);
+};
+
+class ResourceFile : public ResourceBase 
+{
+    Tesses::Framework::Streams::Stream* strm=nullptr;
+    public:
+        ResourceFile();
+        ResourceFile(std::string file);
+        std::string file;
+        uint32_t GetLength(Tesses::Framework::Filesystem::VFS* embedFS);
+        void Write(Tesses::Framework::Streams::Stream* output);
+        bool IsEqual(ResourceBase* base);
+        ~ResourceFile();
+};
+
+class ResourceByteArray : public ResourceBase
+{
+    public:
+        std::vector<uint8_t> data;
+        uint32_t GetLength(Tesses::Framework::Filesystem::VFS* embedFS);
+        void Write(Tesses::Framework::Streams::Stream* output);
+};
+
 
 class CodeGen {
     uint32_t id;
@@ -871,9 +899,9 @@ class CodeGen {
     SyntaxNode StringifyListOfVars(SyntaxNode n);
 
     uint32_t GetString(std::string str);
-    uint32_t GetResource(std::string res);
+    uint32_t GetResource(std::shared_ptr<ResourceBase> resource);
     std::vector<std::string> strs;
-    std::vector<std::string> res;
+    std::vector<std::shared_ptr<ResourceBase>> res;
     
     std::vector<std::pair<std::vector<uint32_t>, std::vector<ByteCodeInstruction*>>> chunks;
     std::vector<std::pair<std::vector<uint32_t>,uint32_t>> funcs;
@@ -1243,6 +1271,10 @@ constexpr std::string_view RootPathExpression = "rootPathExpression";
  */
 constexpr std::string_view RelativePathExpression = "relativePathExpression";
 /**
+ * @brief await expression for async/await
+ */
+constexpr std::string_view AwaitExpression = "awaitExpression";
+/**
  * @brief Advanced AST node
  * 
  */
@@ -1279,6 +1311,8 @@ class AdvancedSyntaxNode {
 SyntaxNode Deserialize(std::string astData);
 
 std::string Serialize(SyntaxNode node);
+class GC;
+class TRootEnvironment;
 /**
  * @brief Token Parser
  * 
@@ -1313,13 +1347,17 @@ class Parser {
     SyntaxNode ParseValue();
     SyntaxNode ParseUnary();
     void ParseHtml(std::vector<SyntaxNode>& nodes,std::string var);
+    GC* gc;
+    TRootEnvironment* env;
     public:
+        
         /**
          * @brief Construct a new Parser object
          * 
          * @param tokens the tokens from lexer
          */
         Parser(std::vector<LexToken> tokens);
+        Parser(std::vector<LexToken> tokens, GC* gc, TRootEnvironment* env);
         /**
          * @brief Turn tokens into abstract syntax tree
          * 
@@ -1349,6 +1387,7 @@ class Parser {
         
     };
     
+    
         class THeapObjectHolder
     {
         public:
@@ -1369,6 +1408,7 @@ class Parser {
     class MethodInvoker {
 
     };
+    
 
     class TDateTime {
         Tesses::Framework::Date::DateTime* dt;
@@ -1400,8 +1440,11 @@ class GC {
     volatile std::atomic<bool> running;
     std::vector<THeapObject*> roots;
     std::vector<THeapObject*> objects;
+
+    Tesses::Framework::Lazy<Tesses::Framework::Threading::ThreadPool*>* tpool;
     std::vector<std::function<void(GC* gc, TRootEnvironment* env)>> register_everything;
     public:
+        Tesses::Framework::Threading::ThreadPool* GetPool();
         bool UsingNullThreads();
         GC();
         void Start();
@@ -2171,6 +2214,36 @@ class GC {
             TObject Pop(GCList& gcl);
 
             TObject Resume(GCList& ls);
+    };
+    class TTask : public THeapObject
+    {
+        TCallable* cont=nullptr;
+        std::exception_ptr ex=nullptr;
+        GC* gc;
+        TObject obj=Undefined();
+        bool isCompleted=false;
+        TTask(GC* gc);
+        public:
+            static TTask* Create(GCList& ls);
+            bool IsCompleted();
+
+            void ContinueWith(TCallable* callable);
+            TTask* ContinueWith(GCList& ls,TCallable* callable);
+
+
+            void SetFailed(std::exception_ptr ex);
+            void SetSucceeded(TObject v);
+
+            TObject Wait();
+            void Mark();
+
+            static TTask* FromClosure(GCList& ls, TClosure* closure);
+
+            static TTask* FromCallStackEntry(GCList& ls, CallStackEntry* ent);
+
+            static TTask* Run(GCList& ls, TCallable* callable);
+
+            static TTask* FromResult(GCList& ls, TObject v);
     };
     extern thread_local CallStackEntry* current_function;
     

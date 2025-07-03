@@ -57,7 +57,7 @@ namespace Tesses::CrossLang
         }
         if(!this->icon.empty())
         {
-            this->GetResource(this->icon);
+            this->GetResource(std::make_shared<ResourceFile>(this->icon));
             
         }
         for(auto& res : this->res)
@@ -234,38 +234,15 @@ namespace Tesses::CrossLang
         {
             memcpy(buffer,"RESO",4);
             Write(stream,buffer,4);
-           
-            if(vfs == nullptr)
-            {
-                WriteInt(stream,0);
-                continue;
-            }
-            auto f = vfs->OpenFile(reso,"rb");
-            if(f != NULL)
-            {
-                
-                uint32_t len = (uint32_t)f->GetLength();
-                
-                WriteInt(stream,len);
-                uint8_t buff[1024];
-                size_t read;
-                do {
-                    read = f->Read(buff,1024);
-                    Write(stream,buff,read);
-                } while(read > 0);
-                delete f;
-            }
-            else
-            {
-                WriteInt(stream,0);
-            }
+            WriteInt(stream,reso->GetLength(vfs));
+            reso->Write(stream);
         }
         if(!this->icon.empty())
         {
             memcpy(buffer,"ICON",4);
             Write(stream,buffer,4);
             WriteInt(stream,4);
-            WriteInt(stream,this->GetResource(this->icon));
+            WriteInt(stream,this->GetResource(std::make_shared<ResourceFile>(this->icon)));
             
         }
     }
@@ -448,14 +425,14 @@ namespace Tesses::CrossLang
         this->strs.push_back(str);
         return strI;
     }
-    uint32_t CodeGen::GetResource(std::string res)
+    uint32_t CodeGen::GetResource(std::shared_ptr<ResourceBase> resource)
     {
         for(uint32_t i = 0; i < (uint32_t)this->res.size();i++)
         {
-            if(this->res[i] == res) return i;
+            if(this->res[i]->IsEqual(resource.get())) return i;
         }
         uint32_t resI = (uint32_t)this->res.size();
-        this->res.push_back(res);
+        this->res.push_back(resource);
         return resI;
     }
     #define ONE_EXPR(EXPRESSION, INSTRUCTION) if(adv.nodeName == EXPRESSION && adv.nodes.size() == 1) {GenNode(instructions,adv.nodes[0],scope,contscope,brkscope,contI,brkI);instructions.push_back(new SimpleInstruction(INSTRUCTION));}
@@ -515,6 +492,12 @@ namespace Tesses::CrossLang
         else if(std::holds_alternative<double>(n))
         {
             instructions.push_back(new DoubleInstruction(std::get<double>(n)));
+        }
+        else if(std::holds_alternative<std::vector<uint8_t>>(n))
+        {
+            ResourceByteArray ba;
+            ba.data = std::get<std::vector<uint8_t>>(n);
+            instructions.push_back(new EmbedInstruction(GetResource(std::make_shared<ResourceByteArray>(ba))));
         }
         else if(std::holds_alternative<AdvancedSyntaxNode>(n))
         {
@@ -1337,7 +1320,7 @@ namespace Tesses::CrossLang
             else if(adv.nodeName == EmbedExpression && adv.nodes.size() == 1 && std::holds_alternative<std::string>(adv.nodes[0]))
             {
                 std::string filename = std::get<std::string>(adv.nodes[0]);
-                instructions.push_back(new EmbedInstruction(GetResource(filename)));
+                instructions.push_back(new EmbedInstruction(GetResource(std::make_shared<ResourceFile>(filename))));
 
             }
             else if(adv.nodeName == HtmlRootExpression)
@@ -1519,20 +1502,6 @@ namespace Tesses::CrossLang
 
                 this->chunks[fnindex] = std::pair<std::vector<uint32_t>,std::vector<ByteCodeInstruction*>>(args, fnInstructions);
                 instructions.push_back(new ClosureInstruction((uint32_t)fnindex));
-            }
-            else if(adv.nodeName == EnumerableStatement && adv.nodes.size() == 2 && std::holds_alternative<AdvancedSyntaxNode>(adv.nodes[0]))
-            {
-                SyntaxNode n = AdvancedSyntaxNode::Create(FunctionStatement,false,{
-                    adv.nodes[0],
-                    AdvancedSyntaxNode::Create(ReturnStatement,false,{
-                        AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
-                            AdvancedSyntaxNode::Create(GetVariableExpression,true,{"YieldEmumerable"}),
-                            AdvancedSyntaxNode::Create(ClosureExpression,true,{AdvancedSyntaxNode::Create(ParenthesesExpression,true,{}), adv.nodes[1]})
-                        })
-                    })
-                });
-                GenNode(instructions,n,scope,contscope,brkscope,contI,brkI);
-
             }
             else if(adv.nodeName == FunctionStatement && adv.nodes.size() == 2 && std::holds_alternative<AdvancedSyntaxNode>(adv.nodes[0])) 
             {
@@ -1763,4 +1732,58 @@ namespace Tesses::CrossLang
             instrs.push_back(new SimpleInstruction(POP));
         }
     }
+
+    ResourceBase::~ResourceBase()
+    {
+
+    }
+
+    bool ResourceBase::IsEqual(ResourceBase* base)
+    {
+        return this == base;
+    }
+    
+    ResourceFile::ResourceFile()
+    {
+
+    }
+    ResourceFile::ResourceFile(std::string f)
+    {
+        this->file = f;
+    }
+    ResourceFile::~ResourceFile()
+    {
+        delete this->strm;
+    }
+
+    uint32_t ResourceFile::GetLength(Tesses::Framework::Filesystem::VFS* embedFS)
+    {
+        if(embedFS == nullptr) return 0;
+        if(strm != nullptr) return strm->GetLength();
+        this->strm = embedFS->OpenFile(this->file,"rb");
+        if(strm != nullptr) return this->strm->GetLength();
+
+        return 0;
+    }
+    bool ResourceFile::IsEqual(ResourceBase* base)
+    {
+        auto res = dynamic_cast<ResourceFile*>(base);
+        if(res != nullptr) return this->file == res->file;
+        return ResourceBase::IsEqual(base);
+    }
+    void ResourceFile::Write(Tesses::Framework::Streams::Stream* output)
+    {
+        if(this->strm != nullptr)
+        this->strm->CopyTo(output);
+    }
+   
+    uint32_t ResourceByteArray::GetLength(Tesses::Framework::Filesystem::VFS* embedFS)
+    {
+        return (uint32_t)this->data.size();
+    }
+    void ResourceByteArray::Write(Tesses::Framework::Streams::Stream* output)
+    {
+        output->WriteBlock(this->data.data(),this->data.size());
+    }
+
 }

@@ -17,7 +17,8 @@ namespace Tesses::CrossLang
         //Process.Start({
         // FileName = "git",
         // Arguments = ["clone","https://gitea.site.tesses.net/tesses50/crosslang.git"],
-        // Environment = []
+        // Environment = [],
+        // InheritParentEnvironment=true
         //})
 
         TDictionary* dict;

@@ -242,15 +242,18 @@ namespace Tesses::CrossLang
         TObject _tools = dict->GetValue("Tools");
         TObject _info = dict->GetValue("Info");
         TObject _icon = dict->GetValue("Icon");
+        TObject _comptime = dict->GetValue("CompTime");
         TObject _resourceFileSystem = dict->GetValue("ResourceFileSystem");
         
         TObject _out = dict->GetValue("Output");
         TList* _toolList;
         TList* _depList; TList* srcLst;
+        TRootEnvironment* comptimeEnv=nullptr;
         GetObject<std::string>(_name,name);
         GetObject<std::string>(_info,info);
         GetObject<std::string>(_icon,icon);
         GetObjectHeap(_resourceFileSystem, vfsHO);
+        GetObjectHeap(_comptime,comptimeEnv);
         std::string v2;
         if(GetObject<std::string>(_version,v2))
             TVMVersion::TryParse(v2, version);
@@ -348,7 +351,7 @@ namespace Tesses::CrossLang
                     return Failure(ls, "Lex error in file \"" + source.second + "\":" + std::to_string(res));
             }
         }
-        Parser parser(tokens);
+        Parser parser(tokens,ls.GetGC(),comptimeEnv);
         SyntaxNode n = parser.ParseRoot();
         CodeGen gen;
         gen.GenRoot(n);

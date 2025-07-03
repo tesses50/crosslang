@@ -8,16 +8,7 @@
 #include <unistd.h>
 #endif
 
-#if defined(CROSSLANG_ENABLE_SQLITE) 
-extern "C" {
-#include "../sqlite/sqlite3.h"
-}
-#if defined(GEKKO) || defined(__SWITCH__)
-extern "C" {
-    sqlite3_vfs *sqlite3_demovfs();
-}
-#endif
-#endif
+
 using namespace Tesses::Framework::Threading;
 using namespace std::chrono;
 namespace Tesses::CrossLang
@@ -32,13 +23,12 @@ namespace Tesses::CrossLang
     }
     GC::GC()
     {
-        tzset();
-        #if defined(CROSSLANG_ENABLE_SQLITE)
-           sqlite3_initialize();
-            #if defined(GEKKO) || defined(__SWITCH__)
-            sqlite3_vfs_register(sqlite3_demovfs(),1);
-            #endif
-        #endif
+
+        this->tpool=new Tesses::Framework::Lazy<Tesses::Framework::Threading::ThreadPool*>([]()->Tesses::Framework::Threading::ThreadPool*{
+            auto threads = Tesses::Framework::Threading::ThreadPool::GetNumberOfCores();
+            if(threads < 4) threads=4;
+            return new Tesses::Framework::Threading::ThreadPool(threads);
+        },[](Tesses::Framework::Threading::ThreadPool* p)->void{delete p;});
     }
     TDictionary* CreateThread(GCList& ls, TCallable* callable,bool detached)
     {
@@ -206,6 +196,10 @@ namespace Tesses::CrossLang
             this->BarrierEnd();
         }
     }
+    Tesses::Framework::Threading::ThreadPool* GC::GetPool()
+    {
+        return this->tpool->GetValue();
+    }
     void GC::UnsetRoot(TObject obj)
     {
         if(std::holds_alternative<THeapObjectHolder>(obj))
@@ -234,6 +228,7 @@ namespace Tesses::CrossLang
         delete this->thrd;
         for(auto item : objects) delete item;
         delete this->mtx;
+        delete this->tpool;
     }
 
     void GC::RegisterEverythingCallback(std::function<void(GC* gc, TRootEnvironment* env)> cb)

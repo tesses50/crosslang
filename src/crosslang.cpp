@@ -58,7 +58,7 @@ int main(int argc, char** argv)
     
     Tesses::Framework::Filesystem::LocalFilesystem fs;
 
-    auto p = GetRealExecutablePath(fs.SystemToVFSPath(argv[0])).GetParent().GetParent() / "share" / "Tesses" / "CrossLang" / "Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm";
+    auto p = Tesses::Framework::Platform::Environment::GetRealExecutablePath(fs.SystemToVFSPath(argv[0])).GetParent().GetParent() / "share" / "Tesses" / "CrossLang" / "Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm";
 
     if(argc > 1 && strcmp(argv[1],"update-shell") == 0)
     {

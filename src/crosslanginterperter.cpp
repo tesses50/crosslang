@@ -8,7 +8,7 @@ using namespace Tesses::CrossLang;
 using namespace Tesses::Framework::Filesystem;
 int main(int argc, char** argv)
 {
-    TF_Init();
+    TF_InitWithConsole();
     GC gc;
     gc.Start();
     GCList ls(gc);

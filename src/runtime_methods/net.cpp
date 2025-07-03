@@ -230,9 +230,16 @@ namespace Tesses::CrossLang
         dict->DeclareFunction(gc,"getNeedToParseFormData","Check if Need to parse form data",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
             return ctx->NeedToParseFormData();
         });
-
         dict->DeclareFunction(gc,"ReadString","Read string from request",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
             return ctx->ReadString();
+        });
+        dict->DeclareFunction(gc,"ReadStream","Read request to stream",{},[ctx](Tesses::CrossLang::GCList& ls2, std::vector<TObject> args)->TObject {
+            Tesses::CrossLang::TStreamHeapObject* strm;
+            if(GetArgumentHeap(args,0,strm))
+            {
+                ctx->ReadStream(strm->stream);
+            }
+            return nullptr;
         });
         dict->DeclareFunction(gc, "ReadJson","Read json from request",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
             return Json_Decode(ls2,ctx->ReadString());
@@ -615,6 +622,7 @@ namespace Tesses::CrossLang
                             _obj = dict->GetValue("Key");
                             GetObject(_obj,key);
                             _obj = dict->GetValue("Value");
+                             GetObject(_obj,value);
 
                             req.requestHeaders.AddValue(key,value);
                         }
@@ -863,7 +871,7 @@ namespace Tesses::CrossLang
                     _obj = dict->GetValue("Key");
                     GetObject(_obj,key);
                     _obj = dict->GetValue("Value");
-
+                    GetObject(_obj,value);
                     hdict.AddValue(key,value);
                 }
             }

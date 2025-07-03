@@ -12,6 +12,9 @@
 #include <TessesFramework/SDL2/Views/LabelView.hpp>
 #include <TessesFramework/SDL2/Views/ProgressView.hpp>
 #include <TessesFramework/SDL2/Views/TextListView.hpp>
+#include <TessesFramework/SDL2/Views/ScrollableTextListView.hpp>
+#include <TessesFramework/SDL2/Views/DropDownView.hpp>
+#include <TessesFramework/SDL2/Views/EditTextView.hpp>
 using namespace Tesses::Framework::SDL2;
 #endif
 
@@ -756,6 +759,7 @@ namespace Tesses::CrossLang
             {
                 this->view = view;
             }
+            static TObject FindViewById(GCList& ls,View* v, std::string id);
             TObject FindViewById(GCList& ls,std::string id);
 
             
@@ -816,19 +820,52 @@ namespace Tesses::CrossLang
             }
     };
 
+    class GUI_EditTextView : public GUI_View {
+        public:
+            GUI_EditTextView(Views::EditTextView* view) : GUI_View(view)
+            {
 
+            }
+            GUI_EditTextView(std::string hint) : GUI_View(new Views::EditTextView(hint))
+            {
 
-    class GUI_Window : public GUI_ContainerView {
+            }
+            std::string TypeName()
+            {
+                return "GUI.EditTextView";
+            }
+            virtual TObject CallMethod(GCList& ls, std::string key, std::vector<TObject> args)
+            {
+                auto edit = dynamic_cast<Views::EditTextView*>(this->view);
+                if(edit == nullptr) return GUI_View::CallMethod(ls,key,args);
+                if(key == "getHint")
+                {
+                    return edit->GetHint();
+                }
+                if(key == "setHint")
+                {
+                    std::string str;
+                    if(GetArgument(args,0,str))
+                    {
+                        edit->SetHint(str);
+                        return str;
+                    }
+                }
+                return GUI_View::CallMethod(ls,key,args);
+            }
+    };
+
+    class GUI_Window : public TNativeObject {
         Tesses::Framework::SDL2::GUIPalette Default()
         {
             return Tesses::Framework::SDL2::GUIPalette(true,{.r=192,.g=255,.b=0,.a=255});
         }
         public:
-            
+            GUIWindow* window;
             //"title","width","height","flags","$pallete"
             GUI_Window(std::string title, int width, int height, Uint32 flags, Tesses::Framework::SDL2::GUIPalette* palette)
             {
-                this->view = new Tesses::Framework::SDL2::GUIWindow(title,width,height,flags,palette != nullptr ? *palette : Default());
+                this->window = new Tesses::Framework::SDL2::GUIWindow(title,width,height,flags,palette != nullptr ? *palette : Default());
             }
 
             std::string TypeName()
@@ -838,19 +875,46 @@ namespace Tesses::CrossLang
 
             TObject CallMethod(GCList& ls, std::string key, std::vector<TObject> args)
             {
-                auto win = dynamic_cast<GUIWindow*>(this->view);
-                if(win != nullptr)
+                
+                if(window)
                 {
                     if(key == "setView")
                     {
                         GUI_View* v;
                         if(GetArgumentHeap(args,0,v))
                         {
-                            win->SetView(v->view,true);
+                            window->SetView(v->view,true);
+                        }
+                    }
+                    if(key == "FindViewById")
+                    {
+                        std::string id;
+                        if(GetArgument(args,0,id))
+                        {
+                            if(id == window->GetId()) return this;
+                            else {
+                                auto v=window->GetViewAt(0);
+                                if(v != nullptr)
+                                    return GUI_View::FindViewById(ls,v,id);
+                            }
+                        }
+                        return nullptr;
+                    }
+                    if(key == "getText")
+                    {
+                        return this->window->GetText();
+                    }
+                    if(key == "setText")
+                    {
+                        std::string str;
+                        if(GetArgument(args,0,str))
+                        {
+                            this->window->SetText(str);
+                            return str;
                         }
                     }
                 }
-                return GUI_ContainerView::CallMethod(ls,key,args);
+                return Undefined();
             }
     };
 
@@ -1012,11 +1076,20 @@ namespace Tesses::CrossLang
     };
     TObject GUI_View::FindViewById(GCList& ls,std::string id)
     {
-        auto view = this->view->FindViewById(id);
+        return FindViewById(ls,view,id);
+    }
+    TObject GUI_View::FindViewById(GCList& ls,View* curView,std::string id)
+    {
+        auto view = curView->FindViewById(id);
         auto buttonView = dynamic_cast<Views::ButtonView*>(view);
+        auto editTextView = dynamic_cast<Views::EditTextView*>(view);
         if(buttonView != nullptr)
         {
             return TNativeObject::Create<GUI_ButtonView>(ls,buttonView);
+        }
+        if(editTextView != nullptr)
+        {
+            return TNativeObject::Create<GUI_EditTextView>(ls,editTextView);
         }
         return nullptr;
     }
@@ -1039,7 +1112,7 @@ namespace Tesses::CrossLang
             std::string jsonText = ToString(ls.GetGC(),args[0]);
             GUI_Window* window = TNativeObject::Create<GUI_Window>(ls,std::string("Unnamed Window"),320,240,flags,nullptr);
             
-            dynamic_cast<GUIWindow*>(window->view)->SetView(Tesses::Framework::Serialization::Json::Json::Decode(jsonText));
+            window->window->SetView(Tesses::Framework::Serialization::Json::Json::Decode(jsonText));
             return window;
         }
         return nullptr;

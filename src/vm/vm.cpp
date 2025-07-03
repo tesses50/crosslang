@@ -3150,6 +3150,28 @@ namespace Tesses::CrossLang {
                 auto natObj = dynamic_cast<TNativeObject*>(obj);
                 auto cls = dynamic_cast<TClassObject*>(obj);
                 auto aArray=dynamic_cast<TAssociativeArray*>(obj);
+                auto ttask = dynamic_cast<TTask*>(obj);
+
+                if(ttask != nullptr)
+                {
+                    if(key == "ContinueWith")
+                    {
+                        TCallable* callable2;
+                        if(GetArgumentHeap(args,0,callable2))
+                        {
+                            cse.back()->Push(gc,ttask->ContinueWith(ls,callable2));
+                            return false;
+                        }
+                    }
+                    if(key == "Wait")
+                    {
+                        
+                        cse.back()->Push(gc,ttask->Wait());
+                        return false;
+                    }
+                    cse.back()->Push(gc,Undefined());
+                    return false;
+                }
 
                 if(natObj != nullptr)
                 {
@@ -3318,6 +3340,20 @@ namespace Tesses::CrossLang {
                         TStd::RegisterProcess(gc, rootEnv);
                         }
 
+                        cse.back()->Push(gc,nullptr);
+                        return false;
+                    }
+                    if(key == "RegisterClass")
+                    {
+                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterClass) && !rootEnv->permissions.locked)
+                        TStd::RegisterClass(gc, rootEnv);
+                        cse.back()->Push(gc,nullptr);
+                        return false;
+                    }
+                    if(key == "RegisterSDL2")
+                    {
+                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterSDL2)&& !rootEnv->permissions.locked)
+                        TStd::RegisterSDL2(gc, rootEnv);
                         cse.back()->Push(gc,nullptr);
                         return false;
                     }
@@ -5191,6 +5227,17 @@ namespace Tesses::CrossLang {
                 auto natObj = dynamic_cast<TNativeObject*>(obj);
                 auto cls = dynamic_cast<TClassObject*>(obj);
                 auto aarray = dynamic_cast<TAssociativeArray*>(obj);
+                auto task = dynamic_cast<TTask*>(obj);
+                if(task != nullptr)
+                {
+                    if(key == "IsCompleted")
+                    {
+                        cse.back()->Push(gc,task->IsCompleted());
+                        return false;
+                    }
+                    cse.back()->Push(gc,Undefined());
+                    return false;
+                }
                 if(aarray != nullptr)
                 {
                     if(key == "Count" || key == "Length")

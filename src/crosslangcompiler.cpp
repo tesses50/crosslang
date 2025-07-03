@@ -17,6 +17,7 @@ void Help(const char* filename)
     printf("  -n:  Set name (MyAppOrLibName defaults to out)\n");
     printf("  -r:  Set resource directory (RESDIR defaults to res)\n");
     printf("  -h, --help:  Prints help\n");
+    printf("  -e:  Set comptime permissions defaults to none, none for no support, \"secure\" for sane without file access, \"secure_file\" for sane with file access to current directory and sub directories, \"full\" has full runtime.\n");
     printf("Options except for help have flag with arg like this: -F ARG\n");
     exit(1);
 }
@@ -43,7 +44,10 @@ int main(int argc, char** argv)
    std::string name="out";
    std::string info="{}";
    std::string icon="";
+   std::string comptime="none";
    TVMVersion version;
+
+
    
 
    for(int i = 1; i < argc; i++)
@@ -68,6 +72,15 @@ int main(int argc, char** argv)
                 resourceDir = argv[i];
             }
         }
+        else if(strcmp(argv[i], "-e") == 0)
+        {
+            i++;
+            if(i < argc)
+            {
+                comptime = argv[i];
+            }
+        }
+   
         else if(strcmp(argv[i], "-i") == 0)
         {
             i++;
@@ -192,8 +205,49 @@ int main(int argc, char** argv)
         int res = Lex(argv[1],strm,tokens);
         
     }
+
+    GC* gc=nullptr;
+    GCList* ls=nullptr;
+    TRootEnvironment* env=nullptr;
+    if(comptime != "none")
+    {
+        gc = new GC();
+        gc->Start();
+        ls = new GCList(gc);
+        env = TRootEnvironment::Create(ls,TDictionary::Create(ls));
+
+        if(comptime == "secure")
+        {
+            TStd::RegisterConsole(gc,env);
+            TStd::RegisterClass(gc,env);
+            TStd::RegisterCrypto(gc,env);
+            TStd::RegisterDictionary(gc,env);
+            TStd::RegisterJson(gc,env);
+            TStd::RegisterRoot(gc,env);
+            TStd::RegisterIO(gc,env,false);
+            env->permissions.locked=true;
+        }
+        else if(comptime == "secure_file")
+        {
+            TStd::RegisterConsole(gc,env);
+            TStd::RegisterClass(gc,env);
+            TStd::RegisterCrypto(gc,env);
+            TStd::RegisterDictionary(gc,env);
+            TStd::RegisterJson(gc,env);
+            TStd::RegisterRoot(gc,env);
+            TStd::RegisterIO(gc,env,false);
+            env->permissions.locked=true;
+            auto fs = env->EnsureDictionary(gc,"FS");
+            fs->SetValue("Local",TVFSHeapObject::Create(ls, new SubdirFilesystem(new Tesses::Framework::Filesystem::LocalFilesystem(),Tesses::Framework::Filesystem::VFSPath::GetAbsoluteCurrentDirectory(),true)));
+        }
+        else if(comptime == "full")
+        {
+            TStd::RegisterStd(gc,env);
+            env->permissions.locked=true;
+        }
+    }
     
-    Parser parser(tokens);
+    Parser parser(tokens,gc,env);
 
     CodeGen gen;
     gen.GenRoot(parser.ParseRoot());
@@ -219,6 +273,11 @@ int main(int argc, char** argv)
         SubdirFilesystem sfs(&fs,fs.SystemToVFSPath(resourceDir.string()),false);
 
         gen.Save(&sfs,&strm);
+    }
+    if(gc != nullptr)
+    {
+        delete ls;
+        delete gc;
     }
     return 0;
 }
