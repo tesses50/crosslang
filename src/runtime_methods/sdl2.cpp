@@ -3,10 +3,9 @@
 #include "CrossLang.hpp"
 #include <iostream>
 #if defined(TESSESFRAMEWORK_ENABLE_SDL2)
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_ttf.h>
-#include <SDL2/SDL_image.h>
+#include <TessesFramework/SDL2/SDL_Headers.hpp>
 #include <TessesFramework/SDL2/GUI.hpp>
+#include <TessesFramework/SDL2/Stream.hpp>
 #include <TessesFramework/SDL2/Views/AbsoluteView.hpp>
 #include <TessesFramework/SDL2/Views/ButtonView.hpp>
 #include <TessesFramework/SDL2/Views/LabelView.hpp>
