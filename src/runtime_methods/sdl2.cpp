@@ -1017,7 +1017,7 @@ namespace Tesses::CrossLang
                 TTF_CloseFont(res);
                 return res2;
             }
-            else if(args.size() > 1 && !std::holds_alternative<nullptr_t>(args[1]))
+            else if(args.size() > 1 && !std::holds_alternative<std::nullptr_t>(args[1]))
             {
                 
                 auto res = TTF_OpenFontRW(Tesses::Framework::SDL2::RwopsFromStream(new TObjectStream(ls.GetGC(),args[1])),1,pt);

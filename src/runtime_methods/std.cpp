@@ -30,6 +30,331 @@
 
 namespace Tesses::CrossLang
 {
+    class DocumentationParser : public TNativeObject
+    {
+        public:
+
+        std::vector<std::pair<std::string,TObject>> items;
+            DocumentationParser(std::string doc)
+            {
+                size_t i=0;
+                int state=-1;
+                std::string key={};
+                std::string value={};
+
+                auto add = [&]()->void{
+                    if(value == "true") {
+                        items.push_back(std::pair<std::string,TObject>(key,true));
+                    } else if(value == "false") {
+                        items.push_back(std::pair<std::string,TObject>(key,true));
+                    } else if(value == "null") {
+                        items.push_back(std::pair<std::string,TObject>(key,nullptr));
+                    } else {
+                        if(value[0] >= '0' && value[0] <= '9')
+                        {
+                            try {
+                                if(value.find('.') != std::string::npos)
+                                {
+                                
+                                    items.push_back(std::pair<std::string,TObject>(key,std::stod(value)));
+                                }
+                                else {
+                                    items.push_back(std::pair<std::string,TObject>(key,std::stoll(value)));
+                                }
+                            }catch(...) {}
+                        }
+                        else {
+                            items.push_back(std::pair<std::string,TObject>(key,value));
+                        }
+                    }
+                };
+                
+        auto ReadChr = [&]() -> std::pair<int,bool> {
+             int read=i < doc.size() ? (int)doc[i++] : -1;
+                
+            if(read == -1) 
+            {
+                
+                return std::pair<int,bool>(-1,false);
+            }
+            
+
+
+            if(read == '\\')
+            {
+                read = i < doc.size() ? (int)doc[i++] : -1;
+                
+                if(read == -1)
+                {
+                    return std::pair<int,bool>(-1,true);
+                }
+                else if(read == 'n')
+                {
+                    return std::pair<int,bool>('\n',true);
+                }
+                else if(read == 'r')
+                {
+                    return std::pair<int,bool>('\r',true);
+                }
+                else if(read == 'f')
+                {
+                    return std::pair<int,bool>('\f',true);
+                }
+                else if(read == 'b')
+                {
+                    return std::pair<int,bool>('\b',true);
+                }
+                else if(read == 'a')
+                {
+                    return std::pair<int,bool>('\a',true);
+                }
+                else if(read == '0')
+                {
+                    return std::pair<int,bool>('\0',true);
+                }
+                else if(read == 'v')
+                {
+                    return std::pair<int,bool>('\v',true);
+                }
+                else if(read == 'e')
+                {
+                    return std::pair<int,bool>('\x1B',true);
+                }
+                else if(read == 't')
+                {
+                    return std::pair<int,bool>('\t',true);
+                }
+                else if(read == 'x')
+                {
+                    int r1 = i < doc.size() ? (int)doc[i++] : -1;
+                    
+                    if(r1 == -1)
+                    {
+                        return std::pair<int,bool>(-1,true);
+                    }
+                    int r2 = i < doc.size() ? (int)doc[i++] : -1;
+                   
+                    if(r2 == -1)
+                    {
+                        return std::pair<int,bool>(-1,true);
+                    }
+                    
+                    uint8_t c = (uint8_t)std::stoi(std::string{(char)r1,(char)r2},nullptr,16);
+
+                    return std::pair<int,bool>(c,true);
+                }
+                else
+                {
+                    return std::pair<int,bool>(read,true);
+                }
+            }
+            else
+            {
+                return std::pair<int,bool>(read,false);
+            }
+        };
+
+
+
+
+                for(; i < doc.size(); i++)
+                {
+                    if(doc[i] == '@')
+                    {
+                         state = 0;
+                         key={};
+                         value={};
+                        if(i + 1 < doc.size())
+                        {
+                            if(doc[i+1] == '@') 
+                            {
+                                i++;
+                                continue;
+                            }
+                            else {
+                                i++;
+                                for(; i < doc.size(); i++)
+                                {
+                                    switch(doc[i])
+                                    {
+                                        case '\'':
+                                        {
+                                            i++;
+                                            auto c = ReadChr();
+                                            i++;
+                                            if(c.first != -1)
+                                            {
+                                                if(state == 0)
+                                                    key+={(char)c.first};
+                                                else {
+                                                    this->items.push_back(std::pair<std::string,TObject>(key,(char)c.first));
+                                                    state = -1;
+                                                    goto outer;
+                                                }
+                                            }
+                                        }
+                                        break;
+                                        case '\"':
+                                        {
+                                            if(state == 0)
+                                            {
+                                                i++;
+                                                auto rChr = ReadChr();
+                                                while(rChr.first != '\"' || rChr.second)
+                                                {
+                                                    if(rChr.first == -1) break;
+                                                    key += (char)rChr.first;
+                                                    rChr = ReadChr();
+                                                }
+                                                i--;
+                                            }
+                                            else {
+                                                i++;
+                                                auto rChr = ReadChr();
+                                                
+                                                while(rChr.first != '\"' || rChr.second)
+                                                {
+                                                    if(rChr.first == -1) break;
+                                                    value += (char)rChr.first;
+                                                    rChr = ReadChr();
+                                                }
+                                                this->items.push_back(std::pair<std::string,TObject>(key,value));
+                                                state = -1;
+                                                goto outer;
+                                            }
+                                        }
+                                            break;
+                                        case ' ':
+                                        case '\n':
+                                        case '\t':
+                                        case '\r':
+                                            if(state == 0 && !key.empty())
+                                                state=1;
+                                            else
+                                            if(state == 1 && !value.empty())
+                                            {
+                                                add();
+                                                state = -1;
+                                                goto outer;
+                                            }
+                                            break;
+                                        default:
+                                            if(state == 0) key += doc[i];
+                                            else value += doc[i];
+                                            break;
+                                    }
+                                }
+                            }
+                            outer:;
+                        }
+                        
+                    }
+                }
+                if(state == 1 && !value.empty())
+                {
+                    add();
+                }
+            }
+            TObject CallMethod(GCList& ls, std::string key, std::vector<TObject> args);
+            std::string TypeName()
+            {
+                return "DocumentationParser";
+            }
+    };
+    class DocumentationParserEnumerator : public TEnumerator
+    {
+        int index;
+        DocumentationParser* dict;
+        public:
+            static DocumentationParserEnumerator* Create(GCList& ls, DocumentationParser* dict)
+            {
+                auto dpe=new DocumentationParserEnumerator();
+                auto gc = ls.GetGC();
+                ls.Add(dpe);
+                gc->Watch(dpe);
+                dpe->dict = dict;
+                dpe->index=-1;
+                return dpe;
+            }
+
+            bool MoveNext(GC* ls)
+            {
+                ls->BarrierBegin();
+                bool r = ++index < this->dict->items.size();
+                   
+                ls->BarrierEnd();
+                return r;
+            }
+            TObject GetCurrent(GCList& ls)
+            {
+                std::pair<std::string,TObject> item;
+                ls.GetGC()->BarrierBegin();
+                if(this->index > -1 && this->index < this->dict->items.size())
+                {
+                    item = this->dict->items[(size_t)this->index];
+                }
+                ls.GetGC()->BarrierEnd();
+
+                return TDictionary::Create(ls,{
+                    TDItem("Key", item.first),
+                    TDItem("Value", item.second)
+                });
+            }
+            void Mark()
+            {
+                if(this->marked) return;
+                this->marked=true;
+                dict->Mark();
+            }
+    };
+
+
+    TObject DocumentationParser::CallMethod(GCList& ls, std::string key, std::vector<TObject> args)
+    {
+        std::string myKey;
+        if(key == "GetAt" && GetArgument(args,0,myKey))
+        {
+            for(auto item : this->items)
+                if(item.first == myKey) return item.second;
+        }
+        if(key == "ToString")
+        {
+            std::string n={};
+            for(auto item : this->items)
+            {
+                n.push_back('@');
+                n.append(item.first);
+                n.push_back(' ');
+                std::string str;
+                if(GetObject(item.second,str))
+                {
+                    n.append(EscapeString(str,true));
+                }
+                else n.append(ToString(ls.GetGC(), item.second));
+                n.push_back('\n');
+            }
+            return n;
+        }
+        if(key == "GetEnumerator")
+        {
+            return DocumentationParserEnumerator::Create(ls,this);
+        }
+        return Undefined();
+            
+    }
+    TObject New_DocumentationParser(GCList& ls, std::vector<TObject> args)
+    {
+        std::string doc;
+
+        if(GetArgument(args,0,doc))
+        {
+            return TNativeObject::Create<DocumentationParser>(ls, doc);
+        }
+
+        return Undefined();
+    }
+
+
     #if defined(CROSSLANG_ENABLE_SHARED)
     class DL {
         void* handle;
@@ -1032,6 +1357,7 @@ namespace Tesses::CrossLang
         newTypes->DeclareFunction(gc,"AArray","alias for new AssociativeArray",{},[](GCList& ls, std::vector<TObject> args)->TObject {
             return TAssociativeArray::Create(ls);
         });
+        newTypes->DeclareFunction(gc,"DocumentationParser","Parse documentation blocks",{"documentationString"},New_DocumentationParser);
         newTypes->DeclareFunction(gc,"ByteArray","Create bytearray, with optional either size (to size it) or string argument (to fill byte array)",{"$data"},ByteArray);
         
         env->DeclareVariable("Version", TDictionary::Create(ls,{

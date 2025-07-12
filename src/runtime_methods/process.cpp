@@ -1,16 +1,189 @@
 #include "CrossLang.hpp"
 
-#if defined(GEKKO) || defined(__SWITCH__)
-#undef CROSSLANG_ENABLE_PROCESS
-#endif
 
-#if defined(CROSSLANG_ENABLE_PROCESS)
-#include "subprocess.h"
-#endif
 
 namespace Tesses::CrossLang
 {
-    #if defined(CROSSLANG_ENABLE_PROCESS)
+    class ProcessObject : public TNativeObject {
+        public:
+            ProcessObject()
+            {
+                arguments=nullptr;
+                environment=nullptr;
+                
+            }
+            ProcessObject(GCList& ls)
+            {
+                arguments = TList::Create(ls);
+                environment = TList::Create(ls);
+                process.includeThisEnv=true;
+                process.redirectStdIn=false;
+
+                process.redirectStdOut=false;
+
+                process.redirectStdErr=false;
+            }
+            TList* arguments;
+            TList* environment;
+            Tesses::Framework::Platform::Process process;
+            std::string TypeName()
+            {
+                return "Process";
+            }
+            void Mark()
+            {
+                if(this->marked) return;
+                this->marked=true;
+                if(arguments != nullptr) arguments->Mark();
+                if(environment != nullptr) environment->Mark();
+            }
+            TObject CallMethod(GCList& ls, std::string key, std::vector<TObject> args)
+            {
+                if(key == "setFileName" && GetArgument(args,0,process.name))
+                {
+                    return process.name;
+                }
+                if(key == "getFileName")
+                {
+                    return process.name;
+                }
+                
+                if(key == "setRedirectStandardInput" && GetArgument(args,0,process.redirectStdIn))
+                {
+                    return process.redirectStdIn;
+                }
+                if(key == "getRedirectStandardInput")
+                {
+                    return process.redirectStdIn;
+                }
+                if(key == "setRedirectStandardOutput" && GetArgument(args,0,process.redirectStdOut))
+                {
+                    return process.redirectStdOut;
+                }
+                if(key == "getRedirectStandardOutput")
+                {
+                    return process.redirectStdOut;
+                }
+                if(key == "setRedirectStandardError" && GetArgument(args,0,process.redirectStdErr))
+                {
+                    return process.redirectStdErr;
+                }
+                if(key == "getRedirectStandardError")
+                {
+                    return process.redirectStdErr;
+                }
+                if(key == "setWorkingDirectory" && GetArgument(args,0,process.workingDirectory))
+                {
+                    return process.workingDirectory;
+                }
+                if(key == "getWorkingDirectory")
+                {
+                    return process.workingDirectory;
+                }
+                if(key == "setInheritParentEnvironment" && GetArgument(args,0,process.includeThisEnv))
+                {
+                    return process.includeThisEnv;
+                }
+                if(key == "getInheritParentEnvironment")
+                {
+                    return process.includeThisEnv;
+                }
+                if(key == "getArguments")
+                {
+                    if(arguments == nullptr) return nullptr;
+                    return arguments;
+                }
+                if(key == "setArguments")
+                {
+                    if(GetArgumentHeap(args,0,arguments))
+                    {
+                        return arguments;
+                    }
+                }
+                if(key == "getEnvironment")
+                {
+                    if(environment == nullptr) return nullptr;
+                    return environment;
+                }
+                if(key == "getEnvironment")
+                {
+                    if(GetArgumentHeap(args,0,environment))
+                    {
+                        return environment;
+                    }
+                }
+                if(key == "Start")
+                {
+                    this->process.args.push_back(process.name);
+                    if(arguments != nullptr)
+                    {
+                        for(int64_t i = 0; i < arguments->Count(); i++)
+                        {
+                            TObject argVal;
+                            std::string argValStr;
+                            if(GetObject(argVal,argValStr))
+                                this->process.args.push_back(argValStr);
+                        }
+                    }
+                    if(environment != nullptr)
+                    {
+                        for(int64_t i = 0; i < environment->Count(); i++)
+                        {
+                            TObject arg = environment->Get(i);
+                            std::string argstr;
+                            if(GetObject(arg,argstr))
+                            {
+                                auto kvp = Tesses::Framework::Http::HttpUtils::SplitString(argstr,"=",2);
+                                if(kvp.size()==2)
+                                {
+                                    process.env.push_back(std::pair<std::string,std::string>(kvp[0],kvp[1]));
+                                }
+                                else if(kvp.size()==1)
+                                {
+                                    process.env.push_back(std::pair<std::string,std::string>(kvp[0],""));
+                                }
+                            }
+                        }
+                    }
+                    return process.Start();
+                }
+                if(key == "Join" || key == "WaitForExit")
+                {
+                    return (int64_t)process.WaitForExit();
+                }
+                if(key == "getHasExited")
+                {
+                    return process.HasExited();
+                }
+                if(key == "Terminate")
+                {
+                    process.Kill(SIGTERM);
+                }
+                if(key == "CloseStdInNow")
+                {
+                    process.CloseStdInNow();
+                    
+                }
+                int64_t k;
+                if(key == "Kill" && GetArgument(args,0,k))
+                {
+                    process.Kill((int)k);
+                }
+                if(key == "getStandardInput")
+                {
+                    return TStreamHeapObject::Create(ls,process.GetStdinStream());
+                }
+                if(key == "getStandardOutput")
+                {
+                    return TStreamHeapObject::Create(ls,process.GetStdoutStream());
+                }
+                if(key == "getStandardError")
+                {
+                    return TStreamHeapObject::Create(ls,process.GetStderrStream());
+                }
+                return Undefined();
+            }
+    };
     static TObject Process_Start(GCList& ls, std::vector<TObject> args)
     {
         
@@ -23,142 +196,88 @@ namespace Tesses::CrossLang
 
         TDictionary* dict;
 
-        if(GetArgumentHeap(args, 0, dict))
+        if(GetArgumentHeap(args,0,dict))
         {
-            auto gc = ls.GetGC();
-            gc->BarrierBegin();
+            auto process = TNativeObject::Create<ProcessObject>(ls);
+            auto name = dict->GetValue("FileName");
+            auto inh = dict->GetValue("InheritParentEnvironment");
+            auto rStdIn = dict->GetValue("RedirectStandardInput");
+            auto rStdOut = dict->GetValue("RedirectStandardOutput");
 
-            auto fobj = dict->GetValue("FileName");
-            auto myargs = dict->GetValue("Arguments");
-            auto env = dict->GetValue("Environment");
-            auto opt = dict->GetValue("Options");
-            //for any C# version
-            //RedirectStandardIn
-            //RedirectStandardOut
-            //RedirectStandardError
+            auto rStdErr = dict->GetValue("RedirectStandardError");
+            auto workingDirectory = dict->GetValue("WorkingDirectory");
+            process->process.includeThisEnv=true;
+            process->process.redirectStdIn=false;
 
-            std::string filename;
-            TList* _args;
-            TList* env0;
-            std::vector<std::string> _args2;
-            std::vector<std::string> _env;
-            int64_t options;
+            process->process.redirectStdOut=false;
 
-            bool hasEnv=false;
+            process->process.redirectStdErr=false;
+            GetObject(inh,process->process.includeThisEnv);
+            GetObject(rStdIn,process->process.redirectStdIn);
+            GetObject(rStdOut,process->process.redirectStdOut);
+            GetObject(rStdErr,process->process.redirectStdErr);
+            
+            GetObject(name,process->process.name);
 
-            if(!GetObject(fobj,filename))
+            Tesses::Framework::Filesystem::VFSPath wdPath;
+
+            if(GetObject(workingDirectory,wdPath))
             {
-                gc->BarrierEnd();
-                return nullptr;
+                process->process.workingDirectory= wdPath.MakeAbsolute().ToString();
             }
-            _args2.push_back(filename);
-            if(GetObjectHeap(myargs,_args))
+
+            GetObject(workingDirectory,process->process.workingDirectory);
+            
+
+
+            process->process.args.push_back(process->process.name);
+            auto argumentsO = dict->GetValue("Arguments");
+            TList* arguments;
+            if(GetObjectHeap(argumentsO,arguments))
             {
-                for(auto a : _args->items)
+                for(int64_t i = 0; i < arguments->Count(); i++)
                 {
-                    std::string a2;
-                    if(GetObject(a,a2))
+                    TObject arg = arguments->Get(i);
+                    std::string argstr;
+                    if(GetObject(arg,argstr))
                     {
-                        _args2.push_back(a2);
+                        process->process.args.push_back(argstr);
                     }
                 }
             }
-            if(GetObjectHeap(env,env0))
+            argumentsO = dict->GetValue("Environment");
+            if(GetObjectHeap(argumentsO,arguments))
             {
-                hasEnv=true;
-                for(auto a : env0->items)
+                for(int64_t i = 0; i < arguments->Count(); i++)
                 {
-                    std::string a2;
-                    if(GetObject(a,a2))
+                    TObject arg = arguments->Get(i);
+                    std::string argstr;
+                    if(GetObject(arg,argstr))
                     {
-                        _env.push_back(a2);
+                        auto kvp = Tesses::Framework::Http::HttpUtils::SplitString(argstr,"=",2);
+                        if(kvp.size()==2)
+                        {
+                            process->process.env.push_back(std::pair<std::string,std::string>(kvp[0],kvp[1]));
+                        }
+                        else if(kvp.size()==1)
+                        {
+                            process->process.env.push_back(std::pair<std::string,std::string>(kvp[0],""));
+                        }
                     }
                 }
             }
-
-            const char** args3 = new const char*[sizeof(char*) * (_args2.size()+1)];
-            const char** env3 = hasEnv ? new const char*[sizeof(char*) * (_env.size()+1)] : nullptr;
-
-            for(size_t i = 0; i < _args2.size();i++)
-                args3[i] = _args2[i].c_str();
-            args3[_args2.size()]=NULL;
-
-            if(hasEnv)
+            if(process->process.Start())
             {
-                for(size_t i = 0; i < _env.size();i++)
-                    env3[i] = _env[i].c_str();
-                env3[_env.size()]=NULL;
-            }
-
-
-            if(!GetObject(opt,options))options=hasEnv ? 0 : subprocess_option_inherit_environment;
-
-            gc->BarrierEnd();
-            struct subprocess_s* subprocess=new struct subprocess_s();
-            int r = subprocess_create_ex(args3,(int)options,env3,subprocess);
-            if(r != 0)
-            {
-
-                delete[] args3;
-                delete[] env3;
-                delete subprocess;
-                return nullptr;
-            }
-            else
-            {
-                delete[] args3;
-                delete[] env3;
-                
-                TDictionary* dict=TDictionary::Create(ls);
-                auto r = TNative::Create(ls,subprocess,[](void* v)->void{
-                    delete (struct subprocess_s*)v;
-                });
-                gc->BarrierBegin();
-                dict->SetValue("_native",r);
-                gc->BarrierEnd();
-                dict->DeclareFunction(gc,"getHasExited","Gets whether process has stopped",{},[r](GCList& ls, std::vector<TObject> args)->TObject{
-                    if(r->GetDestroyed()) return true;
-                    return subprocess_alive((struct subprocess_s*)r->GetPointer()) == 0;
-                });
-                dict->DeclareFunction(gc,"Join","Wait till process exits and get its return code",{},[r](GCList& ls, std::vector<TObject> args)->TObject{
-                    if(r->GetDestroyed()) return nullptr;
-                    int returnCode;
-                    if(subprocess_join((struct subprocess_s*)r->GetPointer(),&returnCode) == 0)
-                    {
-                        return (int64_t)returnCode;
-                    }
-                    return nullptr;
-                });
-
-                 dict->DeclareFunction(gc,"Terminate","Terminate the process",{},[r](GCList& ls, std::vector<TObject> args)->TObject{
-                    if(r->GetDestroyed()) return nullptr;
-                    subprocess_terminate((struct subprocess_s*)r->GetPointer());
-                    return nullptr;
-                });
-                 dict->DeclareFunction(gc,"Close","Wait till process exits and get its return code",{},[r](GCList& ls, std::vector<TObject> args)->TObject{
-                    if(r->GetDestroyed()) return nullptr;
-                    r->Destroy();
-                    return nullptr;
-                });
-
-                dict->DeclareFunction(gc,"getStandardInput","Gets the standard input stream",{},[r](GCList& ls,std::vector<TObject> args)->TObject {
-                    if(r->GetDestroyed()) return nullptr;
-                    return TStreamHeapObject::Create(ls,new Tesses::Framework::Streams::FileStream(subprocess_stdin((struct subprocess_s*)r->GetPointer()),false,"w",false));
-                });
-                dict->DeclareFunction(gc,"getStandardOutput","Gets the standard output stream",{},[r](GCList& ls,std::vector<TObject> args)->TObject {
-                    if(r->GetDestroyed()) return nullptr;
-                    return TStreamHeapObject::Create(ls,new Tesses::Framework::Streams::FileStream(subprocess_stdout((struct subprocess_s*)r->GetPointer()),false,"r",false));
-                });
-                dict->DeclareFunction(gc,"getStandardError","Gets the standard error stream",{},[r](GCList& ls,std::vector<TObject> args)->TObject {
-                    if(r->GetDestroyed()) return nullptr;
-                    return TStreamHeapObject::Create(ls,new Tesses::Framework::Streams::FileStream(subprocess_stderr((struct subprocess_s*)r->GetPointer()),false,"r",false));
-                });
-                return dict;
+                return process;
             }
         }
+
         return nullptr;
     }
-    #endif
+    static TObject New_Process(GCList& ls, std::vector<TObject> args)
+    {
+        return TNativeObject::Create<ProcessObject>(ls,ls);
+    }
 
     void TStd::RegisterProcess(GC* gc,TRootEnvironment* env)
     {
@@ -166,11 +285,12 @@ namespace Tesses::CrossLang
         env->permissions.canRegisterProcess=true;
         GCList ls(gc);
         TDictionary* dict = TDictionary::Create(ls);
-        #if defined(CROSSLANG_ENABLE_PROCESS)
         dict->DeclareFunction(gc,"Start","Start a process",{"process_object"},Process_Start);
-        #endif
+       
         gc->BarrierBegin();
         env->SetVariable("Process",dict);
+        auto process = env->EnsureDictionary(gc,"New");
+        process->DeclareFunction(gc, "Process", "Create process",{},New_Process);
         gc->BarrierEnd();
     }
 }

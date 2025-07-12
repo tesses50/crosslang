@@ -2409,6 +2409,26 @@ namespace Tesses::CrossLang {
             GCList ls(gc);
             std::regex regex;
             TVMVersion version;
+            if(std::holds_alternative<std::nullptr_t>(instance))
+            {
+                if(key == "ToString")
+                {
+                    cse.back()->Push(gc,"null");
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+            }else if(std::holds_alternative<Undefined>(instance))
+            {
+                if(key == "ToString")
+                {
+                    cse.back()->Push(gc,"undefined");
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+            }
+            else
             if(GetObject(instance, version))
             {
                 if(key == "ToString")

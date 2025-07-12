@@ -452,6 +452,7 @@ namespace Tesses::CrossLang
         TCallable* callable;
         TDictionary* dict;
         TServerHeapObject* server;
+        TClassObject* clsObj;
         if(GetObjectHeap<TCallable*>(this->obj,callable))
         {
             GCList ls2(this->ls->GetGC());
@@ -473,6 +474,23 @@ namespace Tesses::CrossLang
             {
                 return result;
             }
+        }
+        else if(GetObjectHeap(this->obj,clsObj) && clsObj->HasMethod("","Handle"))
+        {
+            GCList ls2(this->ls->GetGC());
+            auto res = CreateDictionaryFromServerContext(ls2,&ctx);
+            bool result;
+            auto callableO = clsObj->GetValue("","Handle");
+            TCallable* callable;
+            if(GetObjectHeap(callableO, callable))
+            {
+                auto out = callable->Call(ls2,{res});
+                if(GetObject(out,result))
+                {
+                    return result;
+                }
+            }
+            
         }
         else if(GetObjectHeap<TServerHeapObject*>(this->obj,server))
         {
@@ -533,6 +551,59 @@ namespace Tesses::CrossLang
         if(GetArgument(args,0,ipv6) && GetArgument(args,1,datagram))
         {
             return TStreamHeapObject::Create(ls,new NetworkStream(ipv6,datagram));
+        }
+        return nullptr;
+    }
+    class HttpServerNativeObject : public TNativeObject
+    {
+        HttpServer* server;
+        public:
+            HttpServerNativeObject(uint16_t port, TObjectHttpServer* httpServer,bool printIps)
+            {
+                server=new HttpServer(port,httpServer,true,printIps);
+            }
+            HttpServerNativeObject(std::string unixPath, TObjectHttpServer* httpServer)
+            {
+                server=new HttpServer(unixPath,httpServer,true);
+            }
+            std::string TypeName()
+            {
+                return "Net.Http.HttpServer";
+            }
+            TObject CallMethod(GCList& ls, std::string key, std::vector<TObject> args)
+            {
+                if(key == "getPort")
+                {
+                    return (int64_t)server->GetPort();
+                }
+                if(key == "StartAccepting")
+                    server->StartAccepting();
+                return nullptr;
+            }
+            ~HttpServerNativeObject()
+            {
+                delete server;
+            }
+    };
+
+    static TObject Net_Http_HttpServer(GCList& ls, std::vector<TObject> args,TRootEnvironment* env)
+    {
+        int64_t port;
+        std::string pathStr;
+        if(GetArgument(args,1,port))
+        {
+            bool printIPs=true;
+            GetArgument(args,2,printIPs);
+            TObjectHttpServer* httpServer = new TObjectHttpServer(ls.GetGC(),args[0]);
+            uint16_t p = (uint16_t)port;
+            return TNativeObject::Create<HttpServerNativeObject>(ls,port,httpServer,printIPs);
+        }
+        if(GetArgument(args,1,pathStr) && env->permissions.canRegisterLocalFS)
+        {
+            TObjectHttpServer* httpServer = new TObjectHttpServer(ls.GetGC(),args[0]);
+
+            return TNativeObject::Create<HttpServerNativeObject>(ls,pathStr,httpServer);
+
         }
         return nullptr;
     }
@@ -1007,6 +1078,9 @@ namespace Tesses::CrossLang
         http->DeclareFunction(gc, "DownloadToString","Return the http file's contents as a string",{"url"},Net_Http_DownloadToString);
         http->DeclareFunction(gc, "DownloadToStream","Download file to stream",{"url","stream"},Net_Http_DownloadToStream);
         http->DeclareFunction(gc, "DownloadToFile","Download file to file in vfs",{"url","vfs","path"},Net_Http_DownloadToFile);
+        http->DeclareFunction(gc, "HttpServer", "Create a http server (allows multiple)",{"server","portOrUnixPath","$printIPs"},[env](GCList& ls, std::vector<TObject> args)->TObject{
+            return Net_Http_HttpServer(ls,args,env);
+        });
         http->DeclareFunction(gc, "ListenSimpleWithLoop", "Listen (creates application loop)", {"server","port"},Net_Http_ListenSimpleWithLoop);
         http->DeclareFunction(gc, "ListenOnUnusedPort","Listen on unused localhost port and print Port: theport",{"server"},Net_Http_ListenOnUnusedPort);
         //FileServer svr()
