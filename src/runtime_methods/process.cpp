@@ -119,7 +119,7 @@ namespace Tesses::CrossLang
                     {
                         for(int64_t i = 0; i < arguments->Count(); i++)
                         {
-                            TObject argVal;
+                            TObject argVal=arguments->Get(i);
                             std::string argValStr;
                             if(GetObject(argVal,argValStr))
                                 this->process.args.push_back(argValStr);

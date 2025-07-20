@@ -304,6 +304,7 @@ namespace Tesses::CrossLang
             }
             friend class SDL2_Renderer;
             friend class SDL2_FontCache;
+            friend class SDL2_Surface;
     };
     
     class SDL2_Rectangle : public TNativeObject {
@@ -399,6 +400,7 @@ namespace Tesses::CrossLang
                 return "SDL2.Rectangle";
             }
             friend class SDL2_Renderer;
+            friend class SDL2_Surface;
     };
     class SDL2_Surface : public TNativeObject {
         TObject ToTexture(GCList& ls, std::vector<TObject> args);
@@ -436,6 +438,52 @@ namespace Tesses::CrossLang
                 if(key == "ToString")
                 {
                     return "SDL2.Surface";
+                }
+                if(key == "FillRect")
+                {
+                    SDL2_Rectangle* rect;
+                    SDL2_Color* color;
+                    if(GetArgumentHeap(args,0,rect))
+                    {
+                        SDL_FillRect(this->surface,&rect->rect, SDL_MapRGB(this->surface->format,color->color.r,color->color.g,color->color.b));
+                    }
+
+                }
+                if(key == "SavePNG")
+                {
+                    TVFSHeapObject* vfs;
+                    Tesses::Framework::Filesystem::VFSPath path;
+                    TStreamHeapObject* strm;
+                    if(GetArgumentHeap(args,0,strm))
+                    {
+                        auto strm2 = RwopsFromStream(strm->stream,false);
+                        IMG_SavePNG_RW(this->surface,strm2,1);
+                    }
+                    else if(GetArgumentHeap(args,0,vfs) && GetArgumentAsPath(args,1,path))
+                    {
+                        auto strm2 = vfs->vfs->OpenFile(path,"wb");
+                        if(strm2 == nullptr) return Undefined();
+                        auto strm3 = RwopsFromStream(strm2,true);
+                        IMG_SavePNG_RW(this->surface,strm3,1);
+                    }
+                }
+                if(key == "SaveJPG")
+                {
+                    TVFSHeapObject* vfs;
+                    Tesses::Framework::Filesystem::VFSPath path;
+                    TStreamHeapObject* strm;
+                    int64_t quality;
+                    if(GetArgumentHeap(args,0,strm) && GetArgument(args,1,quality))
+                    {
+                        auto strm2 = RwopsFromStream(strm->stream,false);
+                        IMG_SaveJPG_RW(this->surface,strm2,1,(int)quality);
+                    } else if(GetArgumentHeap(args,0,vfs) && GetArgumentAsPath(args,1,path) &&  GetArgument(args,1,quality))
+                    {
+                        auto strm2 = vfs->vfs->OpenFile(path,"wb");
+                        if(strm2 == nullptr) return Undefined();
+                        auto strm3 = RwopsFromStream(strm2,true);
+                        IMG_SaveJPG_RW(this->surface,strm3,1,(int)quality);
+                    }
                 }
                 return Undefined();
             }
@@ -549,6 +597,46 @@ namespace Tesses::CrossLang
                         SDL_RenderCopy(this->renderer,tex->tex,src == nullptr ? (SDL_Rect*)nullptr : &src->rect,dest == nullptr ? (SDL_Rect*)nullptr : &dest->rect);
                     }
                 }
+                if(name == "DrawRect")
+                {
+                    SDL2_Rectangle *rect=nullptr;
+                    if(GetArgumentHeap(args,0,rect))
+                    {
+                        SDL_RenderDrawRect(this->renderer,&rect->rect);
+                    }
+                }
+                if(name == "FillRect")
+                {
+                    SDL2_Rectangle *rect=nullptr;
+                    if(GetArgumentHeap(args,0,rect))
+                    {
+                        SDL_RenderFillRect(this->renderer,&rect->rect);
+                    }
+                }
+                if(name == "DrawRect")
+                {
+                    SDL2_Rectangle *rect=nullptr;
+                    if(GetArgumentHeap(args,0,rect))
+                    {
+                        SDL_RenderDrawRect(this->renderer,&rect->rect);
+                    }
+                }
+                if(name == "DrawLine")
+                {
+                    int64_t x1,y1,x2,y2;
+                    if(GetArgument(args,0,x1) && GetArgument(args,1,y1) && GetArgument(args,2,x2) && GetArgument(args,3,y2))
+                    {
+                        SDL_RenderDrawLine(this->renderer,(int)x1,(int)y1,(int)x2,(int)y2);
+                    }
+                }
+                if(name == "DrawPoint")
+                {
+                    int64_t x1,y1;
+                    if(GetArgument(args,0,x1) && GetArgument(args,1,y1))
+                    {
+                        SDL_RenderDrawPoint(this->renderer,(int)x1,(int)y1);
+                    }
+                }
 
                 if(name == "Present")
                 {
@@ -635,7 +723,34 @@ namespace Tesses::CrossLang
                 {
                     return (int64_t)this->cache->MaxHeight();
                 }
-                if(key == "ToStirng")
+                if(key == "Render")
+                {
+                    SDL2_Renderer* renderer;
+                    int64_t x;
+                    int64_t y;
+                    std::string text;
+                    SDL2_Color* color;
+                    int64_t begin = 0;
+                    int64_t size = -1;
+                    if(GetArgumentHeap(args,0,renderer) && GetArgument(args,1,x) && GetArgument(args,2,y) && GetArgument(args,3,text) && GetArgumentHeap(args,4,color))
+                    {
+                        GetArgument(args,5, begin);
+                        GetArgument(args,6,size);
+                        this->cache->Render(renderer->renderer, (int)x,(int)y,text,color->color,(size_t)begin,size == -1 ? std::string::npos : (size_t)size);
+                    }
+                }
+                if(key == "CalculateSize")
+                {
+                    int w;
+                    int h;
+                    std::string text;
+                    if(GetArgument(args,0,text))
+                    {
+                        this->cache->CalculateSize(text,w,h);
+                        return TList::Create(ls,{(int64_t)w,(int64_t)h});
+                    }
+                }
+                if(key == "ToString")
                 {
                     return "SDL2.FontCache";
                 }
@@ -1092,6 +1207,17 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }
+    static TObject New_SDL2_Surface(GCList& ls, std::vector<TObject> args)
+    {
+        int64_t w;
+        int64_t h;
+        if(GetArgument(args,0,w) && GetArgument(args,1,h))
+        {
+            auto surf = SDL_CreateRGBSurfaceWithFormat(0, (int)w, (int)h, 24, SDL_PIXELFORMAT_RGB24);
+            return TNativeObject::Create<SDL2_Surface>(ls,surf);
+        }
+        return nullptr;
+    }
     static TObject SDL2_getEvents(GCList& ls, std::vector<TObject> args)
     {
         return TDictionary::Create(ls,{
@@ -1135,6 +1261,7 @@ namespace Tesses::CrossLang
             TDItem("Window",TExternalMethod::Create(ls,"Create window for SDL2",{"title","x","y","w","h","flags"},New_SDL2_Window)),
             TDItem("Renderer",TExternalMethod::Create(ls,"Create renderer for SDL2",{"window","index","flags"},New_SDL2_Renderer)),
             TDItem("Rectangle",TExternalMethod::Create(ls,"Create rectangle for SDL2",{"$x","$y","$w","$h"},New_SDL2_Rectangle)),
+            TDItem("Surface", TExternalMethod::Create(ls,"Create sdl2 surface",{"w","h"},New_SDL2_Surface)),
             TDItem("Color",TExternalMethod::Create(ls,"Create color for SDL2",{"$r","$g","$b","$a"},New_SDL2_Color))
         });
         TDictionary* gui_new = TDictionary::Create(ls, {
