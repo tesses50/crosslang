@@ -1419,7 +1419,6 @@ namespace Tesses::CrossLang
         RegisterOGC(gc, env);
         RegisterProcess(gc,env);
         RegisterClass(gc,env);
-        RegisterSDL2(gc,env);
 
         gc->RegisterEverything(env);
 

@@ -48,6 +48,13 @@ make
 sudo make install
 ```
 
+## Build with shared libs only (no dependencies other than cmake and build-essentials)
+```bash
+cmake -S ../.. -B . -DTESSESFRAMEWORK_ENABLE_STATIC=OFF -DTESSESFRAMEWORK_ENABLE_SHARED=ON -DTESSESFRAMEWORK_FETCHCONTENT=ON
+make -j`nproc`
+sudo make install
+```
+
 ## Run these commands to install crosslang (without plugin support)
 Or use binaries from [here](https://crosslang.tesseslanguage.com/download/)
 

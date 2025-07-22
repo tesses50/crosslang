@@ -32,6 +32,25 @@ jobs:
       passwordSecret: dockersecret
     platforms: linux/amd64
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+  - !CommandStep
+    name: Build Tar
+    runInContainer: true
+    image: onedev.site.tesses.net/dependencies/build:latest
+    interpreter: !DefaultInterpreter
+      commands: |
+        mkdir build2
+        cd build2
+        cmake -S .. -B . -DTESSESFRAMEWORK_ENABLE_SHARED=ON -DTESSESFRAMEWORK_ENABLE_STATIC=OFF
+        make -j12
+        make install DESTDIR=../crosslang
+        cd ..
+        tar cvzf crosslang-x86_64.tar.gz crosslang
+    useTTY: true
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+  - !PublishArtifactStep
+    name: Publish CrossLang Artifact
+    artifacts: crosslang-x86_64.tar.gz
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   triggers:
   - !DependencyFinishedTrigger
     projects: tesses-framework
