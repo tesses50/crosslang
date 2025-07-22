@@ -3370,13 +3370,7 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc,nullptr);
                         return false;
                     }
-                    if(key == "RegisterSDL2")
-                    {
-                        if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterSDL2)&& !rootEnv->permissions.locked)
-                        TStd::RegisterSDL2(gc, rootEnv);
-                        cse.back()->Push(gc,nullptr);
-                        return false;
-                    }
+                    
                     if(key == "RegisterConsole")
                     {
                         if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterConsole) && !rootEnv->permissions.locked)
@@ -6410,44 +6404,27 @@ namespace Tesses::CrossLang {
                             {
                                 stk->Push(gc, tryC->Call(ls,{}));
                             }   
-                            catch(TextException& ex)
-                            {
-
-                                TDictionary* dict = TDictionary::Create(ls);
-                                auto gc = ls.GetGC();
-                                gc->BarrierBegin();
-                                dict->SetValue("Type","NativeException");
-                                dict->SetValue("Text",ex.what());
-                                gc->BarrierEnd();
-                                stk->Push(gc, catchC->Call(ls,{dict}));
-                            }
-                            catch(VMException& ex)
-                            {
-                                
-                                TDictionary* dict = TDictionary::Create(ls);
-                                auto gc = ls.GetGC();
-                                gc->BarrierBegin();
-                                dict->SetValue("Type","NativeException");
-                                dict->SetValue("Text",ex.what());
-                                gc->BarrierEnd();
-                                stk->Push(gc, catchC->Call(ls,{dict}));
-                            }
-                            catch(VMByteCodeException& ex)
-                            {
-
-                                stk->Push(gc, catchC->Call(ls,{ex.exception}));
-                            }
+                            
                             catch(std::exception& ex)
                             {
                                 TDictionary* dict = TDictionary::Create(ls);
                                 auto gc = ls.GetGC();
+                                auto myEx = dynamic_cast<VMByteCodeException*>(&ex);
+                                if(myEx != nullptr)
+                                {
+                                    stk->Push(gc, catchC->Call(ls,{myEx->exception}));
+                                } else {
                                 gc->BarrierBegin();
+                                
                                 dict->SetValue("Type","NativeException");
                                 dict->SetValue("Text",ex.what());
                                 gc->BarrierEnd();
 
                                 stk->Push(gc, catchC->Call(ls,{dict}));
+                                }
                             }
+                           
+                            
                         }
         return false;
     }

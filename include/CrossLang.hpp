@@ -1805,7 +1805,6 @@ class GC {
             bool canRegisterOGC;
             bool canRegisterEnv;
             bool canRegisterClass;
-            bool canRegisterSDL2;
             bool sqlite3Scoped;
             bool locked;
     };
@@ -1865,7 +1864,6 @@ class GC {
             static void RegisterEnv(GC* gc, TRootEnvironment* env);
             static void RegisterProcess(GC* gc, TRootEnvironment* env);
             static void RegisterClass(GC* gc, TRootEnvironment* env);
-            static void RegisterSDL2(GC* gc,TRootEnvironment* env);
     };
 
     class TSubEnvironment : public TEnvironment

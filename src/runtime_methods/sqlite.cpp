@@ -47,6 +47,7 @@ namespace Tesses::CrossLang {
                     {
                         if(this->db == nullptr) return nullptr;
                         std::vector<std::vector<std::pair<std::string, std::optional<std::string>>>> res;
+
                         this->db->Exec(arg,res);
                         
                         TList* list = TList::Create(ls);
@@ -101,7 +102,12 @@ namespace Tesses::CrossLang {
         std::string cmd;
         if(GetArgumentHeap(args,0,sql) && GetArgument(args,1,cmd))
         {
+            try { 
             return sql->CallMethod(ls,"Exec",{cmd});
+            } catch(std::runtime_error& ex)
+            {
+                return (std::string)ex.what();
+            }
         }
 
         return Undefined();
