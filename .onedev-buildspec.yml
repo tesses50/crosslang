@@ -40,7 +40,7 @@ jobs:
       commands: |
         mkdir build2
         cd build2
-        cmake -S .. -B . -DTESSESFRAMEWORK_ENABLE_SHARED=ON -DTESSESFRAMEWORK_ENABLE_STATIC=OFF
+        cmake -S .. -B . -DTESSESFRAMEWORK_ENABLE_SHARED=ON -DTESSESFRAMEWORK_ENABLE_STATIC=OFF -DTESSESFRAMEWORK_FETCHCONTENT=ON
         make -j12
         make install DESTDIR=../crosslang
         cd ..
