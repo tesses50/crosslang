@@ -5459,7 +5459,35 @@ namespace Tesses::CrossLang {
                     cse.back()->Push(gc, Undefined());
                     return false;
                 }
-
+                if(chunk != nullptr)
+                {
+                    if(key == "Arguments")
+                    {
+                        auto myargs = TList::Create(ls);
+                        gc->BarrierBegin();
+                        for(auto item : chunk->args)
+                        {
+                            myargs->Add(item);
+                        }
+                        gc->BarrierEnd();
+                        cse.back()->Push(gc, myargs);
+                        return false;
+                    }
+                    if(key == "Code")
+                    {   
+                        auto ba = TByteArray::Create(ls);
+                        ba->data = chunk->code;
+                        cse.back()->Push(gc, ba);
+                        return false;
+                    }
+                    if(key == "File")
+                    {
+                        cse.back()->Push(gc, chunk->file);
+                        return false;
+                    }
+                    cse.back()->Push(gc, Undefined());
+                    return false;
+                }
                 if(callstackEntry != nullptr)
                 {
                     if(key == "IP") 

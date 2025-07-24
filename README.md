@@ -48,7 +48,7 @@ make
 sudo make install
 ```
 
-## Build with shared libs only (no dependencies other than cmake and build-essentials)
+## Build with shared libs only (self contained dependencies)
 ```bash
 cmake -S ../.. -B . -DTESSESFRAMEWORK_ENABLE_STATIC=OFF -DTESSESFRAMEWORK_ENABLE_SHARED=ON -DTESSESFRAMEWORK_FETCHCONTENT=ON
 make -j`nproc`
