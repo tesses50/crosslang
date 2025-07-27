@@ -521,7 +521,18 @@ namespace Tesses::CrossLang
             TWO_EXPR(NotEqualsExpression, NEQ)
             TWO_EXPR(EqualsExpression, EQ)
             TWO_EXPR(XOrExpression, XOR)
-            if(adv.nodeName == ClassStatement && adv.nodes.size() >= 3 && std::holds_alternative<std::string>(adv.nodes[0]))
+            if(adv.nodeName == NullCoalescingExpression && adv.nodes.size() == 2)
+            {
+                uint32_t ifId = NewId();
+                std::string ifIdTrue = "__compGenTrue";
+                ifIdTrue.append(std::to_string(ifId));
+                GenNode(instructions,adv.nodes[0],scope,contscope,brkscope,contI,brkI);
+                instructions.push_back(new JumpStyleInstruction(Instruction::JMPIFDEFINED, ifIdTrue));
+                GenNode(instructions,adv.nodes[1],scope,contscope,brkscope,contI,brkI);
+                instructions.push_back(new LabelInstruction(ifIdTrue));    
+                
+            }
+            else if(adv.nodeName == ClassStatement && adv.nodes.size() >= 3 && std::holds_alternative<std::string>(adv.nodes[0]))
             {
                 CodeGenClass cls;
                 cls.documentation = GetString(std::get<std::string>(adv.nodes[0]));

@@ -6163,6 +6163,32 @@ namespace Tesses::CrossLang {
         }
         return false;
     }
+    bool InterperterThread::JumpIfDefined(GC* gc)
+    {
+        
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
+
+        if(stk->ip + 4 <= stk->callable->closure->code.size())
+        {
+            uint32_t n=BitConverter::ToUint32BE(stk->callable->closure->code[stk->ip]);
+                            
+            GCList ls(gc);
+            auto _res2 = stk->Pop(ls);
+                                
+            stk->ip = stk->ip + 4;
+            if(!std::holds_alternative<Undefined>(_res2) && !std::holds_alternative<std::nullptr_t>(_res2))
+            {
+                stk->ip = n;
+                stk->Push(gc,_res2);
+            }
+                            
+                            
+        }
+        else
+            throw VMException("Can't read jmpifdefined pc.");
+        return false;
+    }
     bool InterperterThread::JumpIfBreak(GC* gc)
     {
         

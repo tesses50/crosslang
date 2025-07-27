@@ -1088,6 +1088,10 @@ namespace Tesses::CrossLang
         {
             return AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{AdvancedSyntaxNode::Create(XOrExpression,true,{ node,ParseAssignment()})});
         }
+        else if(IsSymbol("?\?="))
+        {
+            return AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{AdvancedSyntaxNode::Create(NullCoalescingExpression,true,{ node,ParseAssignment()})});
+        }
         return node;
     }
     SyntaxNode Parser::ParseNode(bool isRoot)
@@ -1547,9 +1551,18 @@ namespace Tesses::CrossLang
         EnsureSymbol(";");
         return v;
     }
+    SyntaxNode Parser::ParseNullCoalescing()
+    {
+        SyntaxNode expr = ParseLOr();
+        while(IsSymbol("?\?"))
+        {
+            expr = AdvancedSyntaxNode::Create(NullCoalescingExpression,true,{expr,ParseLOr()});
+        }
+        return expr;
+    }
     SyntaxNode Parser::ParseTernary()
     {
-        SyntaxNode node = ParseLOr();
+        SyntaxNode node = ParseNullCoalescing();
         if(IsSymbol("?"))
         {
             auto yes = ParseTernary();

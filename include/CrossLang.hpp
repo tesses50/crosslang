@@ -664,7 +664,8 @@ typedef enum {
     PUSHBREAK,
     PUSHCONTINUE,
     JMPIFBREAK,
-    JMPIFCONTINUE
+    JMPIFCONTINUE,
+    JMPIFDEFINED
 } Instruction;
 /**
  * @brief Base type for bytecode instruction
@@ -1275,6 +1276,10 @@ constexpr std::string_view RelativePathExpression = "relativePathExpression";
  */
 constexpr std::string_view AwaitExpression = "awaitExpression";
 /**
+ * @brief ?? operator
+ */
+constexpr std::string_view NullCoalescingExpression = "nullCoalescingExpression";
+/**
  * @brief Advanced AST node
  * 
  */
@@ -1346,6 +1351,7 @@ class Parser {
     SyntaxNode ParseFactor();
     SyntaxNode ParseValue();
     SyntaxNode ParseUnary();
+    SyntaxNode ParseNullCoalescing();
     void ParseHtml(std::vector<SyntaxNode>& nodes,std::string var);
     GC* gc;
     TRootEnvironment* env;
@@ -2254,6 +2260,7 @@ class GC {
             bool ExecuteMethod2(GC* gc, TObject instance, std::string key, std::vector<TObject> args);
         protected:
             static void* ThreadCallback(void* ptr);
+            bool JumpIfDefined(GC* gc);
             bool Add(GC* gc);
             bool Sub(GC* gc);
             bool Times(GC* gc);

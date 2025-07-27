@@ -579,6 +579,7 @@ namespace Tesses::CrossLang
                     break;
                 case '<':
                 case '>':
+                case '?':
                     if(peek == read)
                     {
                         Flush();
@@ -670,7 +671,6 @@ namespace Tesses::CrossLang
                 case ':':
                 case ';':
                 case ',':
-                case '?':
                     Flush();
                     Symbol({read});
                     break;
