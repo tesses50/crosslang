@@ -109,7 +109,7 @@ namespace Tesses::CrossLang
         {
             obj->inherit_tree.push_back(JoinPeriod(clsCur->inherits));
             size_t idx;
-            if(rEnv->TryFindClass(clsCur->name,idx))
+            if(rEnv->TryFindClass(clsCur->inherits,idx))
             {
                 auto file = rEnv->classes[idx].first;
                 clsCur = &rEnv->classes[idx].first->classes.at(rEnv->classes[idx].second);

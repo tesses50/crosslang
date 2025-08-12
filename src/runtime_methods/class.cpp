@@ -48,6 +48,33 @@ namespace Tesses::CrossLang
         ls.GetGC()->BarrierEnd();
         return list;
     }
+    static TList* ClassInstanceToList(GCList& ls, TClassObject* co)
+    {
+        TList* list=TList::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        for(auto& item : co->entries)
+        {
+            if(item.modifier == TClassModifier::Public)
+            {
+                list->Add(TDictionary::Create(ls, {
+                    TDItem(
+                        "Name", item.name
+                    ),
+                    TDItem(
+                        "IsFunction", !item.canSet
+                    ),
+                    TDItem(
+                        "Owner", item.owner
+                    ),
+                    TDItem(
+                        "Value", item.value
+                    )
+                }));
+            }
+        }
+        ls.GetGC()->BarrierEnd();
+        return list;
+    }
     TObject GetClassInfo(GCList& ls,TFile* f, uint32_t index)
     {
         return TDictionary::Create(ls,{
@@ -232,6 +259,24 @@ namespace Tesses::CrossLang
                 return cls->name;
             }
             return "";
+        });
+
+
+        cls->DeclareFunction(gc, "GetInstanceInfo", "Get the instance specific info, including current values", {}, [](GCList& ls, std::vector<TObject> args)->TObject {
+            TClassObject* co;
+            if(GetArgumentHeap(args, 0, co))
+            {
+                return TDictionary::Create(ls,
+                    {
+                        TDItem("Name", co->name),
+                        TDItem("File", co->file),
+                        TDItem("ClassIndex", (int64_t)co->classIndex),
+                        TDItem("InheritList", VectorOfStringToList(ls, co->inherit_tree)),
+                        TDItem("Entries", ClassInstanceToList(ls,co))
+                    }
+                );
+            }
+            return nullptr;
         });
         
         gc->BarrierEnd();

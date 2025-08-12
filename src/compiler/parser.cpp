@@ -223,7 +223,7 @@ namespace Tesses::CrossLang
                                         
                                     }
                                     this->EnsureSymbol(">");
-                                    if(tagName != "if" && tagName != "true" && tagName != "false" && tagName != "for" && tagName != "while" && tagName != "do" && tagName != "each" && tagName != "null")
+                                    if(tagName != "if" && tagName != "true" && tagName != "false" && tagName != "for" && tagName != "while" && tagName != "do" && tagName != "each" && tagName != "null" && tagName != "return")
                                     {
                                         std::string myVal = "</";
                                         myVal += tagName;
@@ -363,6 +363,13 @@ namespace Tesses::CrossLang
                     nodes.push_back(AdvancedSyntaxNode::Create(ScopeNode,false,_nodes));
                     
                 }
+                else if(tagName == "return")
+                {
+                    EnsureSymbol(">");
+                    std::vector<SyntaxNode> _nodes;
+                    parseFn(_nodes,"return");
+                    nodes.push_back(AdvancedSyntaxNode::Create(ScopeNode,false,_nodes));
+                }
                 else if(tagName == "while")
                 {
                     
@@ -448,6 +455,7 @@ namespace Tesses::CrossLang
                     
                     nodes.push_back(AdvancedSyntaxNode::Create(EachStatement,false,{item,list,body}));
                 }
+                
                 else 
                 {
                     std::string s = "<";
@@ -1476,6 +1484,7 @@ namespace Tesses::CrossLang
             EnsureSymbol(":");
             return r;
         }
+
         if(IsIdentifier("return"))
         {
             SyntaxNode v = Undefined();
@@ -1485,6 +1494,22 @@ namespace Tesses::CrossLang
                 EnsureSymbol(";");
             }
             return AdvancedSyntaxNode::Create(ReturnStatement,false,{v});
+        }
+        if(IsSymbol("<",false) && this->i+1 < this->tokens.size() && this->tokens[this->i+1].type == LexTokenType::Identifier && this->tokens[this->i+1].text == "return")
+        {
+            this->i++;
+            uint32_t htmlId = NewId();
+            std::string compHtml = "__compGenHtml";
+            compHtml.append(std::to_string(htmlId));
+            std::vector<SyntaxNode> syntaxNode = {
+                compHtml
+            };
+            ParseHtml(syntaxNode,compHtml);    
+            
+            auto thytoken =  AdvancedSyntaxNode::Create(HtmlRootExpression,true,syntaxNode);
+            
+            return AdvancedSyntaxNode::Create(ReturnStatement,false,{thytoken});
+
         }
 
         if(IsIdentifier("yield"))

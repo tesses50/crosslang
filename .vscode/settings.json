@@ -75,7 +75,14 @@
         "thread": "cpp",
         "bitset": "cpp",
         "regex": "cpp",
-        "cstdbool": "cpp"
+        "cstdbool": "cpp",
+        "complex": "cpp",
+        "set": "cpp",
+        "unordered_set": "cpp",
+        "future": "cpp",
+        "queue": "cpp",
+        "stack": "cpp",
+        "stdfloat": "cpp"
     },
     "clangd.fallbackFlags": [
         "-Iinclude"
