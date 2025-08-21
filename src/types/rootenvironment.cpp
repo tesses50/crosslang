@@ -311,6 +311,7 @@ namespace Tesses::CrossLang {
         if(this->marked) return;
         this->marked = true;
         this->dict->Mark();
+        if(this->permissions.customConsole != nullptr) this->permissions.customConsole->Mark();
         for(auto defer : this->defers) defer->Mark();
         if(this->error != nullptr) this->error->Mark();
     }

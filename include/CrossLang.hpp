@@ -1813,6 +1813,7 @@ class GC {
             bool canRegisterClass;
             bool sqlite3Scoped;
             bool locked;
+            TDictionary* customConsole =nullptr;
     };
 
     class TRootEnvironment : public TEnvironment
@@ -2565,4 +2566,6 @@ class GC {
     MarkedTObject CreateMarkedTObject(GCList& gc, TObject o);
     std::string JoinPeriod(std::vector<std::string>& p);
     TObject GetClassInfo(GCList& ls,TFile* f, uint32_t index);
+
+    extern Tesses::Framework::Filesystem::VFSPath CrossLangConfigPath;
 };

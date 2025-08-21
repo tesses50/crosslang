@@ -105,6 +105,8 @@ namespace Tesses::CrossLang
     }
     void TAssociativeArray::Mark()
     {
+        if(this->marked) return;
+        this->marked=true;
         for(auto& item : this->items)
         {
             GC::Mark(item.first);

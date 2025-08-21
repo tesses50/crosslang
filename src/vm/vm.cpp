@@ -3311,6 +3311,22 @@ namespace Tesses::CrossLang {
                             gc->BarrierEnd();
                         }
                     }
+                    if(key == "SetCustomConsole")
+                    {
+                        TDictionary* dict;
+                        if(!rootEnv->permissions.locked && GetArgumentHeap(args,0, dict))
+                        {
+                            gc->BarrierBegin();
+                            rootEnv->permissions.customConsole = dict;
+                            gc->BarrierEnd();
+                        }
+                        else if(!rootEnv->permissions.locked && myEnv->permissions.customConsole == nullptr)
+                        {
+                            gc->BarrierBegin();
+                            rootEnv->permissions.customConsole=nullptr;
+                            gc->BarrierEnd();
+                        }
+                    }
                     if(key == "RegisterEverything")
                     {
                         if(myEnv->permissions.canRegisterEverything)

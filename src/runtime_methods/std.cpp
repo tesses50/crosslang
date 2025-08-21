@@ -46,7 +46,7 @@ namespace Tesses::CrossLang
                     if(value == "true") {
                         items.push_back(std::pair<std::string,TObject>(key,true));
                     } else if(value == "false") {
-                        items.push_back(std::pair<std::string,TObject>(key,true));
+                        items.push_back(std::pair<std::string,TObject>(key,false));
                     } else if(value == "null") {
                         items.push_back(std::pair<std::string,TObject>(key,nullptr));
                     } else {

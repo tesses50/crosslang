@@ -480,7 +480,9 @@ namespace Tesses::CrossLang
             GCList ls2(this->ls->GetGC());
             auto res = CreateDictionaryFromServerContext(ls2,&ctx);
             bool result;
+            this->ls->GetGC()->BarrierBegin();
             auto callableO = clsObj->GetValue("","Handle");
+            this->ls->GetGC()->BarrierEnd();
             TCallable* callable;
             if(GetObjectHeap(callableO, callable))
             {

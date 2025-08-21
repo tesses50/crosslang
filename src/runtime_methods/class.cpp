@@ -266,7 +266,8 @@ namespace Tesses::CrossLang
             TClassObject* co;
             if(GetArgumentHeap(args, 0, co))
             {
-                return TDictionary::Create(ls,
+                ls.GetGC()->BarrierBegin();
+                auto res= TDictionary::Create(ls,
                     {
                         TDItem("Name", co->name),
                         TDItem("File", co->file),
@@ -275,6 +276,8 @@ namespace Tesses::CrossLang
                         TDItem("Entries", ClassInstanceToList(ls,co))
                     }
                 );
+                ls.GetGC()->BarrierEnd();
+                return res;
             }
             return nullptr;
         });

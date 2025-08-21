@@ -195,7 +195,15 @@ namespace Tesses::CrossLang {
     }
     void TStd::RegisterConsole(GC* gc,TRootEnvironment* env)
     {
-        env->permissions.canRegisterConsole=true;
+         env->permissions.canRegisterConsole=true;
+        if(env->permissions.customConsole != nullptr)
+        {
+            gc->BarrierBegin();
+            env->DeclareVariable("Console", env->permissions.customConsole );
+            gc->BarrierEnd();
+            return;
+        }
+        
         #ifdef CROSSLANG_ENABLE_TERMIOS
             tcgetattr(0, &orig_termios);
             atexit(disableRawMode);   

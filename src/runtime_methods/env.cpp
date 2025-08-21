@@ -13,9 +13,13 @@ namespace Tesses::CrossLang
     static char EnvPathSeperator=':';
     #endif
 
+    Tesses::Framework::Filesystem::VFSPath CrossLangConfigPath("");
+
     
     Tesses::Framework::Filesystem::VFSPath GetCrossLangConfigDir()
     {
+        if(!CrossLangConfigPath.path.empty())
+            return CrossLangConfigPath;
         
         return  SpecialFolders::GetConfig() / "Tesses" / "CrossLang";
     }

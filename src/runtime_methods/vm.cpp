@@ -387,15 +387,19 @@ namespace Tesses::CrossLang
         });
         dict->DeclareFunction(gc, "getRootEnvironment","Get root environment, for reflection purposes",{},[env](GCList& ls2,std::vector<TObject> args)->TObject {return env;});
         dict->DeclareFunction(gc, "getCurrentEnvironment","Get current environment, for reflection purposes",{},VM_getCurrentEnvironment);
-        dict->DeclareFunction(gc, "CreateEnvironment","Create root environment",{"$dict"},[](GCList& ls,std::vector<TObject> args)->TObject{
+        dict->DeclareFunction(gc, "CreateEnvironment","Create root environment",{"$dict"},[env](GCList& ls,std::vector<TObject> args)->TObject{
             TDictionary* dict;
             if(GetArgumentHeap(args,0,dict))
             {
-                return TRootEnvironment::Create(ls,dict);
+                auto renv =  TRootEnvironment::Create(ls,dict);
+                renv->permissions.customConsole = env->permissions.customConsole;
+                return renv;
             }
             else
             {
-                return TRootEnvironment::Create(ls,TDictionary::Create(ls));
+                auto renv = TRootEnvironment::Create(ls,TDictionary::Create(ls));
+                renv->permissions.customConsole = env->permissions.customConsole;
+                return renv;
             }
         });
         dict->DeclareFunction(gc, "LoadExecutable", "Load a crossvm executable",{"stream"},[](GCList& ls,std::vector<TObject> args)->TObject{
