@@ -57,8 +57,8 @@ jobs:
     image: onedev.site.tesses.net/dependencies/debbuilder:latest
     interpreter: !DefaultInterpreter
       commands: |
-        apt update
-        apt install tessesframework libffi-dev pkg-config
+        apt update -y
+        apt install -y tessesframework libffi-dev pkg-config
         cd Packaging/Linux
         bash build-debian-amd64.sh
         bash push-debian-amd64.sh
