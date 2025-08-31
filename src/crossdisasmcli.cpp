@@ -1,4 +1,5 @@
 #include "CrossLang.hpp"
+
 void help(char* program)
 {
     std::cout << "USAGE: " << program << " [flags] FILE.CRVM" << std::endl;
