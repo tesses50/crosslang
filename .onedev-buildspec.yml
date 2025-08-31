@@ -51,6 +51,22 @@ jobs:
     name: Publish CrossLang Artifact
     artifacts: crosslang-x86_64.tar.gz
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+  - !CommandStep
+    name: Build and Publish Deb Package
+    runInContainer: true
+    image: onedev.site.tesses.net/dependencies/debbuilder:latest
+    interpreter: !DefaultInterpreter
+      commands: |
+        apt update
+        apt install tessesframework
+        cd Packaging/Linux
+        bash build-debian-amd64.sh
+        bash push-debian-amd64.sh
+    envVars:
+    - name: GITEA_AUTH
+      value: '@secret:GITEA_AUTH@'
+    useTTY: true
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   triggers:
   - !DependencyFinishedTrigger
     projects: tesses-framework
