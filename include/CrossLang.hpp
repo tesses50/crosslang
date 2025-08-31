@@ -2568,4 +2568,8 @@ class GC {
     TObject GetClassInfo(GCList& ls,TFile* f, uint32_t index);
 
     extern Tesses::Framework::Filesystem::VFSPath CrossLangConfigPath;
+
+    Tesses::Framework::Filesystem::VFSPath Assemble(Tesses::Framework::Filesystem::VFS* vfs);
+    void Disassemble(Tesses::Framework::Streams::Stream* src,Tesses::Framework::Filesystem::VFS* vfs, bool generateJSON=true,bool extractResources=true);
+    Tesses::Framework::Filesystem::VFSPath Merge(Tesses::Framework::Filesystem::VFS* srcFS, Tesses::Framework::Filesystem::VFSPath sourcePath, Tesses::Framework::Filesystem::VFS* destFS);
 };

@@ -76,14 +76,13 @@ namespace Tesses::CrossLang {
         name.append(".crvm");
         std::string filename="/" + name;
         
-
-        Tesses::Framework::Streams::Stream* file;
-        if(vfs->RegularFileExists(filename) && (file = vfs->OpenFile(filename,"rb")) != nullptr)
+        if(vfs->RegularFileExists(filename))
         {
-            
+            Tesses::Framework::Streams::Stream* file = vfs->OpenFile(filename,"rb");
             GCList ls(gc);
             TFile* f = TFile::Create(ls);
             f->Load(gc, file);
+            delete file;
             LoadFileWithDependencies(gc, vfs, f);
         }
         else throw VMException("Could not open file: \"" + name + "\".");
@@ -254,14 +253,15 @@ namespace Tesses::CrossLang {
     }
     void TRootEnvironment::LoadFileWithDependencies(GC* gc,Tesses::Framework::Filesystem::VFS* vfs, Tesses::Framework::Filesystem::VFSPath path)
     {
-        Tesses::Framework::Streams::Stream* file;
+       
 
-        if(vfs->RegularFileExists(path) && (file = vfs->OpenFile(path,"rb")) != nullptr)
+        if(vfs->RegularFileExists(path))
         {
-            
+            Tesses::Framework::Streams::Stream* file=vfs->OpenFile(path,"rb");
             GCList ls(gc);
             TFile* f = TFile::Create(ls);
             f->Load(gc, file);
+            delete file;
             Tesses::Framework::Filesystem::SubdirFilesystem dir(vfs,path.GetParent(),false);
             LoadFileWithDependencies(gc,&dir,f);
         }
