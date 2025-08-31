@@ -3,16 +3,13 @@ Tesses Cross Language
 
 ![CrossImage](crosslang.png)
 
-> :warning: **NOT READY FOR PRODUCTION (THERE WILL BE BREAKING CHANGES)** 
+[WebSite](https://crosslang.tesseslanguage.com/)
 
 ## What is required to build this project
 - [TessesFramework](https://onedev.site.tesses.net/tesses-framework) (if you turn CROSSLANG_FETCHCONTENT off otherwise it will be grabbed automaticly)
 - CMake
 
-## What libraries have I embeded from other people
-- [Sqlite](https://www.sqlite.org/) (in folder src/sqlite also uses demo VFS (at least on Wii))
-- [Sago's platform_folders](https://github.com/sago007/PlatformFolders) (in folder src/sago)
-- [subprocess](https://github.com/sheredom/subprocess.h) (as file src/runtime_methods/subprocess.h)
+
 ## Use in docker (use my container)
 ```bash
     sudo docker pull -t onedev.site.tesses.net/crosslang/crosslang:latest
@@ -54,9 +51,6 @@ cmake -S ../.. -B . -DTESSESFRAMEWORK_ENABLE_STATIC=OFF -DTESSESFRAMEWORK_ENABLE
 make -j`nproc`
 sudo make install
 ```
-
-## Run these commands to install crosslang (without plugin support)
-Or use binaries from [here](https://crosslang.tesseslanguage.com/download/)
 
 ```bash
 git clone https://onedev.site.tesses.net/CrossLang
