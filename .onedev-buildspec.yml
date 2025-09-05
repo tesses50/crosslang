@@ -58,7 +58,7 @@ jobs:
     interpreter: !DefaultInterpreter
       commands: |
         apt update -y
-        apt install -y libffi-dev pkg-config
+        apt install -y pkg-config
         cd Packaging/Linux
         bash build-ubuntu-jammy.sh
         bash push-ubuntu-jammy.sh
@@ -74,7 +74,7 @@ jobs:
     interpreter: !DefaultInterpreter
       commands: |
         apt update -y
-        apt install -y libffi-dev pkg-config 
+        apt install -y pkg-config 
         cd Packaging/Linux
         bash build-ubuntu-plucky.sh
         bash push-ubuntu-plucky.sh

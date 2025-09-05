@@ -5,7 +5,7 @@ cd build/plucky
 wget -O Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm https://downloads.tesses.net/ShellPackage.crvm
 mkdir build-amd64
 apt install -y tessesframework
-cmake -S ../../../../ -B build-amd64 -DCMAKE_INSTALL_PREFIX=/usr -DCROSSLANG_FETCHCONTENT=OFF -DCROSSLANG_ENABLE_FFI=ON
+cmake -S ../../../../ -B build-amd64 -DCMAKE_INSTALL_PREFIX=/usr -DCROSSLANG_FETCHCONTENT=OFF
 cd build-amd64
 make -j`nproc`
 make install DESTDIR=../crosslang_$DEB_VERSION\_amd64
@@ -20,7 +20,7 @@ dpkg-deb --build crosslang_$DEB_VERSION\_amd64
 foreign() {
     apt install -y tessesframework:$1
     mkdir build-$1
-    cmake -S ../../../../ -B build-$1 -DCMAKE_INSTALL_PREFIX=/usr -DCROSSLANG_FETCHCONTENT=OFF -DCROSSLANG_ENABLE_FFI=ON -DCMAKE_TOOLCHAIN_FILE=/opt/toolchains/$1\.cmake
+    cmake -S ../../../../ -B build-$1 -DCMAKE_INSTALL_PREFIX=/usr -DCROSSLANG_FETCHCONTENT=OFF -DCMAKE_TOOLCHAIN_FILE=/opt/toolchains/$1\.cmake
     cd build-$1
     make -j`nproc`
     make install DESTDIR=../crosslang_$DEB_VERSION\_$1
