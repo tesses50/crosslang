@@ -58,7 +58,7 @@ jobs:
     interpreter: !DefaultInterpreter
       commands: |
         apt update -y
-        apt install -y tessesframework libffi-dev pkg-config tessesframework:arm64 tessesframework:armhf tessesframework:riscv64
+        apt install -y libffi-dev pkg-config
         cd Packaging/Linux
         bash build-ubuntu-jammy.sh
         bash push-ubuntu-jammy.sh
@@ -74,7 +74,7 @@ jobs:
     interpreter: !DefaultInterpreter
       commands: |
         apt update -y
-        apt install -y tessesframework libffi-dev pkg-config tessesframework:arm64 tessesframework:armhf tessesframework:riscv64 tessesframework:i386
+        apt install -y libffi-dev pkg-config 
         cd Packaging/Linux
         bash build-ubuntu-plucky.sh
         bash push-ubuntu-plucky.sh
