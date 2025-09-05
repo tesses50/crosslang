@@ -67,8 +67,8 @@ jobs:
       value: '@secret:GITEA_AUTH@'
     useTTY: true
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
-    - !CommandStep
-    name: Build and Publish Deb Package
+  - !CommandStep
+    name: Build and Publish Deb Package (Plucky)
     runInContainer: true
     image: onedev.site.tesses.net/dependencies/debbuilder/plucky:latest
     interpreter: !DefaultInterpreter
