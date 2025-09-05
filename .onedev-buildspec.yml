@@ -54,14 +54,30 @@ jobs:
   - !CommandStep
     name: Build and Publish Deb Package
     runInContainer: true
-    image: onedev.site.tesses.net/dependencies/debbuilder:latest
+    image: onedev.site.tesses.net/dependencies/debbuilder/jammy:latest
     interpreter: !DefaultInterpreter
       commands: |
         apt update -y
-        apt install -y tessesframework libffi-dev pkg-config
+        apt install -y tessesframework libffi-dev pkg-config tessesframework:arm64 tessesframework:armhf tessesframework:riscv64
         cd Packaging/Linux
-        bash build-debian-amd64.sh
-        bash push-debian-amd64.sh
+        bash build-ubuntu-jammy.sh
+        bash push-ubuntu-jammy.sh
+    envVars:
+    - name: GITEA_AUTH
+      value: '@secret:GITEA_AUTH@'
+    useTTY: true
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+    - !CommandStep
+    name: Build and Publish Deb Package
+    runInContainer: true
+    image: onedev.site.tesses.net/dependencies/debbuilder/plucky:latest
+    interpreter: !DefaultInterpreter
+      commands: |
+        apt update -y
+        apt install -y tessesframework libffi-dev pkg-config tessesframework:arm64 tessesframework:armhf tessesframework:riscv64 tessesframework:i386
+        cd Packaging/Linux
+        bash build-ubuntu-plucky.sh
+        bash push-ubuntu-plucky.sh
     envVars:
     - name: GITEA_AUTH
       value: '@secret:GITEA_AUTH@'

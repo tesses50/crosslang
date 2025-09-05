@@ -1,0 +1,8 @@
+echo "Package: crosslang" > "$1"
+echo "Version: $DEB_VERSION" >> "$1"
+echo "Architecture: $2" >> "$1"
+echo "Essential: no" >> "$1"
+echo "Priority: optional" >> "$1"
+echo "Depends: tessesframework, libffi-dev" >> "$1"
+echo "Maintainer: Mike Nolan" >> "$1"
+echo "Description: A programming language" >> "$1"
