@@ -9,7 +9,7 @@ cmake -S ../../../../ -B build-amd64 -DCMAKE_INSTALL_PREFIX=/usr -DCROSSLANG_FET
 cd build-amd64
 make -j`nproc`
 make install DESTDIR=../crosslang_$DEB_VERSION\_amd64
-apt purge -y tessesframework
+apt remove -y tessesframework
 mkdir -p ../crosslang_$DEB_VERSION\_amd64/DEBIAN
 bash ../../../make-control.sh ../crosslang_$DEB_VERSION\_amd64/DEBIAN/control amd64
 cd ../
@@ -30,7 +30,7 @@ foreign() {
     mkdir -p crosslang_$DEB_VERSION\_$1\/usr/share/Tesses/CrossLang
     cp Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm crosslang_$DEB_VERSION\_$1\/usr/share/Tesses/CrossLang/Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm
     dpkg-deb --build crosslang_$DEB_VERSION\_$1
-    apt purge -y tessesframework:$1
+    apt remove -y tessesframework:$1
 }
 
 foreign arm64
