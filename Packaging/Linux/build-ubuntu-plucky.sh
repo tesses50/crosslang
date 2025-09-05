@@ -35,4 +35,4 @@ foreign() {
 
 foreign arm64
 foreign riscv64
-foreign i386
+

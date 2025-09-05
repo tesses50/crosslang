@@ -10,4 +10,3 @@ upload() {
 upload amd64
 upload arm64
 upload riscv64
-upload i386
