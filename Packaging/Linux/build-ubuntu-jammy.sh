@@ -34,6 +34,5 @@ foreign() {
 }
 
 foreign arm64
-foreign armhf
 foreign riscv64
 

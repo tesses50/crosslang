@@ -9,6 +9,5 @@ upload() {
 }
 upload amd64
 upload arm64
-upload armhf
 upload riscv64
 
