@@ -1,3 +1,4 @@
+
 #include "CrossLang.hpp"
 #if defined(CROSSLANG_ENABLE_SHARED)
 #if defined(CROSSLANG_ENABLE_FFI)
@@ -30,6 +31,35 @@
 
 namespace Tesses::CrossLang
 {
+    class TMuxex : public TNativeObject
+    {
+        public:
+            Tesses::Framework::Threading::Mutex mtx;
+
+            std::string TypeName()
+            {
+                return "Mutex";
+            }
+
+            TObject CallMethod(GCList& ls, std::string key, std::vector<TObject> args)
+            {
+                if(key == "Lock")
+                {
+                    mtx.Lock();
+                }
+                else if(key == "Unlock")
+                {
+                    mtx.Unlock();
+                }
+                else if(key == "TryLock")
+                {
+                    return mtx.TryLock();
+                }
+
+                return Undefined();
+            }
+    };
+
     class DocumentationParser : public TNativeObject
     {
         public:
@@ -1284,48 +1314,8 @@ namespace Tesses::CrossLang
             return nullptr;
         });
         newTypes->DeclareFunction(gc, "Mutex", "Create mutex",{}, [](GCList& ls,std::vector<TObject> args)->TObject {
-            ls.GetGC()->BarrierBegin();
-            auto mtx = TDictionary::Create(ls);
-            auto native = TNative::Create(ls, new Tesses::Framework::Threading::Mutex(),[](void* ptr)->void{
-                delete static_cast<Tesses::Framework::Threading::Mutex*>(ptr);
-            });
-            auto lock = TExternalMethod::Create(ls,"Lock the mutex",{},[native](GCList& ls, std::vector<TObject> args)->TObject {
-                if(native->GetDestroyed()) return nullptr;
-                auto r = static_cast<Tesses::Framework::Threading::Mutex*>(native->GetPointer());
-                r->Lock();
-                return nullptr;
-            });
-            lock->watch.push_back(native);
-            mtx->SetValue("Lock",lock);
-
-            auto unlock = TExternalMethod::Create(ls,"Unlock the mutex",{},[native](GCList& ls, std::vector<TObject> args)->TObject {
-                if(native->GetDestroyed()) return nullptr;
-                auto r = static_cast<Tesses::Framework::Threading::Mutex*>(native->GetPointer());
-                r->Unlock();
-                return nullptr;
-            });
-            unlock->watch.push_back(native);
-            mtx->SetValue("Unlock",unlock);
-
-
-            auto trylock = TExternalMethod::Create(ls,"Try to lock the mutex, returns true if we aquire the lock, false if we can't due to another thread owning it",{},[native](GCList& ls, std::vector<TObject> args)->TObject {
-                if(native->GetDestroyed()) return true;
-                auto r = static_cast<Tesses::Framework::Threading::Mutex*>(native->GetPointer());
-                return r->TryLock();
-            });
-            trylock->watch.push_back(native);
-            mtx->SetValue("TryLock",trylock);
-            ls.GetGC()->BarrierEnd();
-
-
-            auto close = TExternalMethod::Create(ls,"Try to lock the mutex, returns true if we aquire the lock, false if we can't due to another thread owning it",{},[native](GCList& ls, std::vector<TObject> args)->TObject {
-                native->Destroy();
-                return nullptr;
-            });
-            close->watch.push_back(native);
-            mtx->SetValue("Close",close);
-            ls.GetGC()->BarrierEnd();
-            return mtx;
+            
+            return TNativeObject::Create<TMuxex>(ls);
         });
         newTypes->DeclareFunction(gc, "Thread","Create thread",{"callback"},[](GCList& ls, std::vector<TObject> args)-> TObject
         {

@@ -8,6 +8,16 @@ namespace Tesses::CrossLang
         for(auto& item : this->inherit_tree) type += " : " + item;
         return type;
     }
+    TObject TClassObject::CallMethod(GCList& ls, std::string className, std::string name,std::vector<TObject> args)
+    {
+        auto value = this->GetValue(className,name);
+        TCallable* callable;
+        if(GetObjectHeap(value, callable))
+        {
+            return callable->Call(ls,args);
+        }
+        return Undefined();
+    }
     TClassObjectEntry* TClassObject::GetEntry(std::string classN, std::string key)
     {
         for(auto& item : this->entries)

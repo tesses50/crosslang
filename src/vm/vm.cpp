@@ -1,3 +1,4 @@
+
 #include "CrossLang.hpp"
 #include <TessesFramework/Filesystem/VFS.hpp>
 #include <cstddef>
@@ -3253,28 +3254,7 @@ namespace Tesses::CrossLang {
                     }
                     if(key == "Handle")
                     {
-                       
-                        if(GetArgumentHeap(args,0,dict))
-                        {
-                            gc->BarrierBegin();
-                            auto nat = dict->GetValue("native");
-                            gc->BarrierEnd();
-                            TNative* nat2;
-                            if(GetObjectHeap(nat,nat2))
-                            {
-                                if(!nat2->GetDestroyed()) 
-                                {
-                                    auto ctx = static_cast<Tesses::Framework::Http::ServerContext*>(nat2->GetPointer());
-                                    if(ctx != nullptr)
-                                    {
-                                        cse.back()->Push(gc,svr->server->Handle(*ctx));
-                                        return false;
-                                    }
-                                    
-                                }
-                            }
-                        }
-                        cse.back()->Push(gc,false);
+                        cse.back()->Push(gc,svr->Handle(args));
                         return false;
                     }
                     if(key == "Close")

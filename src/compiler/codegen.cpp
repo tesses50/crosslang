@@ -4,6 +4,7 @@
 #include <map>
 #include <cstring>
 #include <variant>
+
 namespace Tesses::CrossLang
 {
     void Write(Tesses::Framework::Streams::Stream* strm, uint8_t* buffer, size_t len)

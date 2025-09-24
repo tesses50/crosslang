@@ -72,249 +72,347 @@ namespace Tesses::CrossLang
             delete this->server;
         }
     }
-    static TDictionary* CreateDictionaryFromHttpDictionary(GCList& ls, Tesses::Framework::Http::HttpDictionary* dict0)
-    {
-        TDictionary* dict = TDictionary::Create(ls);
-        
-        auto gc =ls.GetGC();
-        //gc->BarrierBegin();
-        
+    class TNativeObjectThatReturnsHttpDictionary : public TNativeObject {
+        public:
+            virtual bool IsAvailable()=0;
+    };
+    class DummyTNativeObjectThatReturnsHttpDictionary : public TNativeObjectThatReturnsHttpDictionary {
+        bool isAvail;
+        public:
+            DummyTNativeObjectThatReturnsHttpDictionary()
+            {
+                this->isAvail=true;
+            }
+            bool IsAvailable()
+            {
+                return this->isAvail;
+            }
+            void Close()
+            {
+                this->isAvail=false;
+            }
+            std::string TypeName()
+            {
+                return "Dummy";
+            }
+            TObject CallMethod(GCList& ls, std::string key, std::vector<TObject> args)
+            {
+                return Undefined();
+            }
+    };
 
-        dict->DeclareFunction(gc,"AddValue","Add item",{"key","value"},[dict0](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
-            std::string key;
-            std::string value;
-            int64_t i64;
-            double d64;
-            TDateTime da;
-            if(GetArgument(args2,0,key) )
+    class THttpDictionary : public TNativeObject {
+        TNativeObjectThatReturnsHttpDictionary* ctx;
+        HttpDictionary* dict;
+        public:
+            THttpDictionary(HttpDictionary* dict, TNativeObjectThatReturnsHttpDictionary* ctx)
             {
-                if(GetArgument(args2,1,value))
-                    dict0->AddValue(key,value);
-                else if(GetArgument(args2,1,i64))
-                    dict0->AddValue(key,i64);
-                else if(GetArgument(args2,1,d64))
-                    dict0->AddValue(key, d64);
-                else if(GetArgument(args2,1,da))
-                    dict0->AddValue(key, da.GetDate());
+                this->dict = dict;
+                this->ctx = ctx;
             }
-            return nullptr;
-        });
+            std::string TypeName()
+            {
+                return "Net.Http.HttpDictionary";
+            }
+            void Mark()
+            {
+                if(this->marked) return;
+                this->marked=true;
+                ctx->Mark();
+            }
+            
 
-        dict->DeclareFunction(gc,"SetValue","Set item",{"key","value"},[dict0](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
-            std::string key;
-            std::string value;
-            int64_t i64;
-            double d64;
-            TDateTime da;
-            if(GetArgument(args2,0,key) )
+            TObject CallMethod(GCList& ls, std::string key, std::vector<TObject> args)
             {
-                if(GetArgument(args2,1,value))
-                    dict0->SetValue(key,value);
-                else if(GetArgument(args2,1,i64))
-                    dict0->SetValue(key,i64);
-                else if(GetArgument(args2,1,d64))
-                    dict0->SetValue(key, d64);
-                else if(GetArgument(args2,1,da))
-                    dict0->SetValue(key, da.GetDate());
-            }
-            return nullptr;
-        });
-
-        dict->DeclareFunction(gc,"Clear","Clear items",{},[dict0](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
-            dict0->Clear();
-            return nullptr;
-        });
-
-        dict->DeclareFunction(gc,"GetFirstBoolean","Get First boolean",{"key"},[dict0](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
-            std::string key;
-            if(GetArgument(args2,0,key))
-            {
-                return dict0->GetFirstBoolean(key);
-            }
-            return false;
-        });
-        dict->DeclareFunction(gc,"TryGetFirst","Try Get first string",{"key"},[dict0](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
-            std::string key;
-            std::string value;
-            if(GetArgument(args2,0,key) && dict0->TryGetFirst(key,value))
-            {
-                return value;
-            }
-            return nullptr;
-        });
-        dict->DeclareFunction(gc,"TryGetFirstDouble","Try Get first double",{"key"},[dict0](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
-            std::string key;
-            double value;
-            if(GetArgument(args2,0,key) && dict0->TryGetFirstDouble(key,value))
-            {
-                return value;
-            }
-            return nullptr;
-        });
-        dict->DeclareFunction(gc,"TryGetFirstInt","Try Get first integer",{"key"},[dict0](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
-            std::string key;
-            int64_t value;
-            if(GetArgument(args2,0,key) && dict0->TryGetFirstInt(key,value))
-            {
-                return value;
-            }
-            return nullptr;
-        });
-        dict->DeclareFunction(gc,"TryGetFirstDate","Try Get first date",{"key"},[dict0](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
-            std::string key;
-            Tesses::Framework::Date::DateTime value;
-            if(GetArgument(args2,0,key) && dict0->TryGetFirstDate(key,value))
-            {
-                return value;
-            }
-            return nullptr;
-        });
-
-        dict->DeclareFunction(gc, "ToList","To List",{}, [dict0](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
-            TList* ls = TList::Create(ls2);
-            for(auto item : dict0->kvp)
-            {
-                for(auto i : item.second)
+                if(!ctx->IsAvailable()) return Undefined();
+                else if(key == "AddValue")
                 {
-                    auto d = TDictionary::Create(ls2);
-                    ls2.GetGC()->BarrierBegin();
-                    d->SetValue("Key", item.first);
-                    d->SetValue("Value", i);
-                    ls->Add(d);
-                    ls2.GetGC()->BarrierEnd();
+                    std::string key;
+                    std::string value;
+                    int64_t i64;
+                    double d64;
+                    TDateTime da;
+                    if(GetArgument(args,0,key) )
+                    {
+                        if(GetArgument(args,1,value))
+                            this->dict->AddValue(key,value);
+                        else if(GetArgument(args,1,i64))
+                            this->dict->AddValue(key,i64);
+                        else if(GetArgument(args,1,d64))
+                            this->dict->AddValue(key, d64);
+                        else if(GetArgument(args,1,da))
+                            this->dict->AddValue(key, da.GetDate());
+                    }
                 }
+                else if(key == "SetValue")
+                {
+                    std::string key;
+                    std::string value;
+                    int64_t i64;
+                    double d64;
+                    TDateTime da;
+                    if(GetArgument(args,0,key) )
+                    {
+                        if(GetArgument(args,1,value))
+                            this->dict->SetValue(key,value);
+                        else if(GetArgument(args,1,i64))
+                            this->dict->SetValue(key,i64);
+                        else if(GetArgument(args,1,d64))
+                            this->dict->SetValue(key, d64);
+                        else if(GetArgument(args,1,da))
+                            this->dict->SetValue(key, da.GetDate());
+                    }
+                }
+                else if(key == "Clear")
+                {
+                    std::string key;
+                    bool existsAfter;
+                    if(GetArgument(args,0,key) && GetArgument(args,0, existsAfter))
+                        dict->Clear(key,existsAfter);
+                    else dict->Clear();
+
+                }
+                else if(key == "GetFirstBoolean")
+                {
+                    std::string key;
+                    if(GetArgument(args,0,key))
+                    {
+                        return dict->GetFirstBoolean(key);
+                    }
+                    return false;
+                }
+                else if(key == "TryGetFirst")
+                {
+                    std::string key;
+                    std::string value;
+                    if(GetArgument(args,0,key) && dict->TryGetFirst(key,value))
+                    {
+                        return value;
+                    }
+                    return nullptr;
+                }
+                else if(key == "TryGetFirstDouble")
+                {
+                    std::string key;
+                    double value;
+                    if(GetArgument(args,0,key) && dict->TryGetFirstDouble(key,value))
+                    {
+                        return value;
+                    }
+                    return nullptr;
+                }
+                else if(key == "TryGetFirstInt")
+                {
+                    std::string key;
+                    int64_t value;
+                    if(GetArgument(args,0,key) && dict->TryGetFirstInt(key,value))
+                    {
+                        return value;
+                    }
+                    return nullptr;
+                }
+                else if(key == "TryGetFirstDate")
+                {
+                    std::string key;
+                    Tesses::Framework::Date::DateTime value;
+                    if(GetArgument(args,0,key) && dict->TryGetFirstDate(key,value))
+                    {
+                        return value;
+                    }
+                    return nullptr;
+                }
+                else if(key == "ToList")
+                {
+                    TList* _ls = TList::Create(ls);
+                    for(auto item : dict->kvp)
+                    {
+                        for(auto i : item.second)
+                        {
+                            auto d = TDictionary::Create(ls);
+                            ls.GetGC()->BarrierBegin();
+                            d->SetValue("Key", item.first);
+                            d->SetValue("Value", i);
+                            _ls->Add(d);
+                            ls.GetGC()->BarrierEnd();
+                        }
+                    }
+                    return _ls;
+                }
+
+                return Undefined();
             }
-            return ls;
-        });
+    };
 
-        return dict;
-    }
-
-    static TDictionary* CreateDictionaryFromServerContext(GCList& ls,ServerContext* ctx)
+    class TServerContext : public TNativeObjectThatReturnsHttpDictionary
     {
-        TDictionary* dict = TDictionary::Create(ls);
-        
-        auto gc =ls.GetGC();
-        gc->BarrierBegin();
-        dict->SetValue("native",TNative::Create(ls,ctx,[](void*)->void {}));
-        dict->SetValue("Encrypted",ctx->encrypted);
-        dict->SetValue("Method",ctx->method);
-        dict->SetValue("IP",ctx->ip);
-        dict->SetValue("Port",(int64_t)ctx->port);
-        dict->SetValue("OriginalPath",ctx->originalPath);
-        dict->SetValue("QueryParams",CreateDictionaryFromHttpDictionary(ls,&ctx->queryParams));
-        dict->SetValue("RequestHeaders",CreateDictionaryFromHttpDictionary(ls,&ctx->requestHeaders));
-        dict->SetValue("ResponseHeaders",CreateDictionaryFromHttpDictionary(ls,&ctx->responseHeaders));
-        gc->BarrierEnd();
+        ServerContext* ctx;
+        public:
+            TServerContext(ServerContext* ctx)
+            {
+                this->ctx = ctx;
+            }
+            std::string TypeName()
+            {
+                return "Net.Http.ServerContext";
+            }
+            bool IsAvailable()
+            {
+                return ctx != nullptr;
+            }
+            ServerContext* GetContext()
+            {
+                return this->ctx;
+            }
+            TObject CallMethod(GCList& ls,std::string key, std::vector<TObject> args)
+            {
+                if(this->ctx == nullptr) return Undefined();
+                else if(key == "getEncrypted") return ctx->encrypted;
+                else if(key == "getMethod") return ctx->method;
+                else if(key == "getIP") return ctx->ip;
+                else if(key == "getPort") return ctx->port;
+                else if(key == "getOriginalPath") return ctx->originalPath;
+                else if(key == "getPath") return ctx->path;
+                else if(key == "setPath") {
+                     std::string str;
+                    if(GetArgument(args,0,str))
+                    {  
+                        ctx->path = str;
+                        return str;
+                    }
+                }
+                else if(key == "getVersion") return ctx->version;
+                else if(key == "setStatusCode") {
+                     int64_t sc;
+                    if(GetArgument(args,0,sc))
+                    {  
+                        ctx->statusCode = (StatusCode)sc;
+                        return sc;
+                    }
+                }
+                else if(key == "getStatusCode") return ctx->statusCode;
+                else if(key == "getQueryParams") return TNativeObject::Create<THttpDictionary>(ls, &ctx->queryParams,this);
+                else if(key == "getRequestHeaders") return TNativeObject::Create<THttpDictionary>(ls, &ctx->requestHeaders,this);
+                else if(key == "getResponseHeaders") return TNativeObject::Create<THttpDictionary>(ls, &ctx->responseHeaders,this);
+                else if(key == "GetStream") return TStreamHeapObject::Create(ls, &ctx->GetStream());
+                else if(key == "OpenRequestStream") return TStreamHeapObject::Create(ls, ctx->OpenRequestStream());
+                else if(key == "OpenResponseStream") return TStreamHeapObject::Create(ls, ctx->OpenResponseStream());
+                else if(key == "ParseFormData")
+                {
+                    TCallable* callable;
+                    TVFSHeapObject* vfsHeapObject;
+                    
+                    if(GetArgumentHeap(args, 0, callable))
+                    {
+                        ctx->ParseFormData([callable,&ls](std::string a,std::string b, std::string c)->Tesses::Framework::Streams::Stream*{
+                            auto res = callable->Call(ls,{a,b,c});
+                            return new Tesses::CrossLang::TObjectStream(ls.GetGC(),res);
+                        });
+                    }
+                    else if(GetArgumentHeap(args,0,vfsHeapObject))
+                    {
+                        int i = 1;
+                        std::vector<TObject> response;
+                        ctx->ParseFormData([vfsHeapObject,&response,&ls,&i](std::string mime,std::string filename, std::string name)->Tesses::Framework::Streams::Stream* {
+                            std::string realFileName = "/" + std::to_string(i) + ".bin";
+                            i++;
+                            response.push_back(TDictionary::Create(ls,{
+                                TDItem("RealFileName", realFileName),
+                                TDItem("FileName", filename),
+                                TDItem("Mime", mime),
+                                TDItem("Name", name)        
+                            }));
 
-        dict->DeclareFunction(gc,"GetStream","Get streams",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
-            return TStreamHeapObject::Create(ls2, &ctx->GetStream());
-        });
-        dict->DeclareFunction(gc,"OpenRequestStream","Open Request Stream",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
-            return TStreamHeapObject::Create(ls2, ctx->OpenRequestStream());
-        });
-        dict->DeclareFunction(gc,"OpenResponseStream","Open Response Stream",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
-            return TStreamHeapObject::Create(ls2, ctx->OpenResponseStream());
-        });
-        dict->DeclareFunction(gc, "ParseFormData","Parse the form data",{},[ctx](GCList& ls, std::vector<TObject> args)->TObject {
-            TCallable* callable;
-            if(GetArgumentHeap(args, 0, callable))
-            {
-                ctx->ParseFormData([callable,&ls](std::string a,std::string b, std::string c)->Tesses::Framework::Streams::Stream*{
-                    auto res = callable->Call(ls,{a,b,c});
-                    return new Tesses::CrossLang::TObjectStream(ls.GetGC(),res);
-                });
-            }
-            return nullptr;
-        });
-        dict->DeclareFunction(gc,"getNeedToParseFormData","Check if Need to parse form data",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
-            return ctx->NeedToParseFormData();
-        });
-        dict->DeclareFunction(gc,"ReadString","Read string from request",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
-            return ctx->ReadString();
-        });
-        dict->DeclareFunction(gc,"ReadStream","Read request to stream",{},[ctx](Tesses::CrossLang::GCList& ls2, std::vector<TObject> args)->TObject {
-            Tesses::CrossLang::TStreamHeapObject* strm;
-            if(GetArgumentHeap(args,0,strm))
-            {
-                ctx->ReadStream(strm->stream);
-            }
-            return nullptr;
-        });
-        dict->DeclareFunction(gc, "ReadJson","Read json from request",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
-            return Json_Decode(ls2,ctx->ReadString());
-        });
-        dict->DeclareFunction(gc,"SendJson","Send object as json",{"object"},[ctx](Tesses::CrossLang::GCList& ls2, std::vector<TObject> args2)->TObject{
-            if(args2.size() > 0)
-            {
-                ctx->WithMimeType("application/json").SendText(Json_Encode(args2[0]));
-            }
-            return nullptr;
-        });
+                            auto strm = vfsHeapObject->vfs->OpenFile(realFileName,"wb");
+                            
 
-        dict->DeclareFunction(gc,"SendText","Send response text",{"text"},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
-            std::string text;
-            if(GetArgument(args2,0,text))
-                ctx->SendText(text);
-            return nullptr;
-        });
-        dict->DeclareFunction(gc,"WithMimeType","Set mime type",{"mimeType"},[ctx,dict](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
-            std::string text;
-            if(GetArgument(args2,0,text))
-                ctx->WithMimeType(text);
-            return dict;
-        });
-        dict->DeclareFunction(gc,"WithLastModified","Set last modified date",{"date"},[ctx,dict](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
-            TDateTime da;
-            if(GetArgument(args2,0,da))
-                ctx->WithLastModified(da.GetDate());
-            return dict;
-        });
-        dict->DeclareFunction(gc,"WithContentDisposition","Set content disposition",{"filename","inline"},[ctx,dict](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
-            std::string filename;
-            bool isInline;
-            if(GetArgument(args2,0,filename) && GetArgument(args2,1,isInline))
-                ctx->WithContentDisposition(filename,isInline);
-            return dict;
-        });
-        dict->DeclareFunction(gc,"WithHeader","Add header",{"key","value"},[ctx,dict](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
-            std::string key;
-            std::string value;
-            if(GetArgument(args2,0,key) && GetArgument(args2,1,value))
-                ctx->WithHeader(key,value);
-            return dict;
-        });
-        dict->DeclareFunction(gc,"WithSingleHeader","Set header",{"key","value"},[ctx,dict](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
-            std::string key;
-            std::string value;
-            if(GetArgument(args2,0,key) && GetArgument(args2,1,value))
-                ctx->WithSingleHeader(key,value);
-            return dict;
-        });
-        
-        dict->DeclareFunction(gc,"SendStream","Send stream",{"strm"},[ctx,dict](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
-            TStreamHeapObject* strmHeapObj;
-            if(GetArgumentHeap(args2,0,strmHeapObj))
-            {
-                ctx->SendStream(strmHeapObj->stream);
-            }
-            return nullptr;
-        });
-        dict->DeclareFunction(gc,"SendBytes","Send bytes",{"ba"},[ctx,dict](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject{
-            TByteArray* ba;
-            if(GetArgumentHeap(args2,0,ba))
-                ctx->SendBytes(ba->data);
-            return nullptr;
-        });
-        dict->DeclareFunction(gc,"WriteHeaders","Send the headers",{},[ctx](GCList& ls, std::vector<TObject> args)->TObject{
-            ctx->WriteHeaders();
-            return nullptr;
-        });
-        
-//        dict->DeclareFunction(gc,"getUrlWithQuery","Get original path with query parameters",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {return ctx->GetUrlWithQuery();});
-        dict->DeclareFunction(gc,"StartWebSocketSession","Start websocket session",{"dict"}, [ctx](GCList& ls,std::vector<TObject> args)->TObject {
-            TDictionary* dict;
-            if(GetArgumentHeap(args,0,dict))
+                            return strm;
+                        });
+
+                        return TList::Create(ls, response.begin(), response.end());
+                    }
+                }
+                else if(key == "getNeedToParseFormData") return ctx->NeedToParseFormData();
+                else if(key == "ReadString") return ctx->ReadString();
+                else if(key == "ReadStream") {
+                    Tesses::CrossLang::TStreamHeapObject* strm;
+                    if(GetArgumentHeap(args,0,strm))
+                    {
+                        ctx->ReadStream(strm->stream);
+                    }
+                }
+                else if(key == "ReadJson")
+                {
+                    return Json_Decode(ls,ctx->ReadString());
+                }
+                else if(key == "SendJson")
+                {
+                    if(args.size() > 0)
+                    {
+                        ctx->WithMimeType("application/json").SendText(Json_Encode(args[0]));
+                    }
+                }
+                else if(key == "SendText")
+                {
+                    std::string text;
+                    if(GetArgument(args,0,text))
+                        ctx->SendText(text);
+                }
+                else if(key == "WithMimeType")
+                {
+                    std::string text;
+                    if(GetArgument(args,0,text))
+                        ctx->WithMimeType(text);
+                    return this;
+                }
+                else if(key == "WithLastModified")
+                {
+                    TDateTime da;
+                    if(GetArgument(args,0,da))
+                        ctx->WithLastModified(da.GetDate());
+                    return this;
+                }
+                else if(key == "WithContentDisposition")
+                {
+                    std::string filename;
+                    bool isInline;
+                    if(GetArgument(args,0,filename) && GetArgument(args,1,isInline))
+                        ctx->WithContentDisposition(filename,isInline);
+                    return this;
+                }
+                else if(key == "WithHeader")
+                {
+                    std::string key;
+                    std::string value;
+                    if(GetArgument(args,0,key) && GetArgument(args,1,value))
+                        ctx->WithHeader(key,value);
+                    return this;
+                }
+                else if(key == "WithSingleHeader")
+                {
+                    std::string key;
+                    std::string value;
+                    if(GetArgument(args,0,key) && GetArgument(args,1,value))
+                        ctx->WithSingleHeader(key,value);
+                    return this;
+                }
+                else if(key == "SendStream")
+                {
+                    TStreamHeapObject* strmHeapObj;
+                    if(GetArgumentHeap(args,0,strmHeapObj))
+                        ctx->SendStream(strmHeapObj->stream);
+                   
+                }
+                else if(key == "SendBytes")
+                {
+                    TByteArray* ba;
+                    if(GetArgumentHeap(args,0,ba))
+                        ctx->SendBytes(ba->data);
+                }
+                else if(key == "WriteHeaders") ctx->WriteHeaders();
+                else if(key == "StartWebSocketSession") {
+                    TDictionary* dict;
+                    TClassObject* cls;
+                    if(GetArgumentHeap(args,0,dict))
             {
                 
             
@@ -366,48 +464,68 @@ namespace Tesses::CrossLang
                     GCList ls2(ls.GetGC());
                     dict->CallMethod(ls2,"Close",{close});
                 });
-            }
-            return nullptr;
-        });      
+                    } else if(GetArgumentHeap(args, 0, cls))
+            {
+                ctx->StartWebSocketSession([cls,&ls](std::function<void(WebSocketMessage&)> sendMessage,std::function<void()> ping,std::function<void()> close)->void{
+                    GCList ls2(ls.GetGC());
+                    cls->CallMethod(ls2,"","Open",{
+                        TExternalMethod::Create(ls2,"Send a message",{"messageTextOrByteArray"},[sendMessage](GCList& ls,std::vector<TObject> args)->TObject{
+                            std::string str;
+                            TByteArray* bArray;
+                            if(GetArgument(args,0,str))
+                            {
+                                WebSocketMessage msg(str);
+                                sendMessage(msg);
+                            }
+                            else if(GetArgumentHeap(args,0,bArray))
+                            {
+                                WebSocketMessage msg(bArray->data);
+                                sendMessage(msg);
+                            }
+                            return nullptr;
+                        }),
+                        TExternalMethod::Create(ls2, "Ping client", {},[ping](GCList& ls,std::vector<TObject> args)->TObject {
+                            ping();
+                            return nullptr;
+                        }),
+                        TExternalMethod::Create(ls2, "Close client",{},[close](GCList& ls,std::vector<TObject> args)->TObject {
+                            close();
+                            return nullptr;
+                        })
+                    });
+                }, [cls,&ls](WebSocketMessage& msg)->void {
+                    GCList ls2(ls.GetGC());
 
-        
-        
-        //dict->DeclareFunction(gc,"getOriginalPathWithQuery","Get original path with query parameters",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {return ctx->GetOriginalPathWithQuery();});
-        dict->DeclareFunction(gc,"getPath","Get path",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {return ctx->path;});
-        dict->DeclareFunction(gc,"setPath","Set path",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
-            std::string str;
-            if(GetArgument(args2,0,str))
-            {  
-                ctx->path = str;
-                return str;
-            }
-            return nullptr;
-        });
-        dict->DeclareFunction(gc,"getVersion","Get version",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {return ctx->version;});
-        dict->DeclareFunction(gc,"setVersion","Set version",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
-            std::string str;
-            if(GetArgument(args2,0,str))
-            {  
-                ctx->version = str;
-                return str;
-            }
-            return nullptr;
-        });
+                    TObject v;
 
-        dict->DeclareFunction(gc,"getStatusCode","Get status code",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {return (int64_t)ctx->statusCode;});
-        dict->DeclareFunction(gc,"setStatusCode","Set status code",{},[ctx](Tesses::CrossLang::GCList &ls2, std::vector<Tesses::CrossLang::TObject> args2)->TObject {
-            int64_t sc;
-            if(GetArgument(args2,0,sc))
-            {  
-                ctx->statusCode = (StatusCode)sc;
-                return sc;
+                    if(msg.isBinary)
+                    {
+                        auto r = TByteArray::Create(ls2);
+                        r->data = msg.data;
+                        v = r;
+                    }
+                    else
+                    {
+                        v = msg.ToString();
+                    }
+                    
+                    cls->CallMethod(ls2,"","Receive",{v});
+                }, [cls,&ls](bool close)->void {
+                    GCList ls2(ls.GetGC());
+                    cls->CallMethod(ls2,"","Close",{close});
+                });
             }
-            return nullptr;
-        });
-        
-        return dict;
-    }
+           
+                }
+                return Undefined();
+            }
 
+            void Finish()
+            {
+                this->ctx = nullptr;
+            }
+    };
+   
     TObjectHttpServer::TObjectHttpServer(GC* gc,TObject obj)
     {
         this->ls=new GCList(gc);
@@ -415,7 +533,7 @@ namespace Tesses::CrossLang
         this->obj = obj;
     }
  
-     class TDictionaryHttpRequestBody : public HttpRequestBody
+    class TDictionaryHttpRequestBody : public HttpRequestBody
     {
         GC* gc;
         TDictionary* req;
@@ -429,8 +547,10 @@ namespace Tesses::CrossLang
             void HandleHeaders(HttpDictionary& dict)
             {
                 GCList ls(gc);
-                auto res=CreateDictionaryFromHttpDictionary(ls,&dict);
+                auto dummy = TNativeObject::Create<DummyTNativeObjectThatReturnsHttpDictionary>(ls);
+                auto res=TNativeObject::Create<THttpDictionary>(ls,&dict, dummy);
                 req->CallMethod(ls,"HandleHeaders",{res});
+                dummy->Close();
             }
             void Write(Tesses::Framework::Streams::Stream* strm)
             {
@@ -456,29 +576,33 @@ namespace Tesses::CrossLang
         if(GetObjectHeap<TCallable*>(this->obj,callable))
         {
             GCList ls2(this->ls->GetGC());
-            auto res = CreateDictionaryFromServerContext(ls2,&ctx);
+            auto res = TNativeObject::Create<TServerContext>(ls2, &ctx);
             bool result;
             auto out = callable->Call(ls2,{res});
             if(GetObject(out,result))
             {
+                res->Finish();
                 return result;
             }
+            res->Finish();
         }
         else if(GetObjectHeap<TDictionary*>(this->obj,dict))
         {
             GCList ls2(this->ls->GetGC());
-            auto res = CreateDictionaryFromServerContext(ls2,&ctx);
+            auto res = TNativeObject::Create<TServerContext>(ls2, &ctx);
             bool result;
             auto out = dict->CallMethod(ls2,"Handle",{res});
             if(GetObject(out,result))
             {
+                res->Finish();
                 return result;
             }
+            res->Finish();
         }
         else if(GetObjectHeap(this->obj,clsObj) && clsObj->HasMethod("","Handle"))
         {
             GCList ls2(this->ls->GetGC());
-            auto res = CreateDictionaryFromServerContext(ls2,&ctx);
+            auto res = TNativeObject::Create<TServerContext>(ls2, &ctx);
             bool result;
             this->ls->GetGC()->BarrierBegin();
             auto callableO = clsObj->GetValue("","Handle");
@@ -489,8 +613,10 @@ namespace Tesses::CrossLang
                 auto out = callable->Call(ls2,{res});
                 if(GetObject(out,result))
                 {
+                    res->Finish();
                     return result;
                 }
+                res->Finish();
             }
             
         }
@@ -647,7 +773,111 @@ namespace Tesses::CrossLang
         }
         return std::string("application/octet-stream");
     }
+    class THttpRequestBody : public TNativeObject {
+        HttpRequestBody* body;
+        public:
+            THttpRequestBody(HttpRequestBody* body)
+            {   
+                this->body = body;
+            }
+            bool IsClosed()
+            {
+                return body == nullptr;
+            }
+            HttpRequestBody* GetBody()
+            {   
+                return this->body;
+            }
 
+            std::string TypeName()
+            {
+                return "Net.Http.HttpRequestBody";
+            }
+
+            TObject CallMethod(GCList& ls, std::string key, std::vector<TObject> args)
+            {
+                return Undefined();
+            }
+
+            void Close()
+            {
+                delete this->body;
+                this->body = nullptr;
+            }
+    };
+
+    class THttpResponse : public TNativeObjectThatReturnsHttpDictionary
+    {
+        HttpResponse* response;
+        public:
+            THttpResponse(HttpResponse* resp)
+            {
+                this->response = resp;
+            }
+            bool IsAvailable()
+            {
+                return this->response != nullptr;
+            }
+        
+            void Close()
+            {
+                delete this->response;
+                this->response = nullptr;
+            }
+
+            ~THttpResponse()
+            {
+                Close();
+            }
+            std::string TypeName()
+            {
+                return "Net.Http.HttpResponse";
+            }
+
+            TObject CallMethod(GCList& ls, std::string key, std::vector<TObject> args)
+            {
+                if(!this->IsAvailable()) return Undefined();
+
+                else if(key == "CopyToStream")
+                {
+                    TStreamHeapObject* strm;
+                    if(GetArgumentHeap(args,0,strm))
+                    {
+                        response->CopyToStream(strm->stream);
+                    }
+                }
+                else if(key == "ReadAsString")
+                {
+                    return response->ReadAsString();
+                }
+                else if(key == "ReadAsJson")
+                {
+                    return Json_Decode(ls, response->ReadAsString());
+                }
+                else if(key == "ReadAsStream")
+                {
+                    auto strm = TStreamHeapObject::Create(ls, response->ReadAsStream());
+                    strm->watch.push_back(this);
+                   
+                    return strm;
+                }
+                else if(key == "getStatusCode")
+                {
+                    return (int64_t)response->statusCode;
+                }
+                else if(key == "getVersion")
+                {
+                    return response->version;
+                }
+                else if(key == "getResponseHeaders")
+                {
+                    return TNativeObject::Create<THttpDictionary>(ls,&response->responseHeaders, this);
+                }
+
+                return Undefined();
+            }
+    };
+   
     static TObject Net_Http_MakeRequest(GCList& ls, std::vector<TObject> args)
     {
         auto gc = ls.GetGC();
@@ -656,7 +886,7 @@ namespace Tesses::CrossLang
         if(GetArgument(args,0,url))
         {
             TDictionary* body1=nullptr;
-            TNative* body2=nullptr;
+            THttpRequestBody* body2=nullptr;
             HttpRequest req;
             req.method = "GET";
             req.ignoreSSLErrors=false;
@@ -709,9 +939,9 @@ namespace Tesses::CrossLang
                 {
                     req.body = new TDictionaryHttpRequestBody(gc,body1);                   
                 }
-                else if(GetObjectHeap(_obj,body2) && !body2->GetDestroyed())
+                else if(GetObjectHeap(_obj,body2) && !body2->IsClosed())
                 {
-                    req.body = static_cast<HttpRequestBody*>(body2->GetPointer());
+                    req.body = body2->GetBody();
                 }
 
                 
@@ -725,7 +955,7 @@ namespace Tesses::CrossLang
             {
                 if(body2 != nullptr)
                 {
-                    body2->Destroy();
+                    body2->Close();
                 }
                 else if(body1 != nullptr)
                 {
@@ -733,51 +963,9 @@ namespace Tesses::CrossLang
                 }
             }
 
-            TDictionary* dict = TDictionary::Create(ls);
-            gc->BarrierBegin();
 
-            TNative* nat = TNative::Create(ls,resp,[](void* ptr)->void{
-                HttpResponse* resp0 = static_cast<HttpResponse*>(ptr);
-                delete resp0;
-            });
+            return TNativeObject::Create<THttpResponse>(ls, resp);
 
-            dict->SetValue("native", nat);
-
-            auto copyToStream = TExternalMethod::Create(ls,"Copy To a stream",{"stream"},[resp](GCList& ls, std::vector<TObject> args)->TObject{
-                TStreamHeapObject* strm;
-                if(GetArgumentHeap(args,0,strm))
-                {
-                    resp->CopyToStream(strm->stream);
-                }
-                return nullptr;
-            });
-
-            copyToStream->watch.push_back(dict);
-            dict->SetValue("CopyToStream",copyToStream);
-
-
-            auto readAsString = TExternalMethod::Create(ls,"Read as string",{},[resp](GCList& ls, std::vector<TObject> args)->TObject{
-                return resp->ReadAsString();
-            });
-
-            readAsString->watch.push_back(dict);
-            dict->SetValue("ReadAsString",readAsString);
-
-            auto readAsStream = TExternalMethod::Create(ls,"Read as stream",{},[resp](GCList& ls, std::vector<TObject> args)->TObject{
-                auto res = resp->ReadAsStream();
-                return TStreamHeapObject::Create(ls, res);
-            });
-
-            readAsStream->watch.push_back(dict);
-            dict->SetValue("ReadAsStream",readAsStream);
-            dict->SetValue("StatusCode",(int64_t)resp->statusCode);
-
-            dict->SetValue("Version",resp->version);
-
-            dict->SetValue("ResponseHeaders",CreateDictionaryFromHttpDictionary(ls,&resp->responseHeaders));
-        
-            gc->BarrierEnd();
-            return dict;
         }
 
         
@@ -925,8 +1113,11 @@ namespace Tesses::CrossLang
         std::string url;
         TList* headers;
         TDictionary* dict;
+        TClassObject* co;
 
         TCallable* callable=nullptr;
+
+        
 
         TObject _obj;
         if(GetArgument(args,0,url) && GetArgumentHeap(args,1,headers) && GetArgumentHeap(args,2,dict))
@@ -998,11 +1189,103 @@ namespace Tesses::CrossLang
             });
             WebSocketClient(url, hdict, conn, [&ls,callable](Tesses::Framework::Http::HttpDictionary& dict, bool success)->bool {
                 if(callable != nullptr)
-                return ToBool(callable->Call(ls,{CreateDictionaryFromHttpDictionary(ls,&dict),success}));
+                {
+                    auto dummy = TNativeObject::Create<DummyTNativeObjectThatReturnsHttpDictionary>(ls);
+                    bool res= ToBool(callable->Call(ls,{TNativeObject::Create<THttpDictionary>(ls,&dict,dummy),success}));
+                    dummy->Close();
+                    return res;
+                }
                 return true;
             });
         }
-        return nullptr;
+        else if(GetArgument(args,0, url) && GetArgumentHeap(args,1,co)) {
+            TObject hobj;
+            if(co->HasMethod("","GetRequestHeaders"))
+                hobj = co->CallMethod(ls,"","GetRequestHeaders",{});
+            else if(co->HasField("","RequestHeaders"))
+                hobj = co->GetValue("","RequestHeaders");
+            else return Undefined();
+
+            if(!GetObjectHeap(hobj,headers)) return Undefined();
+
+            HttpDictionary hdict;
+            for(int64_t index = 0; index < headers->Count();index ++)
+            {
+                _obj = headers->Get(index);
+                TDictionary* dict;
+                if(GetObjectHeap(_obj,dict))
+                {
+                    std::string key={};
+                    std::string value={};
+                    _obj = dict->GetValue("Key");
+                    GetObject(_obj,key);
+                    _obj = dict->GetValue("Value");
+                    GetObject(_obj,value);
+                    hdict.AddValue(key,value);
+                }
+            }
+
+             CallbackWebSocketConnection conn([co,&ls](std::function<void(WebSocketMessage&)> sendMessage,std::function<void()> ping,std::function<void()> close)->void{
+                GCList ls2(ls.GetGC());
+                co->CallMethod(ls2,"","Open",{
+                    TExternalMethod::Create(ls2,"Send a message",{"messageTextOrByteArray"},[sendMessage](GCList& ls,std::vector<TObject> args)->TObject{
+                        std::string str;
+                        TByteArray* bArray;
+                        if(GetArgument(args,0,str))
+                        {
+                            WebSocketMessage msg(str);
+                            sendMessage(msg);
+                        }
+                        else if(GetArgumentHeap(args,0,bArray))
+                        {
+                            WebSocketMessage msg(bArray->data);
+                            sendMessage(msg);
+                        }
+                        return nullptr;
+                    }),
+                    TExternalMethod::Create(ls2, "Ping client", {},[ping](GCList& ls,std::vector<TObject> args)->TObject {
+                        ping();
+                        return nullptr;
+                    }),
+                    TExternalMethod::Create(ls2, "Close client",{},[close](GCList& ls,std::vector<TObject> args)->TObject {
+                        close();
+                        return nullptr;
+                    })
+                });
+            }, [co,&ls](WebSocketMessage& msg)->void {
+                GCList ls2(ls.GetGC());
+
+                TObject v;
+
+                if(msg.isBinary)
+                {
+                    auto r = TByteArray::Create(ls2);
+                    r->data = msg.data;
+                    v = r;
+                }
+                else
+                {
+                    v = msg.ToString();
+                }
+                
+                co->CallMethod(ls2,"","Receive",{v});
+            }, [co,&ls](bool close)->void {
+                GCList ls2(ls.GetGC());
+                co->CallMethod(ls2,"","Close",{close});
+            });
+            WebSocketClient(url, hdict, conn, [&ls,co](Tesses::Framework::Http::HttpDictionary& dict, bool success)->bool {
+                if(co->HasMethod("","HandleResponseHeaders"))
+                {
+                    auto dummy = TNativeObject::Create<DummyTNativeObjectThatReturnsHttpDictionary>(ls);
+                    bool res= ToBool(co->CallMethod(ls,"","HandleResponseHeaders",{TNativeObject::Create<THttpDictionary>(ls,&dict,dummy),success}));
+                    dummy->Close();
+                    return res;
+                }
+               
+                return true;
+            });
+        }
+        return Undefined();
         //Net.Http.CreateWebSocketConnection("wss://example.com/",[],conn, (dict, success)=>{ return true;})
     }
     static TObject Net_Http_DownloadToString(GCList& ls, std::vector<TObject> args)
@@ -1033,6 +1316,15 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }
+    bool TServerHeapObject::Handle(std::vector<TObject> args)
+    {
+        TServerContext* ctx;
+        if(this->server != nullptr && GetArgumentHeap(args,0,ctx) && ctx->IsAvailable())
+        {
+            return this->server->Handle(*ctx->GetContext());
+        }
+        return false;
+    }
     void TStd::RegisterNet(GC* gc, TRootEnvironment* env)
     {
 
@@ -1056,10 +1348,7 @@ namespace Tesses::CrossLang
             std::string mimeType;
             if(GetArgument(args, 1, mimeType))
             {
-                auto res = TNative::Create(ls,new StreamHttpRequestBody(new TObjectStream(ls.GetGC(),args[0]), true, mimeType),[](void* ptr)->void {
-                    delete static_cast<StreamHttpRequestBody*>(ptr);
-                });
-                return res;
+                return TNativeObject::Create<THttpRequestBody>(ls, new StreamHttpRequestBody(new TObjectStream(ls.GetGC(),args[0]), true, mimeType));
             }
             return nullptr;
         });
@@ -1068,10 +1357,17 @@ namespace Tesses::CrossLang
             std::string mimeType;
             if(GetArgument(args, 0, text) && GetArgument(args, 1, mimeType))
             {
-                auto res = TNative::Create(ls,new TextHttpRequestBody(text, mimeType),[](void* ptr)->void {
-                    delete static_cast<TextHttpRequestBody*>(ptr);
-                });
-                return res;
+                return TNativeObject::Create<THttpRequestBody>(ls,new TextHttpRequestBody(text, mimeType));
+                
+            }
+            return nullptr;
+        });
+        http->DeclareFunction(gc, "JsonHttpRequestBody","Create a text request body",{"json"},[](GCList& ls, std::vector<TObject> args)->TObject {
+            
+            if(!args.empty())
+            {
+                return TNativeObject::Create<THttpRequestBody>(ls,new TextHttpRequestBody(Json_Encode(args[0]), "application/json"));
+                
             }
             return nullptr;
         });

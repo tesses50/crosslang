@@ -170,7 +170,6 @@ src/vm/filereader.cpp
 src/vm/gc.cpp
 src/vm/gclist.cpp
 src/vm/vm.cpp
-src/bitconverter.cpp
 src/archive.cpp
 src/markedtobject.cpp
 )

@@ -53,6 +53,7 @@
  * 
  */
 namespace Tesses::CrossLang {
+    using BitConverter = Tesses::Framework::Serialization::BitConverter;
     constexpr std::string_view VMName = "CrossLangVM";
     constexpr std::string_view VMHowToGet = "https://crosslang.tesseslanguage.com/";
     /**
@@ -717,48 +718,6 @@ class SimpleInstruction : public ByteCodeInstruction {
          * @param data the vector of uint8_t
          */
         void Write(std::vector<uint8_t>& data);
-};
-
-/**
- * @brief A bit converter
- * 
- */
-class BitConverter {
-    public:
-        /**
-         * @brief Get the bits of a double from a int64_t
-         * 
-         * @param v a int64_t with double's bits
-         * @return double the double
-         */
-        static double ToDoubleBits(uint64_t v);
-        /**
-         * @brief Get the bits of a int64_t from a double
-         * 
-         * @param v a double with int64_t's bits
-         * @return uint64_t the int64_t
-         */
-        static uint64_t ToUintBits(double v);
-        /**
-         * @brief Get big endian double from uint8_t reference of first element of 8 byte array
-         * 
-         * @param b a reference to the first byte of an array
-         * @return double the double
-         */
-        static double ToDoubleBE(uint8_t& b);
-        /**
-         * @brief Get big endian uint64_t from uint8_t reference of first element of 8 byte array
-         * 
-         * @param b a reference to the first byte of an array
-         * @return uint64_t the uint64_t
-         */
-        static uint64_t ToUint64BE(uint8_t& b);
-        static uint32_t ToUint32BE(uint8_t& b);
-        static uint16_t ToUint16BE(uint8_t& b);
-        static void FromDoubleBE(uint8_t& b, double v);
-        static void FromUint64BE(uint8_t& b, uint64_t v);
-        static void FromUint32BE(uint8_t& b, uint32_t v);
-        static void FromUint16BE(uint8_t& b, uint16_t v);
 };
 
 class StringInstruction : public ByteCodeInstruction {
@@ -1763,6 +1722,7 @@ class GC {
             bool HasValue(std::string className,std::string name);
             bool HasField(std::string className,std::string name);
             bool HasMethod(std::string className,std::string name);
+            TObject CallMethod(GCList& ls, std::string className, std::string name,std::vector<TObject> args);
             std::string TypeName();
             void Mark();
     };
@@ -2034,32 +1994,57 @@ class GC {
     {
         public:
             Tesses::Framework::Streams::Stream* stream;
+            std::vector<TObject> watch;
 
             static TStreamHeapObject* Create(GCList& ls, Tesses::Framework::Streams::Stream* strm);
             static TStreamHeapObject* Create(GCList* ls, Tesses::Framework::Streams::Stream* strm);
             ~TStreamHeapObject();
             void Close();
-
-    };
+            void Mark()
+            {
+                if(this->marked) return;
+                this->marked=true;
+                for(auto item : watch)
+                    GC::Mark(item);
+            }
+    }; 
 
     class TVFSHeapObject : public THeapObject
     {
         public:
             Tesses::Framework::Filesystem::VFS* vfs;
+            std::vector<TObject> watch;
             static TVFSHeapObject* Create(GCList& ls, Tesses::Framework::Filesystem::VFS* vfs);
             static TVFSHeapObject* Create(GCList* ls, Tesses::Framework::Filesystem::VFS* vfs);
             ~TVFSHeapObject();
             void Close();
+
+            void Mark()
+            {
+                if(this->marked) return;
+                this->marked=true;
+                for(auto item : watch)
+                    GC::Mark(item);
+            }
     };
 
     class TServerHeapObject : public THeapObject
     {
         public:
             Tesses::Framework::Http::IHttpServer* server;
+            std::vector<TObject> watch;
             static TServerHeapObject* Create(GCList& ls, Tesses::Framework::Http::IHttpServer* vfs);
             static TServerHeapObject* Create(GCList* ls, Tesses::Framework::Http::IHttpServer* vfs);
             ~TServerHeapObject();
             void Close();
+            bool Handle(std::vector<TObject> args);
+            void Mark()
+            {
+                if(this->marked) return;
+                this->marked=true;
+                for(auto item : watch)
+                    GC::Mark(item);
+            }
     };
     class TObjectVFS : public Tesses::Framework::Filesystem::VFS
     {

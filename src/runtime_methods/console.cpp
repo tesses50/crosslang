@@ -220,10 +220,11 @@ namespace Tesses::CrossLang {
         dict->DeclareFunction(gc,"Read", "Reads a byte from stdin",{},Console_Read);
         dict->DeclareFunction(gc,"ReadLine","Reads line from stdin",{},Console_ReadLine);
         dict->DeclareFunction(gc,"Write","Write text \"text\" to stdout",{"text"},Console_Write);
-        dict->DeclareFunction(gc,"WriteLine","Write text \"text\" to stdout with new line",{"text"},Console_WriteLine);
+        dict->DeclareFunction(gc,"WriteLine","Write text \"text\" to stdout with new line",{"$text"},Console_WriteLine);
         dict->DeclareFunction(gc,"Error", "Write text \"error\" to stderr",{"error"},Console_Error);
-        dict->DeclareFunction(gc,"ErrorLine","Write text \"error\" to stderr",{"error"},Console_ErrorLine);
-        dict->DeclareFunction(gc,"Fatal","Stop the program with an optional error message",{"$text"},Console_Fatal);
+        dict->DeclareFunction(gc,"ErrorLine","Write text \"error\" to stderr",{"$error"},Console_ErrorLine);
+        if(env->permissions.canRegisterEverything)
+            dict->DeclareFunction(gc,"Fatal","Stop the program with an optional error message",{"$text"},Console_Fatal);
         dict->DeclareFunction(gc,"getIn","Get stdin Stream",{},Console_getIn);
         dict->DeclareFunction(gc,"getOut","Get stdout Stream",{},Console_getOut);
         dict->DeclareFunction(gc,"getError", "Get stderr Stream",{},Console_getError);
