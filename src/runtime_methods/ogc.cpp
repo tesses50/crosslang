@@ -62,6 +62,14 @@ namespace Tesses::CrossLang
         dict_rvl_wpad->SetValue("BUTTON_A",(int64_t)WPAD_BUTTON_A);
         dict_rvl_wpad->SetValue("BUTTON_B",(int64_t)WPAD_BUTTON_B);
         dict_rvl_wpad->SetValue("BUTTON_HOME",(int64_t)WPAD_BUTTON_HOME);
+        dict_rvl_wpad->SetValue("BUTTON_UP",(int64_t)WPAD_BUTTON_UP);
+        dict_rvl_wpad->SetValue("BUTTON_DOWN",(int64_t)WPAD_BUTTON_DOWN);
+        dict_rvl_wpad->SetValue("BUTTON_LEFT",(int64_t)WPAD_BUTTON_LEFT);
+        dict_rvl_wpad->SetValue("BUTTON_RIGHT",(int64_t)WPAD_BUTTON_RIGHT);
+        dict_rvl_wpad->SetValue("BUTTON_1",(int64_t)WPAD_BUTTON_1);
+        dict_rvl_wpad->SetValue("BUTTON_2",(int64_t)WPAD_BUTTON_2);
+        dict_rvl_wpad->SetValue("BUTTON_PLUS",(int64_t)WPAD_BUTTON_PLUS);
+        dict_rvl_wpad->SetValue("BUTTON_MINUS",(int64_t)WPAD_BUTTON_MINUS);
         env->DeclareVariable("WPAD", dict_rvl_wpad);
         
         #endif

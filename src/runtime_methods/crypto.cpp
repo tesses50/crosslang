@@ -6,6 +6,7 @@ namespace Tesses::CrossLang
 {
    static TObject Crypto_RandomBytes(GCList& ls, std::vector<TObject> args)
     {
+        
         int64_t size;
         std::string personalStr;
         if(GetArgument(args,0,size) && GetArgument(args,1,personalStr))
@@ -110,6 +111,70 @@ namespace Tesses::CrossLang
         
         dict->DeclareFunction(gc, "Base64Encode","Base64 encode",{"data"},Crypto_Base64Encode);
         dict->DeclareFunction(gc, "Base64Decode","Base64 decode",{"str"},Crypto_Base64Decode);
+        dict->DeclareFunction(gc, "Sha1", "Hash with sha1 algorithm (please don't use sha1 unless you need to)",{"strm"}, [](GCList& ls, std::vector<TObject> args)->TObject {
+            TByteArray* baSrc;
+            TStreamHeapObject* sho;
+
+            if(GetArgumentHeap(args, 0, sho))
+            {
+                auto bytes = Sha1::ComputeHash(sho->stream);
+                auto ba = TByteArray::Create(ls);
+                ba->data = bytes;
+                return ba;
+            }
+            if(GetArgumentHeap(args,0,baSrc))
+            {
+                auto bytes = Sha1::ComputeHash(baSrc->data.data(), baSrc->data.size());
+                auto ba = TByteArray::Create(ls);
+                ba->data = bytes;
+                return ba;
+            }
+            return Undefined();
+        });
+        dict->DeclareFunction(gc, "Sha256", "Hash with sha256 algorithm",{"strm","$is224"}, [](GCList& ls, std::vector<TObject> args)->TObject {
+            TByteArray* baSrc;
+            TStreamHeapObject* sho;
+            bool is224=false;
+            GetArgument(args,1,is224);
+
+            if(GetArgumentHeap(args, 0, sho))
+            {
+                auto bytes = Sha256::ComputeHash(sho->stream,is224);
+                auto ba = TByteArray::Create(ls);
+                ba->data = bytes;
+                return ba;
+            }
+            if(GetArgumentHeap(args,0,baSrc))
+            {
+                auto bytes = Sha256::ComputeHash(baSrc->data.data(), baSrc->data.size(), is224);
+                auto ba = TByteArray::Create(ls);
+                ba->data = bytes;
+                return ba;
+            }
+            return Undefined();
+        });
+        dict->DeclareFunction(gc, "Sha512", "Hash with sha512 algorithm",{"strm","$is384"}, [](GCList& ls, std::vector<TObject> args)->TObject {
+            TByteArray* baSrc;
+            TStreamHeapObject* sho;
+            bool is384=false;
+            GetArgument(args,1,is384);
+
+            if(GetArgumentHeap(args, 0, sho))
+            {
+                auto bytes = Sha512::ComputeHash(sho->stream,is384);
+                auto ba = TByteArray::Create(ls);
+                ba->data = bytes;
+                return ba;
+            }
+            if(GetArgumentHeap(args,0,baSrc))
+            {
+                auto bytes = Sha512::ComputeHash(baSrc->data.data(), baSrc->data.size(), is384);
+                auto ba = TByteArray::Create(ls);
+                ba->data = bytes;
+                return ba;
+            }
+            return Undefined();
+        });
         gc->BarrierBegin();
         env->DeclareVariable("Crypto", dict);
         gc->BarrierEnd();

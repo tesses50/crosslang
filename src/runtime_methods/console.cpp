@@ -193,6 +193,16 @@ namespace Tesses::CrossLang {
     {
         return TStreamHeapObject::Create(ls, new Tesses::Framework::Streams::FileStream(stderr,false,"w",false));
     }
+    TObject Console_Clear(GCList& ls, std::vector<TObject> args)
+    {
+        //because I just really want a clear function
+        #if defined(_WIN32)
+        system("cls"); 
+        #else
+        std::cout << "\x1b[2J\x1b[H" << std::flush; //because of wii and stuff (dont want to rely on clear command)
+        #endif
+        return Undefined();
+    }
     void TStd::RegisterConsole(GC* gc,TRootEnvironment* env)
     {
          env->permissions.canRegisterConsole=true;
@@ -210,13 +220,14 @@ namespace Tesses::CrossLang {
         #endif
         GCList ls(gc);
         TDictionary* dict = TDictionary::Create(ls);
+        
         dict->DeclareFunction(gc,"getEcho","Get whether terminal is echoing characters read",{},Console_getEcho);
         dict->DeclareFunction(gc,"setEcho","Set whether terminal is echoing characters read",{"flag"},Console_setEcho);
         dict->DeclareFunction(gc,"getCanonical","Get whether terminal is buffering line by line (true) or byte by byte (false)",{},Console_getCanonical);
         dict->DeclareFunction(gc,"setCanonical","Set whether terminal is buffering line by line (true) or byte by byte (false)",{"flag"},Console_setCanonical);
         dict->DeclareFunction(gc,"getSignals","Get whether terminal is sending signals for CTRL+C (true) or via read (false)",{},Console_getSignals);
         dict->DeclareFunction(gc,"setSignals","Set whether terminal is sending signals for CTRL+C (true) or via read (false)",{"flag"},Console_setSignals);
-    
+        dict->DeclareFunction(gc,"Clear", "Clear the console",{},Console_Clear);
         dict->DeclareFunction(gc,"Read", "Reads a byte from stdin",{},Console_Read);
         dict->DeclareFunction(gc,"ReadLine","Reads line from stdin",{},Console_ReadLine);
         dict->DeclareFunction(gc,"Write","Write text \"text\" to stdout",{"text"},Console_Write);

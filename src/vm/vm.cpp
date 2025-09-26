@@ -1,6 +1,4 @@
-
 #include "CrossLang.hpp"
-#include <TessesFramework/Filesystem/VFS.hpp>
 #include <cstddef>
 #include <exception>
 #include <iostream>
@@ -8,6 +6,8 @@
 #include <cstring>
 #include <sstream>
 #include <variant>
+
+
 namespace Tesses::CrossLang {
     
     thread_local CallStackEntry* current_function=nullptr;
@@ -2841,6 +2841,81 @@ namespace Tesses::CrossLang {
             else if(std::holds_alternative<std::string>(instance))
             {
                 std::string str = std::get<std::string>(instance);
+                if(key == "ToLower")
+                {
+                    for(size_t i = 0; i < str.size(); i++)
+                    {
+                        if(str[i] >= 'A' && str[i] <= 'Z')
+                        {
+                            str[i] = 'a' + (str[i] - 'A');
+                        }
+                    }
+                    cse.back()->Push(gc, str);
+                    return false;
+                }
+                if(key == "ToUpper")
+                {
+                    
+                    for(size_t i = 0; i < str.size(); i++)
+                    {
+                        if(str[i] >= 'a' && str[i] <= 'z')
+                        {
+                            str[i] = 'A' + (str[i] - 'a');
+                        }
+                    }
+                    cse.back()->Push(gc, str);
+                    return false;
+                }
+                if(key == "PadLeft")
+                {
+                    int64_t pad;
+                    char padChar=' ';
+
+                    if(args.size() == 0 || args.size() > 2)
+                    {
+                        throw VMException("String.PadLeft must only accept 1 or 2 arguments");
+
+                    }
+
+                    if(GetArgument(args,0, pad))
+                    {
+                        if((size_t)pad < str.size()) {
+                            cse.back()->Push(gc, str);
+                            return false;
+                        }
+                        GetArgument(args,1, padChar);
+                        size_t diff = (size_t)pad - str.size();
+                        str.insert(str.begin(),diff, padChar);
+                        cse.back()->Push(gc, str);
+                        return false;
+                    }
+                    else throw VMException("String.PadLeft must have a long for width");
+                }
+                if(key == "PadRight")
+                {
+                    int64_t pad;
+                    char padChar=' ';
+
+                    if(args.size() == 0 || args.size() > 2)
+                    {
+                        throw VMException("String.PadRight must only accept 1 or 2 arguments");
+
+                    }
+
+                    if(GetArgument(args,0, pad))
+                    {
+                        if((size_t)pad < str.size()) {
+                            cse.back()->Push(gc, str);
+                            return false;
+                        }
+                        GetArgument(args,1, padChar);
+                        size_t diff = (size_t)pad - str.size();
+                        str.insert(str.end(),diff, padChar);
+                        cse.back()->Push(gc, str);
+                        return false;
+                    }
+                    else throw VMException("String.PadRight must have a long for width");
+                }
                 if(key == "IndexOf")
                 {   
                     std::string str2;
@@ -4326,6 +4401,14 @@ namespace Tesses::CrossLang {
                             return false;
                         }
                         
+                    }
+                    if(key == "ToCHeaderFile")
+                    {
+                        std::string name = "NONAME";
+                        GetArgument(args,0,name);
+                        
+                        cse.back()->Push(gc, Tesses::Framework::Text::GenerateCHeaderFile(bArray->data,name));
+                        return false;
                     }
                     if(key == "CopyTo")
                     {

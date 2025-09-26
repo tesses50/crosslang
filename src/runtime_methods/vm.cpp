@@ -430,6 +430,33 @@ namespace Tesses::CrossLang
             Tesses::Framework::TF_RunEventLoop();
             return Undefined();
         });
+        dict->DeclareFunction(gc, "Merge", "Merge crvm files", {"srcVFS","sourcePath","destVFS"},[](GCList& ls, std::vector<TObject> args)->TObject {
+            TVFSHeapObject* srcVFS;
+            TVFSHeapObject* destVFS;
+            Tesses::Framework::Filesystem::VFSPath sourcePath;
+            if(GetArgumentHeap(args,0, srcVFS) && GetArgumentAsPath(args,1,sourcePath) && GetArgumentHeap(args,2,destVFS))
+            return Merge(srcVFS->vfs, sourcePath, destVFS->vfs);
+            return Undefined();
+        });
+        dict->DeclareFunction(gc, "Disassemble","Disassemble crvm file",{"strm","vfs","$generateJSON","$extractResources"},[](GCList& ls, std::vector<TObject> args)->TObject {
+            TStreamHeapObject* strm;
+            TVFSHeapObject* vfs;
+            bool generateJSON=true;
+            bool extractResources=true;
+            if(GetArgumentHeap(args,0,strm) && GetArgumentHeap(args,1, vfs))
+            {
+                GetArgument(args,2,generateJSON);
+                GetArgument(args,3,extractResources);
+                Disassemble(strm->stream,vfs->vfs, generateJSON, extractResources);
+            }
+            return Undefined();
+        });
+        dict->DeclareFunction(gc, "Assemble", "Assemble crvm file",{"vfs"},[](GCList& ls, std::vector<TObject> args)->TObject {
+            TVFSHeapObject* vfs;
+            if(GetArgumentHeap(args,0, vfs))
+                return Assemble(vfs->vfs);
+            return Undefined();
+        });
         
         
         gc->BarrierBegin();
