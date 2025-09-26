@@ -1,5 +1,7 @@
+publish
 build
 builds
+compilers
 bin
 *.db
 *.crvm

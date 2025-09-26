@@ -1,0 +1,206 @@
+var VERSION="1.0.0.0-dev";
+var statics = [
+        {
+            target="powerpc-linux-musl",
+            cpu = "powerpc"
+        },
+        {
+            target="powerpc64-linux-musl",
+            cpu = "powerpc64"
+        },
+        {
+            target="i686-linux-musl",
+            cpu = "i686"
+        },
+        {
+            target="arm-linux-musleabihf",
+            cpu="armv7l"
+        },
+        {
+            target="riscv32-linux-musl",
+            cpu="riscv32"
+        },
+        {
+            target="riscv64-linux-musl",
+            cpu="riscv64"
+        },
+        {
+            target="x86_64-linux-musl",
+            cpu="x86_64"
+        },
+        {
+            target="mips-linux-musl",
+            cpu="mips"
+        },
+        {
+            target="mips64-linux-musl",
+            cpu="mips64"
+        },
+        {
+            target="aarch64-linux-musl",
+            cpu="aarch64"
+        }
+        
+];
+func CPUS()
+{
+    var p = Process.Start({
+        FileName = Env.GetRealExecutablePath("nproc").ToString(),
+        RedirectStandardOutput=true
+    });
+    var ms = new MemoryStream(true);
+    p.StandardOutput.CopyTo(ms);
+    return ParseLong(ms.GetBytes().ToString().Replace("\n","").Replace("\r",""));
+}
+var nproc = CPUS();
+func BuildConsoleOrServerLinuxStatic(dir,cmake_toolchain)
+{
+    Console.WriteLine($"Building Linux Static {dir}");
+    var build_dir = "builds" / $"linux-{dir}-static";
+    var publish_dir = "publish" / $"linux-{dir}-static";
+    FS.Local.CreateDirectory(build_dir);
+    FS.Local.CreateDirectory(publish_dir);
+
+    var args = ["-S","ConsoleOrServer","-B",build_dir.ToString(),"-DCROSSAPPPUBLISH_STATIC=ON"];
+    if(TypeOf(cmake_toolchain) == "String")
+    {
+        args.Add($"-DCMAKE_TOOLCHAIN_FILE={cmake_toolchain}");
+    }
+    Process.Start({
+        FileName = Env.GetRealExecutablePath("cmake").ToString(),
+        Arguments = args
+    }).Join();
+    
+   
+    var p = new Process();
+    p.FileName = Env.GetRealExecutablePath("make").ToString();
+    p.WorkingDirectory = build_dir.MakeAbsolute().ToString();
+    p.Arguments = [$"-j{nproc}"];
+    if(p.Start())
+        p.Join();
+    
+
+    mvFile(build_dir/"crossapp", publish_dir / "crossapp");
+    var info = {
+            type = "archive",
+            maintainer = "Mike Nolan",
+            repo = "https://onedev.site.tesses.net/crosslang",
+            homepage = "https://crosslang.tesseslanguage.com/",
+            executable_name = "crossapp",
+            executable_can_be_renamed = true,
+            executable_runtime = $"linux-{dir}-static"
+    };
+    
+    var name = $"Tesses.CrossLang.Runtime.linux-{dir}-static";
+    
+    var subDir = new SubdirFilesystem(FS.Local,publish_dir);
+    var pkgStrm = FS.Local.OpenFile("publish"/$"{name}-{VERSION}.crvm","wb");
+    FS.CreateArchive(subDir,pkgStrm, name ,VERSION, Json.Encode(info));
+    pkgStrm.Close();
+}
+func BuildConsoleOrServerLinuxStaticBasedOnTarget(target,cpu)
+{
+    var compiler = ("compilers"/"bin"/target).MakeAbsolute().ToString();
+    var p = new Process();
+    p.FileName = Env.GetRealExecutablePath("bash").ToString();
+    p.Arguments = ["extract_compiler.sh",target];
+    if(p.Start())
+        p.Join();
+    
+      var toolchain = $"
+            set(CMAKE_C_COMPILER \"{compiler}-gcc\")
+            set(CMAKE_CXX_COMPILER \"{compiler}-g++\")
+            set(CMAKE_C_FLAGS \"-static-libgcc -static-libstdc++ -static\")
+            set(CMAKE_CXX_FLAGS \"-static-libgcc -static-libstdc++ -static\")
+            set(CMAKE_EXE_LINKER_FLAGS \"-static-libgcc -static-libstdc++ -static\")
+
+
+            set(CMAKE_SYSTEM_NAME Linux)
+            set(CMAKE_SYSTEM_PROCESSOR {cpu})
+        ";
+        if(target == "riscv32-linux-musl" || target == "riscv64-linux-musl")
+        {
+            toolchain += "set(CMAKE_POSITION_INDEPENDENT_CODE ON)\n";
+        }
+    FS.WriteAllText(FS.Local,"compilers"/$"{target}.cmake", toolchain);
+    BuildConsoleOrServerLinuxStatic(cpu,("compilers"/$"{target}.cmake").MakeAbsolute().ToString());
+}
+func BuildConsoleOrServerLinuxShared(dir,$cmake_toolchain)
+{
+    Console.WriteLine($"Building Linux Shared {dir}");
+    var build_dir = "builds" / $"linux-{dir}";
+    var publish_dir = "publish" / $"linux-{dir}";
+    FS.Local.CreateDirectory(build_dir);
+    FS.Local.CreateDirectory(publish_dir);
+
+    var args = ["-S","ConsoleOrServer","-B",build_dir.ToString()];
+    if(TypeOf(cmake_toolchain) == "String")
+    {
+        args.Add($"-DCMAKE_TOOLCHAIN_FILE={cmake_toolchain}");
+    }
+    Process.Start({
+        FileName = Env.GetRealExecutablePath("cmake").ToString(),
+        Arguments = args
+    }).Join();
+    
+   
+    var p = new Process();
+    p.FileName = Env.GetRealExecutablePath("make").ToString();
+    p.WorkingDirectory = build_dir.MakeAbsolute().ToString();
+    p.Arguments = [$"-j{nproc}"];
+    if(p.Start())
+        p.Join();
+    p = new Process();
+    p.FileName = Env.GetRealExecutablePath("make").ToString();
+    p.WorkingDirectory = build_dir.MakeAbsolute().ToString();
+    p.Arguments = ["install","DESTDIR=."];
+    if(p.Start())
+        p.Join();
+
+    mvFile(build_dir/"dir"/"crossapp", publish_dir / "crossapp");
+    each(var lib : FS.Local.EnumeratePaths(build_dir/"dir"))
+    {
+        if(lib.GetExtension() == ".so")
+        {
+            mvFile(lib,publish_dir / lib.GetFileName());
+        }
+    }
+    var info = {
+            type = "archive",
+            maintainer = "Mike Nolan",
+            repo = "https://onedev.site.tesses.net/crosslang",
+            homepage = "https://crosslang.tesseslanguage.com/",
+            executable_name = "crossapp",
+            executable_can_be_renamed = true,
+            executable_runtime = $"linux-{dir}"
+    };
+    
+    var name = $"Tesses.CrossLang.Runtime.linux-{dir}";
+    
+    var subDir = new SubdirFilesystem(FS.Local,publish_dir);
+    var pkgStrm = FS.Local.OpenFile("publish"/$"{name}-{VERSION}.crvm","wb");
+    FS.CreateArchive(subDir,pkgStrm, name ,VERSION, Json.Encode(info));
+    pkgStrm.Close();
+}
+func mvFile(src,dest)
+{
+    Process.Start({
+        FileName = Env.GetRealExecutablePath("mv").ToString(),
+        Arguments = [src.MakeAbsolute().ToString(),dest.MakeAbsolute().ToString()]
+    }).Join();
+}
+func main(args)
+{
+    Console.WriteLine($"Got {nproc} cpus");  
+    BuildConsoleOrServerLinuxShared("x86_64");
+    BuildConsoleOrServerLinuxShared("aarch64", "/opt/toolchains/arm64.cmake");
+    BuildConsoleOrServerLinuxShared("armv7l", "/opt/toolchains/armhf.cmake");
+    BuildConsoleOrServerLinuxShared("riscv64", "/opt/toolchains/riscv64.cmake");
+    
+    
+    each(var static : statics)
+    {
+        BuildConsoleOrServerLinuxStaticBasedOnTarget(static.target,static.cpu);
+    }
+
+}

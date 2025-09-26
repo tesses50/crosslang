@@ -1,0 +1,55 @@
+cmake_minimum_required(VERSION 3.16)
+
+project(CrossLangPublish)
+
+option(CROSSAPPPUBLISH_STATIC "Build static version" OFF)
+
+if(CROSSAPPPUBLISH_STATIC)
+set(TESSESFRAMEWORK_ENABLE_RPATH OFF CACHE INTERNAL "For TessesFramework" FORCE)
+set(TESSESFRAMEWORK_ENABLE_STATIC ON CACHE INTERNAL "For TessesFramework" FORCE)
+set(TESSESFRAMEWORK_ENABLE_EXAMPLES OFF CACHE INTERNAL "For TessesFramework" FORCE)
+set(TESSESFRAMEWORK_ENABLE_APPS OFF CACHE INTERNAL "For TessesFramework" FORCE)
+set(TESSESFRAMEWORK_ENABLE_SHARED OFF CACHE INTERNAL "For TessesFramework" FORCE)
+set(TESSESFRAMEWORK_FETCHCONTENT ON CACHE INTERNAL "For TessesFramework" FORCE)
+set(CROSSLANG_ENABLE_BINARIES OFF CACHE INTERNAL "For CrossLang" FORCE)
+else()
+set(TESSESFRAMEWORK_ENABLE_RPATH OFF CACHE INTERNAL "For TessesFramework" FORCE)
+set(TESSESFRAMEWORK_ENABLE_STATIC OFF CACHE INTERNAL "For TessesFramework" FORCE)
+set(TESSESFRAMEWORK_ENABLE_EXAMPLES OFF CACHE INTERNAL "For TessesFramework" FORCE)
+set(TESSESFRAMEWORK_ENABLE_APPS OFF CACHE INTERNAL "For TessesFramework" FORCE)
+set(TESSESFRAMEWORK_ENABLE_SHARED ON CACHE INTERNAL "For TessesFramework" FORCE)
+set(TESSESFRAMEWORK_FETCHCONTENT ON CACHE INTERNAL "For TessesFramework" FORCE)
+set(CROSSLANG_ENABLE_BINARIES OFF CACHE INTERNAL "For CrossLang" FORCE)
+set(CMAKE_INSTALL_BINDIR "." CACHE INTERNAL "For CrossLang" FORCE)
+set(CMAKE_INSTALL_LIBDIR "." CACHE INTERNAL "For CrossLang" FORCE)
+set(CMAKE_INSTALL_PREFIX "/dir" CACHE INTERNAL "For CrossLang" FORCE)
+set(CMAKE_PLATFORM_NO_VERSIONED_SONAME ON CACHE INTERNAL "For CrossLang" FORCE)
+set(CMAKE_MACOSX_RPATH 1)
+set(CMAKE_BUILD_RPATH_USE_ORIGIN ON CACHE INTERNAL "For CrossLang" FORCE)
+if (APPLE)
+    set(CMAKE_INSTALL_RPATH "@executable_path/" CACHE INTERNAL "For CrossLang" FORCE)
+else()
+    set(CMAKE_INSTALL_RPATH "$ORIGIN/" CACHE INTERNAL "For CrossLang" FORCE)
+endif()
+endif()
+
+include(FetchContent)
+
+FetchContent_Declare(
+    TessesCrossLang
+    GIT_REPOSITORY https://onedev.site.tesses.net/crosslang.git
+)
+ 
+FetchContent_MakeAvailable(TessesCrossLang)
+
+
+
+add_executable(crossapp main.cpp)
+if(CROSSAPPPUBLISH_STATIC)
+target_link_libraries(crossapp PUBLIC crosslang_static)
+else()
+install(TARGETS crossapp DESTINATION "${CMAKE_INSTALL_BINDIR}")
+
+target_link_libraries(crossapp PUBLIC crosslang_shared)
+
+endif()
