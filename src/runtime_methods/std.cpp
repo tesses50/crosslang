@@ -946,25 +946,23 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }
-  
-    static TObject TypeOf(GCList& ls, std::vector<TObject> args)
+    std::string GetObjectTypeString(TObject _obj)
     {
-        if(args.size() < 1) return "Undefined";
-        if(std::holds_alternative<std::regex>(args[0])) return "Regex";
-        if(std::holds_alternative<Undefined>(args[0])) return "Undefined";
-        if(std::holds_alternative<std::nullptr_t>(args[0])) return "Null";
-        if(std::holds_alternative<bool>(args[0])) return "Boolean";
-        if(std::holds_alternative<int64_t>(args[0])) return "Long";
-        if(std::holds_alternative<double>(args[0])) return "Double";
-        if(std::holds_alternative<char>(args[0])) return "Char";
-        if(std::holds_alternative<MethodInvoker>(args[0])) return "MethodInvoker";
-        if(std::holds_alternative<std::string>(args[0])) return "String";
+        if(std::holds_alternative<std::regex>(_obj)) return "Regex";
+        if(std::holds_alternative<Undefined>(_obj)) return "Undefined";
+        if(std::holds_alternative<std::nullptr_t>(_obj)) return "Null";
+        if(std::holds_alternative<bool>(_obj)) return "Boolean";
+        if(std::holds_alternative<int64_t>(_obj)) return "Long";
+        if(std::holds_alternative<double>(_obj)) return "Double";
+        if(std::holds_alternative<char>(_obj)) return "Char";
+        if(std::holds_alternative<MethodInvoker>(_obj)) return "MethodInvoker";
+        if(std::holds_alternative<std::string>(_obj)) return "String";
         
-        if(std::holds_alternative<Tesses::Framework::Filesystem::VFSPath>(args[0])) return "Path";
-        if(std::holds_alternative<TDateTime>(args[0])) return "DateTime";
-        if(std::holds_alternative<THeapObjectHolder>(args[0]))
+        if(std::holds_alternative<Tesses::Framework::Filesystem::VFSPath>(_obj)) return "Path";
+        if(std::holds_alternative<TDateTime>(_obj)) return "DateTime";
+        if(std::holds_alternative<THeapObjectHolder>(_obj))
         {
-            auto obj = std::get<THeapObjectHolder>(args[0]).obj;
+            auto obj = std::get<THeapObjectHolder>(_obj).obj;
             auto dict = dynamic_cast<TDictionary*>(obj);
             auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
             
@@ -1050,6 +1048,12 @@ namespace Tesses::CrossLang
         }
 
         return "Object";
+    }
+  
+    static TObject TypeOf(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.size() < 1) return "Undefined";
+        return GetObjectTypeString(args[0]);
     }
     
      TObject ByteArray(GCList& ls, std::vector<TObject> args)

@@ -192,6 +192,7 @@ namespace Tesses::CrossLang {
             while(!IsSym("}",false))
             {
                 auto name = ReadIdent();
+                
                 if(name == "add")
                 {
                     instrs.push_back(std::make_shared<SimpleChunkInstruction>(ADD));
@@ -540,6 +541,9 @@ namespace Tesses::CrossLang {
                 {
                     auto lblName = lbl_prefix + "_" + ReadIdent();
                     instrs.push_back(std::make_shared<LabelChunkInstruction>(lblName));
+                }
+                else {
+                    throw std::runtime_error("NOT IMPLEMENTED: " + name);
                 }
             }
         }
@@ -1048,7 +1052,8 @@ namespace Tesses::CrossLang {
                     }
                     if(chk)
                     {
-                        chunks[chunkId].second.push_back(std::make_shared<ClosureInstruction>(PushChunk(chk->data),chk->scoped));
+                        auto item = std::make_shared<ClosureInstruction>(PushChunk(chk->data),chk->scoped);
+                        chunks[chunkId].second.push_back(item);
                     }
                     if(reso)
                     {

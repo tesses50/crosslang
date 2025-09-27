@@ -622,6 +622,9 @@ namespace Tesses::CrossLang {
                         
                     }
                         break;
+                    default:
+                        printf("ILL: %i\n", (int)code[i-1]);
+                        break;
                 }
 
                 buffer.push_back('\n');

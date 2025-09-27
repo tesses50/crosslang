@@ -6192,7 +6192,8 @@ namespace Tesses::CrossLang {
             }
             else
             {
-                throw VMException("[DECLAREVARIABLE] Can't pop string.");
+
+                throw VMException("[DECLAREVARIABLE] Can't pop string, got type " + GetObjectTypeString(key) + " = " + ToString(gc,key) + ".");
             }
         }
         return false;

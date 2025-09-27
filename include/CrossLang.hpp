@@ -1427,7 +1427,7 @@ class GC {
         ~GC();
 };
 
-
+    std::string GetObjectTypeString(TObject obj);
     std::string ToString(GC* gc, TObject obj);
 
     class GCList : public THeapObject
