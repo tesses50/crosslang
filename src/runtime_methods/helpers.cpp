@@ -12,23 +12,24 @@ namespace Tesses::CrossLang {
             callable->Call(ls,{0.0});
             if(len > 0)
             {
-                std::shared_ptr<uint8_t> buff=std::make_shared<uint8_t>(1024);
+                std::vector<uint8_t> buff(1024);
                 int64_t pos=0;
                 int curPercent=0;
                 int lastPercent=0;
                 size_t read = 0;
                 do {
-                    read = src->ReadBlock(buff.get(),1024);
-                    dest->WriteBlock(buff.get(),read);
+                    read = src->ReadBlock(buff.data(),buff.size());
+                    dest->WriteBlock(buff.data(),read);
 
                     if(read == 0) break;
                     pos += (int64_t)read;
 
-                    double percent = (double)(pos / len);
-                    percent *= 10000;
-
+                    double percent = ((double)pos / len);
+                    percent *= 10000.0;
+                    
                     curPercent = (int)percent;
 
+                    
                     if(curPercent > lastPercent)
                     {
                         lastPercent = curPercent;

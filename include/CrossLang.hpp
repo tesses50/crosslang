@@ -2023,6 +2023,7 @@ class GC {
             Tesses::Framework::Filesystem::VFSPath SystemToVFSPath(std::string path);
             void GetDate(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Date::DateTime& lastWrite, Tesses::Framework::Date::DateTime& lastAccess);
             void SetDate(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Date::DateTime lastWrite, Tesses::Framework::Date::DateTime lastAccess);
+            void Close();
             ~TObjectVFS();
     };
 
@@ -2043,6 +2044,7 @@ class GC {
             int64_t GetLength();
             void Flush();
             void Seek(int64_t pos, Tesses::Framework::Streams::SeekOrigin whence);
+            void Close();
             ~TObjectStream();
     };
 

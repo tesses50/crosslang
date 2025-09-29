@@ -501,15 +501,19 @@ namespace Tesses::CrossLang {
             
         }
     }
-    TObjectVFS::~TObjectVFS()
+    void TObjectVFS::Close()
     {
-
         TDictionary* dict;
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
-            dict->CallMethod(ls,"Dispose",{});
+            dict->CallMethod(ls,"Close",{});
         }
+    }
+    TObjectVFS::~TObjectVFS()
+    {
+
+        Close();
         delete this->ls;
     }
     

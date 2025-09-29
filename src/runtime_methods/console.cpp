@@ -262,7 +262,7 @@ namespace Tesses::CrossLang {
             }
         }
 
-        std::cout << std::setw(3) << progress << "%" << std::flush;
+        std::cout << std::setw(3) << (int)(pdbl*100) << "%" << std::flush;
         return Undefined();
     }
     TObject Console_getSize(GCList& ls, std::vector<TObject> args)

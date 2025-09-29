@@ -3483,6 +3483,12 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc, nullptr);
                         return false;
                     }
+                    if(key == "Close")
+                    {
+                        strm->Close();
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
                     if(key == "Seek")
                     {
                         int64_t pos,whence;
@@ -3594,7 +3600,12 @@ namespace Tesses::CrossLang {
                             return false;
                         }
                     }
-
+                    if(key == "Close")
+                    {
+                        vfs->Close();
+                        cse.back()->Push(gc,nullptr);
+                        return false;
+                    }
                     if(key == "EnumeratePaths")
                     {
                         Tesses::Framework::Filesystem::VFSPath dir;
