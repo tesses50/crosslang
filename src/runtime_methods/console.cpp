@@ -8,6 +8,7 @@
 
 #ifdef CROSSLANG_ENABLE_TERMIOS
 #include <termios.h>
+#include <sys/ioctl.h>
 #endif
 namespace Tesses::CrossLang {
     #ifdef CROSSLANG_ENABLE_TERMIOS
@@ -182,16 +183,16 @@ namespace Tesses::CrossLang {
     }
     TObject Console_getIn(GCList& ls, std::vector<TObject> args)
     {
-        return TStreamHeapObject::Create(ls, new Tesses::Framework::Streams::FileStream(stdin,false,"r",false));
+        return std::make_shared<Tesses::Framework::Streams::FileStream>(stdin,false,"r",false);
     }
 
     TObject Console_getOut(GCList& ls, std::vector<TObject> args)
     {
-        return TStreamHeapObject::Create(ls, new Tesses::Framework::Streams::FileStream(stdout,false,"w",false));
+        return std::make_shared<Tesses::Framework::Streams::FileStream>(stdout,false,"w",false);
     }
     TObject Console_getError(GCList& ls, std::vector<TObject> args)
     {
-        return TStreamHeapObject::Create(ls, new Tesses::Framework::Streams::FileStream(stderr,false,"w",false));
+        return std::make_shared<Tesses::Framework::Streams::FileStream>(stderr,false,"w",false);
     }
     TObject Console_Clear(GCList& ls, std::vector<TObject> args)
     {
@@ -202,6 +203,81 @@ namespace Tesses::CrossLang {
         std::cout << "\x1b[2J\x1b[H" << std::flush; //because of wii and stuff (dont want to rely on clear command)
         #endif
         return Undefined();
+    }
+    static void con_sz(int& w, int& h)
+    {
+        w = 0;
+        h = 0;
+        
+
+        #if defined(_WIN32)
+            
+        #elif defined(CROSSLANG_ENABLE_TERMIOS)
+            if(!isatty(STDOUT_FILENO)) 
+                return;
+            struct winsize ws;
+            if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0)
+            {
+                w = ws.ws_col;
+                h = ws.ws_row;
+            }
+        #endif
+    }
+
+    TObject Console_ProgressBar(GCList& ls, std::vector<TObject> args)
+    {
+        //[===   ]  50%
+        bool showBar = true;
+        #if defined(CROSSLANG_ENABLE_TERMIOS)
+            if(!isatty(STDOUT_FILENO)) showBar=false;
+        #endif  
+        int64_t progress = 0;
+        double pdbl = 0;
+        GetArgument(args,0,pdbl);
+        if(GetArgument(args,0,progress)) pdbl = progress / 100.0;
+        if(pdbl < 0) pdbl=0;
+        if(pdbl > 1) pdbl=1;
+
+        std::cout << "\r";
+        if(showBar)
+        {
+            int w,h;
+            con_sz(w,h);
+
+            int totalBlocks = w - 10;
+            if(totalBlocks > 0)
+            {
+                std::cout << "[\033[0;32m";
+                int i;
+                int off = pdbl * totalBlocks;
+                for(int i = 0; i < totalBlocks; i++)
+                {
+                    if(i < off)
+                    std::cout << "=";
+                    else 
+                    std::cout << " ";
+                }
+
+                std::cout << "\033[0m] ";
+            }
+        }
+
+        std::cout << std::setw(3) << progress << "%" << std::flush;
+        return Undefined();
+    }
+    TObject Console_getSize(GCList& ls, std::vector<TObject> args)
+    {
+        #if defined(CROSSLANG_ENABLE_TERMIOS)
+            if(!isatty(STDOUT_FILENO)) return nullptr;
+        #endif  
+        int w, h;
+        con_sz(w,h);
+        TDictionary* dict = TDictionary::Create(ls,{
+            TDItem("Width", (int64_t)w),
+            TDItem("Height",(int64_t)h)
+        });
+
+        return dict;
     }
     void TStd::RegisterConsole(GC* gc,TRootEnvironment* env)
     {
@@ -234,11 +310,13 @@ namespace Tesses::CrossLang {
         dict->DeclareFunction(gc,"WriteLine","Write text \"text\" to stdout with new line",{"$text"},Console_WriteLine);
         dict->DeclareFunction(gc,"Error", "Write text \"error\" to stderr",{"error"},Console_Error);
         dict->DeclareFunction(gc,"ErrorLine","Write text \"error\" to stderr",{"$error"},Console_ErrorLine);
+        dict->DeclareFunction(gc,"ProgressBar","Draw progressbar", {}, Console_ProgressBar);
         if(env->permissions.canRegisterEverything)
             dict->DeclareFunction(gc,"Fatal","Stop the program with an optional error message",{"$text"},Console_Fatal);
         dict->DeclareFunction(gc,"getIn","Get stdin Stream",{},Console_getIn);
         dict->DeclareFunction(gc,"getOut","Get stdout Stream",{},Console_getOut);
         dict->DeclareFunction(gc,"getError", "Get stderr Stream",{},Console_getError);
+        dict->DeclareFunction(gc, "getSize", "Get console size",{},Console_getSize);
         gc->BarrierBegin();
         env->DeclareVariable("Console", dict);
         gc->BarrierEnd();

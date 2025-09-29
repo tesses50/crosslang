@@ -9,6 +9,8 @@
 
 
 namespace Tesses::CrossLang {
+
+    extern bool IHttpServer_Handle(std::shared_ptr<Tesses::Framework::Http::IHttpServer> svr,std::vector<TObject>& args);
     
     thread_local CallStackEntry* current_function=nullptr;
 
@@ -3223,6 +3225,676 @@ namespace Tesses::CrossLang {
                 return false;
                 
             }
+            else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Streams::Stream>>(instance))
+            {
+                auto strm = std::get<std::shared_ptr<Tesses::Framework::Streams::Stream>>(instance);
+                if(strm != nullptr)
+                {
+                    auto memStrm = std::dynamic_pointer_cast<Tesses::Framework::Streams::MemoryStream>(strm);
+                    auto netStrm = std::dynamic_pointer_cast<Tesses::Framework::Streams::NetworkStream>(strm);
+                    
+                    auto mystrm = std::dynamic_pointer_cast<TObjectStream>(strm);
+
+                    if(mystrm != nullptr)
+                    {
+                        TDictionary* dict2;
+                        if(GetObjectHeap(mystrm->obj, dict2))
+                        {
+
+                            gc->BarrierBegin();
+                            auto o = dict2->GetValue(key);
+                            gc->BarrierEnd();
+
+                            return InvokeMethod(ls,o,dict2,args);
+                        }
+                    }
+                    if(memStrm != nullptr)
+                    {
+                        if(key == "GetBytes")
+                        {
+                            auto res = TByteArray::Create(ls);
+                            res->data = memStrm->GetBuffer();
+                            cse.back()->Push(gc, res);
+                            return false;
+                        }
+                    }
+                    if(netStrm != nullptr)
+                    {
+                        if(key == "GetPort")
+                        {
+                            cse.back()->Push(gc, (int64_t)netStrm->GetPort());
+                            return false;
+                        }
+                        if(key == "Bind")
+                        {
+                            std::string ip;
+                            int64_t port;
+                            if(GetArgument(args,0,ip) && GetArgument(args,1,port))
+                                netStrm->Bind(ip,(uint16_t)port);
+                            
+                            cse.back()->Push(gc, nullptr);
+                            return false;
+                        }
+                        if(key == "Accept")
+                        {
+                            std::string ip;
+                            uint16_t port;
+                            auto strm = netStrm->Accept(ip,port);
+                            TDictionary* dict = TDictionary::Create(ls);
+                            gc->BarrierBegin();
+                            dict->SetValue("IP",ip);
+                            dict->SetValue("Port",(int64_t)port);
+                            dict->SetValue("Stream", strm);
+                            
+                            gc->BarrierEnd();
+                            cse.back()->Push(gc, dict);
+                            return false;
+                        }
+                        if(key == "Listen")
+                        {
+                            int64_t backlog;
+                            if(GetArgument(args,0,backlog))
+                            {
+                                netStrm->Listen((int32_t)backlog);
+                            }
+                            else
+                            {
+                                netStrm->Listen(10);
+                            }
+
+                            cse.back()->Push(gc, nullptr);
+                            return false;
+                        }
+                        if(key == "ReadFrom")
+                        {
+                            TByteArray* data;
+                        int64_t offset;
+                        int64_t length;
+                        if(GetArgumentHeap<TByteArray*>(args, 0, data) && GetArgument<int64_t>(args, 1, offset) && GetArgument<int64_t>(args,2,length))
+                        {
+                            size_t off = (size_t)offset;
+                            size_t len = (size_t)length;
+                            std::string ip={};
+                            uint16_t port=0;
+
+                            if(off < len)
+                                
+                                len = netStrm->ReadFrom(data->data.data()+off,std::min(len,std::min(data->data.size() - off, data->data.size())),ip,port);
+                            
+                            else
+                                len = 0;
+
+                            TDictionary* dict = TDictionary::Create(ls);
+                            gc->BarrierBegin();
+                            dict->SetValue("IP",ip);
+                            dict->SetValue("Port",(int64_t)port);
+                            dict->SetValue("Read", (int64_t)len);
+                            
+                            gc->BarrierEnd();
+                            cse.back()->Push(gc, dict);
+                            
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                        }
+                        if(key == "WriteTo")
+                        {
+                            TByteArray* data;
+                        int64_t offset;
+                        int64_t length;
+                        std::string ip;
+                        int64_t port;
+                        if(GetArgumentHeap<TByteArray*>(args, 0, data) && GetArgument<int64_t>(args, 1, offset) && GetArgument<int64_t>(args,2,length) && GetArgument(args,3,ip) && GetArgument(args,4,port))
+                        {
+                            size_t off = (size_t)offset;
+                            size_t len = (size_t)length;
+
+                            if(off < len)
+                                
+                                len = netStrm->WriteTo(data->data.data()+off,std::min(len, std::min(data->data.size() - off, data->data.size())), ip, (int64_t)port);
+                                
+                            else
+                                len = 0;
+                            
+                            cse.back()->Push(gc, (int64_t)len);
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                        }
+                    }
+
+                    if(key == "Read")
+                    {
+                        TByteArray* data;
+                        int64_t offset;
+                        int64_t length;
+                        if(GetArgumentHeap<TByteArray*>(args, 0, data) && GetArgument<int64_t>(args, 1, offset) && GetArgument<int64_t>(args,2,length))
+                        {
+                            size_t off = (size_t)offset;
+                            size_t len = (size_t)length;
+
+                            if(off < len)
+                               
+                                len = strm->Read(data->data.data()+off,std::min(len,std::min(data->data.size() - off, data->data.size())));
+                               
+                            else
+                                len = 0;
+                            
+                            cse.back()->Push(gc, (int64_t)len);
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "Write")
+                    {
+                        TByteArray* data;
+                        int64_t offset;
+                        int64_t length;
+                        if(GetArgumentHeap<TByteArray*>(args, 0, data) && GetArgument<int64_t>(args, 1, offset) && GetArgument<int64_t>(args,2,length))
+                        {
+                            size_t off = (size_t)offset;
+                            size_t len = (size_t)length;
+
+                            if(off < len)
+                               
+                                len = strm->Write(data->data.data()+off,std::min(len, std::min(data->data.size() - off, data->data.size())));
+                                
+                            else
+                                len = 0;
+                            
+                            cse.back()->Push(gc, (int64_t)len);
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "ReadBlock")
+                    {
+                        TByteArray* data;
+                        int64_t offset;
+                        int64_t length;
+                        if(GetArgumentHeap<TByteArray*>(args, 0, data) && GetArgument<int64_t>(args, 1, offset) && GetArgument<int64_t>(args,2,length))
+                        {
+                            size_t off = (size_t)offset;
+                            size_t len = (size_t)length;
+
+                            if(off < len)
+                                
+                                len = strm->ReadBlock(data->data.data()+off,std::min(len, std::min(data->data.size() - off, data->data.size())));
+                               
+                            else
+                                len = 0;
+                            
+                            cse.back()->Push(gc, (int64_t)len);
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "WriteText")
+                    {
+                        std::string text;
+
+                        if(GetArgument(args,0,text))
+                        {
+                            strm->WriteBlock((const uint8_t*)text.data(), text.size());
+                        }
+
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "WriteBlock")
+                    {
+                        TByteArray* data;
+                        int64_t offset;
+                        int64_t length;
+                        if(GetArgumentHeap<TByteArray*>(args, 0, data) && GetArgument<int64_t>(args, 1, offset) && GetArgument<int64_t>(args,2,length))
+                        {
+                            size_t off = (size_t)offset;
+                            size_t len = (size_t)length;
+
+                            if(off < len)
+                               
+                                strm->WriteBlock(data->data.data()+off,std::min(len,std::min(data->data.size() - off, data->data.size())));
+                                
+
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "CopyTo")
+                    {
+                        std::shared_ptr<Tesses::Framework::Streams::Stream> data;
+                        int64_t buffSize;
+                        if(GetArgument(args,0,data))
+                        {
+                            if(!GetArgument<int64_t>(args,1,buffSize)) buffSize=1024;
+                            strm->CopyTo(data,(size_t)buffSize);
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "Flush")
+                    {
+                        strm->Flush();
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "Seek")
+                    {
+                        int64_t pos,whence;
+                        if(!GetArgument<int64_t>(args,0,pos)) pos=0;
+
+                        if(!GetArgument<int64_t>(args,1,whence)) whence=0;
+                        
+                     
+                        strm->Seek(pos, whence == 0 ? Tesses::Framework::Streams::SeekOrigin::Begin : whence == 1 ? Tesses::Framework::Streams::SeekOrigin::Current : Tesses::Framework::Streams::SeekOrigin::End);
+
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    cse.back()->Push(gc, nullptr);
+                    return false;
+                }
+            }
+            else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Http::IHttpServer>>(instance))
+            {
+                auto svr = std::get<std::shared_ptr<Tesses::Framework::Http::IHttpServer>>(instance);
+                if(svr != nullptr)
+                {
+                    auto mountable = std::dynamic_pointer_cast<Tesses::Framework::Http::MountableServer>(svr);
+                    if(mountable != nullptr)
+                    {
+                        if(key == "Mount")
+                        {
+                            Tesses::Framework::Filesystem::VFSPath p;
+                            
+                            if(args.size() > 1 && GetArgumentAsPath(args,0,p))
+                            {
+                                std::shared_ptr<Tesses::Framework::Http::IHttpServer> svr2=ToHttpServer(gc,args[1]);
+                               
+                                if(svr2)
+                                mountable->Mount(p.ToString(), svr2);
+                                
+                                cse.back()->Push(gc,nullptr);
+                                return false;
+                            }
+                        }
+                        if(key == "Unmount")
+                        {
+                            Tesses::Framework::Filesystem::VFSPath p;
+                            
+                            if(GetArgumentAsPath(args,0,p))
+                            {
+                                mountable->Unmount(p.ToString());
+                                cse.back()->Push(gc,nullptr);
+                                return false;
+                            }
+                        }
+                    }
+                    if(key == "Handle")
+                    {
+                        cse.back()->Push(gc,IHttpServer_Handle(svr,args));
+                        return false;
+                    }
+                    cse.back()->Push(gc,Undefined());
+                    return false;
+                }
+            }
+            else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Filesystem::VFS>>(instance))
+            {
+                auto vfs = std::get<std::shared_ptr<Tesses::Framework::Filesystem::VFS>>(instance);
+                if(vfs != nullptr)
+                {
+                    auto myvfs = std::dynamic_pointer_cast<TObjectVFS>(vfs);
+
+                    auto mountable = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::MountableFilesystem>(vfs);
+                    if(myvfs != nullptr)
+                    {
+                        TDictionary* dict2;
+                        if(GetObjectHeap(myvfs->obj, dict2))
+                        {
+
+                            gc->BarrierBegin();
+                            auto o = dict2->GetValue(key);
+                            gc->BarrierEnd();
+
+                            return InvokeMethod(ls,o,dict2,args);
+                        }
+                    }
+                    if(mountable != nullptr)
+                    {
+                        if(key == "Unmount")
+                        {
+                            Tesses::Framework::Filesystem::VFSPath path;
+                            
+                            if(GetArgumentAsPath(args,0,path))
+                            {
+                                mountable->Unmount(path);
+                            }
+
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                        }
+                        if(key == "Mount")
+                        {
+                            Tesses::Framework::Filesystem::VFSPath path;
+                            std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs2;
+                            if(GetArgumentAsPath(args,0,path) && GetArgument(args,1,vfs2))
+                            {
+                                
+                                //mountable->Mount(path, , true);
+                                mountable->Mount(path, vfs2);
+                            }
+
+                            cse.back()->Push(gc, nullptr);
+                            return false;
+                        }
+                    }
+
+                    if(key == "EnumeratePaths")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath dir;
+                        if(GetArgumentAsPath(args,0,dir))
+                        {
+                            auto tem = TExternalMethod::Create(ls,"Get the enumerator",{},[vfs,dir](GCList& ls, std::vector<TObject> args)->TObject{
+                                return TVFSPathEnumerator::Create(ls,vfs->EnumeratePaths(dir));
+                            });
+                            auto d1=TDictionary::Create(ls);
+                            gc->BarrierBegin();
+                            tem->watch.push_back(vfs);
+                            d1->SetValue("GetEnumerator", tem);
+                            gc->BarrierEnd();
+                            
+                            cse.back()->Push(gc,d1);
+                            return false;
+                        }
+
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                     if(key == "MoveDirectory")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath existingFile;
+
+                        Tesses::Framework::Filesystem::VFSPath symlinkFile;
+                        if(GetArgumentAsPath(args,0,existingFile) && GetArgumentAsPath(args,1,symlinkFile))
+                        {
+                            vfs->MoveDirectory(existingFile,symlinkFile);
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "SetDate")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath path;
+                        TDateTime lastWrite;
+                        TDateTime lastAccess;
+                        if(GetArgumentAsPath(args,0,path) && GetArgument(args,1,lastWrite) && GetArgument(args,2,lastAccess))
+                        {
+                            vfs->SetDate(path,lastWrite.GetDate(), lastAccess.GetDate());
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "GetDate")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath path;
+                        if(GetArgumentAsPath(args,0,path))
+                        {
+                            Tesses::Framework::Date::DateTime lastWrite;
+                            Tesses::Framework::Date::DateTime lastAccess;
+                            vfs->GetDate(path,lastWrite,lastAccess);
+                            
+                            auto dict = TDictionary::Create(ls);
+                    ls.GetGC()->BarrierBegin();
+                    
+                    dict->SetValue("LastWrite", TDateTime(lastWrite));
+                    dict->SetValue("LastAccess", TDateTime(lastAccess));
+                    ls.GetGC()->BarrierEnd();
+
+                        cse.back()->Push(gc, dict);
+                        return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "MoveFile")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath existingFile;
+
+                        Tesses::Framework::Filesystem::VFSPath symlinkFile;
+                        if(GetArgumentAsPath(args,0,existingFile) && GetArgumentAsPath(args,1,symlinkFile))
+                        {
+                            vfs->MoveFile(existingFile,symlinkFile);
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "CreateHardlink")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath existingFile;
+
+                        Tesses::Framework::Filesystem::VFSPath symlinkFile;
+                        if(GetArgumentAsPath(args,0,existingFile) && GetArgumentAsPath(args,1,symlinkFile))
+                        {
+                            vfs->CreateHardlink(existingFile,symlinkFile);
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "CreateSymlink")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath existingFile;
+
+                        Tesses::Framework::Filesystem::VFSPath symlinkFile;
+                        if(GetArgumentAsPath(args,0,existingFile) && GetArgumentAsPath(args,1,symlinkFile))
+                        {
+                            vfs->CreateSymlink(existingFile,symlinkFile);
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "RegularFileExists")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath filename;
+                        if(GetArgumentAsPath(args,0,filename))
+                        {
+                            cse.back()->Push(gc,vfs->RegularFileExists(filename));
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "SpecialFileExists")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath filename;
+                        if(GetArgumentAsPath(args,0,filename))
+                        {
+                            cse.back()->Push(gc,vfs->SpecialFileExists(filename));
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "FIFOFileExists")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath filename;
+                        if(GetArgumentAsPath(args,0,filename))
+                        {
+                            cse.back()->Push(gc,vfs->FIFOFileExists(filename));
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "SocketFileExists")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath filename;
+                        if(GetArgumentAsPath(args,0,filename))
+                        {
+                            cse.back()->Push(gc,vfs->SocketFileExists(filename));
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "BlockDeviceExists")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath filename;
+                        if(GetArgumentAsPath(args,0,filename))
+                        {
+                            cse.back()->Push(gc,vfs->BlockDeviceExists(filename));
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "CharacterDeviceExists")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath filename;
+                        if(GetArgumentAsPath(args,0,filename))
+                        {
+                            cse.back()->Push(gc,vfs->CharacterDeviceExists(filename));
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "SymlinkExists")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath filename;
+                        if(GetArgumentAsPath(args,0,filename))
+                        {
+                            cse.back()->Push(gc,vfs->SymlinkExists(filename));
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "DirectoryExists")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath filename;
+                        if(GetArgumentAsPath(args,0,filename))
+                        {
+                            cse.back()->Push(gc,vfs->DirectoryExists(filename));
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "FileExists")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath filename;
+                        if(GetArgumentAsPath(args,0,filename))
+                        {
+                            cse.back()->Push(gc,vfs->FileExists(filename));
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "ReadLink")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath filename;
+                        if(GetArgumentAsPath(args,0,filename))
+                        {
+                            cse.back()->Push(gc,vfs->ReadLink(filename));
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                     if(key == "VFSPathToSystem")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath filename;
+                        if(GetArgumentAsPath(args,0,filename))
+                        {
+                            cse.back()->Push(gc,vfs->VFSPathToSystem(filename));
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "SystemToVFSPath")
+                    {
+                        std::string filename;
+                        if(GetArgument(args,0,filename))
+                        {
+                            cse.back()->Push(gc,vfs->SystemToVFSPath(filename));
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "DeleteFile")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath filename;
+                        if(GetArgumentAsPath(args,0,filename))
+                        {
+                            vfs->DeleteFile(filename);
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "DeleteDirectoryRecurse")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath dirname;
+                        if(GetArgumentAsPath(args,0,dirname))
+                        {
+                            vfs->DeleteDirectoryRecurse(dirname);
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "DeleteDirectory")
+                    {   
+                        Tesses::Framework::Filesystem::VFSPath dirname;
+                        if(GetArgumentAsPath(args,0,dirname))
+                        {
+                            vfs->DeleteDirectory(dirname);
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "CreateDirectory")
+                    {
+
+                        Tesses::Framework::Filesystem::VFSPath dirname;
+                        if(GetArgumentAsPath(args,0,dirname))
+                        {
+                            vfs->CreateDirectory(dirname);
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "OpenFile")
+                    {
+                        
+                        Tesses::Framework::Filesystem::VFSPath path;
+                        std::string mode;
+                        if(GetArgumentAsPath(args,0,path) && GetArgument(args,1,mode))
+                        {
+                            auto res = vfs->OpenFile(path,mode);
+                            cse.back()->Push(gc, res);
+                            return false;
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    
+                    cse.back()->Push(gc, nullptr);
+                    return false;
+                }
+                
+            }
             else if(std::holds_alternative<THeapObjectHolder>(instance))
             {
                 auto obj = std::get<THeapObjectHolder>(instance).obj;
@@ -3232,8 +3904,7 @@ namespace Tesses::CrossLang {
                 auto dict = dynamic_cast<TDictionary*>(obj);
                 auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
                 auto ittr = dynamic_cast<TEnumerator*>(obj);
-                auto strm = dynamic_cast<TStreamHeapObject*>(obj);
-                auto vfs = dynamic_cast<TVFSHeapObject*>(obj);
+                
                 auto env = dynamic_cast<TEnvironment*>(obj);
 
                 auto subEnv = dynamic_cast<TSubEnvironment*>(obj);
@@ -3242,7 +3913,6 @@ namespace Tesses::CrossLang {
                 auto callstackEntry = dynamic_cast<CallStackEntry*>(obj);
                 
                 
-                auto svr = dynamic_cast<TServerHeapObject*>(obj);
                 auto natObj = dynamic_cast<TNativeObject*>(obj);
                 auto cls = dynamic_cast<TClassObject*>(obj);
                 auto aArray=dynamic_cast<TAssociativeArray*>(obj);
@@ -3299,48 +3969,7 @@ namespace Tesses::CrossLang {
                     }
                 }
 
-                if(svr != nullptr)
-                {
-                    auto mountable = dynamic_cast<Tesses::Framework::Http::MountableServer*>(svr->server);
-                    if(mountable != nullptr)
-                    {
-                        if(key == "Mount")
-                        {
-                            Tesses::Framework::Filesystem::VFSPath p;
-                            
-                            if(args.size() > 1 && GetArgumentAsPath(args,0,p))
-                            {
-                                mountable->Mount(p.ToString(),new TObjectHttpServer(gc,args[1]),true);
-                                cse.back()->Push(gc,nullptr);
-                                return false;
-                            }
-                        }
-                        if(key == "Unmount")
-                        {
-                            Tesses::Framework::Filesystem::VFSPath p;
-                            
-                            if(GetArgumentAsPath(args,0,p))
-                            {
-                                mountable->Unmount(p.ToString());
-                                cse.back()->Push(gc,nullptr);
-                                return false;
-                            }
-                        }
-                    }
-                    if(key == "Handle")
-                    {
-                        cse.back()->Push(gc,svr->Handle(args));
-                        return false;
-                    }
-                    if(key == "Close")
-                    {
-                        svr->Close();
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    cse.back()->Push(gc,Undefined());
-                    return false;
-                }
+                
                 if(rootEnv != nullptr)
                 {
                     //TStd::RegisterCrypto
@@ -3590,18 +4219,18 @@ namespace Tesses::CrossLang {
                     }
                     if(key == "LoadFileWithDependencies")
                     {
-                        TVFSHeapObject* vfs0;
+                        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs0;
                         TFile* f;
                         Tesses::Framework::Filesystem::VFSPath p;
-                        if(GetArgumentHeap(args,0,vfs0) )
+                        if(GetArgument(args,0,vfs0) )
                         {
                             if(GetArgumentHeap(args,1,f))
                             {
-                                rootEnv->LoadFileWithDependencies(gc,vfs0->vfs,f);
+                                rootEnv->LoadFileWithDependencies(gc,vfs0,f);
                             }
                             else if(GetArgumentAsPath(args,1,p))
                             {
-                                rootEnv->LoadFileWithDependencies(gc,vfs0->vfs,p);
+                                rootEnv->LoadFileWithDependencies(gc,vfs0,p);
                             }
                         }
                         cse.back()->Push(gc,nullptr);
@@ -3694,636 +4323,8 @@ namespace Tesses::CrossLang {
                     cse.back()->Push(gc,nullptr);
                     return false;
                 }
-                if(vfs != nullptr)
-                {
-                    auto myvfs = dynamic_cast<TObjectVFS*>(vfs->vfs);
-
-                    auto mountable = dynamic_cast<Tesses::Framework::Filesystem::MountableFilesystem*>(vfs->vfs);
-                    if(myvfs != nullptr)
-                    {
-                        TDictionary* dict2;
-                        if(GetObjectHeap(myvfs->obj, dict2))
-                        {
-
-                            gc->BarrierBegin();
-                            auto o = dict2->GetValue(key);
-                            gc->BarrierEnd();
-
-                            return InvokeMethod(ls,o,dict2,args);
-                        }
-                    }
-                    if(mountable != nullptr)
-                    {
-                        if(key == "Unmount")
-                        {
-                            Tesses::Framework::Filesystem::VFSPath path;
-                            
-                            if(GetArgumentAsPath(args,0,path))
-                            {
-                                mountable->Unmount(path);
-                            }
-
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                        }
-                        if(key == "Mount")
-                        {
-                            Tesses::Framework::Filesystem::VFSPath path;
-                            TVFSHeapObject* vfs2;
-                            if(GetArgumentAsPath(args,0,path) && GetArgumentHeap(args,1,vfs2))
-                            {
-                                TObjectVFS* vfs3 = new TObjectVFS(gc, vfs2);
-                                //mountable->Mount(path, , true);
-                                mountable->Mount(path, vfs3, true);
-                            }
-
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                        }
-                    }
-
-                    if(key == "EnumeratePaths")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath dir;
-                        if(GetArgumentAsPath(args,0,dir))
-                        {
-                            auto tem = TExternalMethod::Create(ls,"Get the enumerator",{},[vfs,dir](GCList& ls, std::vector<TObject> args)->TObject{
-                                return TVFSPathEnumerator::Create(ls,vfs->vfs->EnumeratePaths(dir));
-                            });
-                            auto d1=TDictionary::Create(ls);
-                            gc->BarrierBegin();
-                            tem->watch.push_back(vfs);
-                            d1->SetValue("GetEnumerator", tem);
-                            gc->BarrierEnd();
-                            
-                            cse.back()->Push(gc,d1);
-                            return false;
-                        }
-
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                     if(key == "MoveDirectory")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath existingFile;
-
-                        Tesses::Framework::Filesystem::VFSPath symlinkFile;
-                        if(GetArgumentAsPath(args,0,existingFile) && GetArgumentAsPath(args,1,symlinkFile))
-                        {
-                            vfs->vfs->MoveDirectory(existingFile,symlinkFile);
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "SetDate")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath path;
-                        TDateTime lastWrite;
-                        TDateTime lastAccess;
-                        if(GetArgumentAsPath(args,0,path) && GetArgument(args,1,lastWrite) && GetArgument(args,2,lastAccess))
-                        {
-                            vfs->vfs->SetDate(path,lastWrite.GetDate(), lastAccess.GetDate());
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "GetDate")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath path;
-                        if(GetArgumentAsPath(args,0,path))
-                        {
-                            Tesses::Framework::Date::DateTime lastWrite;
-                            Tesses::Framework::Date::DateTime lastAccess;
-                            vfs->vfs->GetDate(path,lastWrite,lastAccess);
-                            
-                            auto dict = TDictionary::Create(ls);
-                    ls.GetGC()->BarrierBegin();
-                    
-                    dict->SetValue("LastWrite", TDateTime(lastWrite));
-                    dict->SetValue("LastAccess", TDateTime(lastAccess));
-                    ls.GetGC()->BarrierEnd();
-
-                        cse.back()->Push(gc, dict);
-                        return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "MoveFile")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath existingFile;
-
-                        Tesses::Framework::Filesystem::VFSPath symlinkFile;
-                        if(GetArgumentAsPath(args,0,existingFile) && GetArgumentAsPath(args,1,symlinkFile))
-                        {
-                            vfs->vfs->MoveFile(existingFile,symlinkFile);
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "CreateHardlink")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath existingFile;
-
-                        Tesses::Framework::Filesystem::VFSPath symlinkFile;
-                        if(GetArgumentAsPath(args,0,existingFile) && GetArgumentAsPath(args,1,symlinkFile))
-                        {
-                            vfs->vfs->CreateHardlink(existingFile,symlinkFile);
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "CreateSymlink")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath existingFile;
-
-                        Tesses::Framework::Filesystem::VFSPath symlinkFile;
-                        if(GetArgumentAsPath(args,0,existingFile) && GetArgumentAsPath(args,1,symlinkFile))
-                        {
-                            vfs->vfs->CreateSymlink(existingFile,symlinkFile);
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "RegularFileExists")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath filename;
-                        if(GetArgumentAsPath(args,0,filename))
-                        {
-                            cse.back()->Push(gc,vfs->vfs->RegularFileExists(filename));
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "SpecialFileExists")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath filename;
-                        if(GetArgumentAsPath(args,0,filename))
-                        {
-                            cse.back()->Push(gc,vfs->vfs->SpecialFileExists(filename));
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "FIFOFileExists")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath filename;
-                        if(GetArgumentAsPath(args,0,filename))
-                        {
-                            cse.back()->Push(gc,vfs->vfs->FIFOFileExists(filename));
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "SocketFileExists")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath filename;
-                        if(GetArgumentAsPath(args,0,filename))
-                        {
-                            cse.back()->Push(gc,vfs->vfs->SocketFileExists(filename));
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "BlockDeviceExists")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath filename;
-                        if(GetArgumentAsPath(args,0,filename))
-                        {
-                            cse.back()->Push(gc,vfs->vfs->BlockDeviceExists(filename));
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "CharacterDeviceExists")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath filename;
-                        if(GetArgumentAsPath(args,0,filename))
-                        {
-                            cse.back()->Push(gc,vfs->vfs->CharacterDeviceExists(filename));
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "SymlinkExists")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath filename;
-                        if(GetArgumentAsPath(args,0,filename))
-                        {
-                            cse.back()->Push(gc,vfs->vfs->SymlinkExists(filename));
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "DirectoryExists")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath filename;
-                        if(GetArgumentAsPath(args,0,filename))
-                        {
-                            cse.back()->Push(gc,vfs->vfs->DirectoryExists(filename));
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "FileExists")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath filename;
-                        if(GetArgumentAsPath(args,0,filename))
-                        {
-                            cse.back()->Push(gc,vfs->vfs->FileExists(filename));
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "ReadLink")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath filename;
-                        if(GetArgumentAsPath(args,0,filename))
-                        {
-                            cse.back()->Push(gc,vfs->vfs->ReadLink(filename));
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                     if(key == "VFSPathToSystem")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath filename;
-                        if(GetArgumentAsPath(args,0,filename))
-                        {
-                            cse.back()->Push(gc,vfs->vfs->VFSPathToSystem(filename));
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "SystemToVFSPath")
-                    {
-                        std::string filename;
-                        if(GetArgument(args,0,filename))
-                        {
-                            cse.back()->Push(gc,vfs->vfs->SystemToVFSPath(filename));
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "DeleteFile")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath filename;
-                        if(GetArgumentAsPath(args,0,filename))
-                        {
-                            vfs->vfs->DeleteFile(filename);
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "DeleteDirectoryRecurse")
-                    {
-                        Tesses::Framework::Filesystem::VFSPath dirname;
-                        if(GetArgumentAsPath(args,0,dirname))
-                        {
-                            vfs->vfs->DeleteDirectoryRecurse(dirname);
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "DeleteDirectory")
-                    {   
-                        Tesses::Framework::Filesystem::VFSPath dirname;
-                        if(GetArgumentAsPath(args,0,dirname))
-                        {
-                            vfs->vfs->DeleteDirectory(dirname);
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "CreateDirectory")
-                    {
-
-                        Tesses::Framework::Filesystem::VFSPath dirname;
-                        if(GetArgumentAsPath(args,0,dirname))
-                        {
-                            vfs->vfs->CreateDirectory(dirname);
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "OpenFile")
-                    {
-                        
-                        Tesses::Framework::Filesystem::VFSPath path;
-                        std::string mode;
-                        if(GetArgumentAsPath(args,0,path) && GetArgument(args,1,mode))
-                        {
-                            auto res = vfs->vfs->OpenFile(path,mode);
-                            TStreamHeapObject* strm = TStreamHeapObject::Create(ls,res);
-                            cse.back()->Push(gc, strm);
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "Close")
-                    {
-                        vfs->Close();
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    cse.back()->Push(gc, nullptr);
-                    return false;
-                }
+               
                 
-                if(strm != nullptr)
-                {
-                    auto memStrm = dynamic_cast<Tesses::Framework::Streams::MemoryStream*>(strm->stream);
-                    auto netStrm = dynamic_cast<Tesses::Framework::Streams::NetworkStream*>(strm->stream);
-                    
-                    auto mystrm = dynamic_cast<TObjectStream*>(strm->stream);
-
-                    if(mystrm != nullptr)
-                    {
-                        TDictionary* dict2;
-                        if(GetObjectHeap(mystrm->obj, dict2))
-                        {
-
-                            gc->BarrierBegin();
-                            auto o = dict2->GetValue(key);
-                            gc->BarrierEnd();
-
-                            return InvokeMethod(ls,o,dict2,args);
-                        }
-                    }
-                    if(memStrm != nullptr)
-                    {
-                        if(key == "GetBytes")
-                        {
-                            auto res = TByteArray::Create(ls);
-                            res->data = memStrm->GetBuffer();
-                            cse.back()->Push(gc, res);
-                            return false;
-                        }
-                    }
-                    if(netStrm != nullptr)
-                    {
-                        if(key == "GetPort")
-                        {
-                            cse.back()->Push(gc, (int64_t)netStrm->GetPort());
-                            return false;
-                        }
-                        if(key == "Bind")
-                        {
-                            std::string ip;
-                            int64_t port;
-                            if(GetArgument(args,0,ip) && GetArgument(args,1,port))
-                                netStrm->Bind(ip,(uint16_t)port);
-                            
-                            cse.back()->Push(gc, nullptr);
-                            return false;
-                        }
-                        if(key == "Accept")
-                        {
-                            std::string ip;
-                            uint16_t port;
-                            auto strm = netStrm->Accept(ip,port);
-                            TDictionary* dict = TDictionary::Create(ls);
-                            gc->BarrierBegin();
-                            dict->SetValue("IP",ip);
-                            dict->SetValue("Port",(int64_t)port);
-                            dict->SetValue("Stream", TStreamHeapObject::Create(ls,strm));
-                            
-                            gc->BarrierEnd();
-                            cse.back()->Push(gc, dict);
-                            return false;
-                        }
-                        if(key == "Listen")
-                        {
-                            int64_t backlog;
-                            if(GetArgument(args,0,backlog))
-                            {
-                                netStrm->Listen((int32_t)backlog);
-                            }
-                            else
-                            {
-                                netStrm->Listen(10);
-                            }
-
-                            cse.back()->Push(gc, nullptr);
-                            return false;
-                        }
-                        if(key == "ReadFrom")
-                        {
-                            TByteArray* data;
-                        int64_t offset;
-                        int64_t length;
-                        if(GetArgumentHeap<TByteArray*>(args, 0, data) && GetArgument<int64_t>(args, 1, offset) && GetArgument<int64_t>(args,2,length))
-                        {
-                            size_t off = (size_t)offset;
-                            size_t len = (size_t)length;
-                            std::string ip={};
-                            uint16_t port=0;
-
-                            if(off < len)
-                                
-                                len = netStrm->ReadFrom(data->data.data()+off,std::min(len,std::min(data->data.size() - off, data->data.size())),ip,port);
-                            
-                            else
-                                len = 0;
-
-                            TDictionary* dict = TDictionary::Create(ls);
-                            gc->BarrierBegin();
-                            dict->SetValue("IP",ip);
-                            dict->SetValue("Port",(int64_t)port);
-                            dict->SetValue("Read", (int64_t)len);
-                            
-                            gc->BarrierEnd();
-                            cse.back()->Push(gc, dict);
-                            
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                        }
-                        if(key == "WriteTo")
-                        {
-                            TByteArray* data;
-                        int64_t offset;
-                        int64_t length;
-                        std::string ip;
-                        int64_t port;
-                        if(GetArgumentHeap<TByteArray*>(args, 0, data) && GetArgument<int64_t>(args, 1, offset) && GetArgument<int64_t>(args,2,length) && GetArgument(args,3,ip) && GetArgument(args,4,port))
-                        {
-                            size_t off = (size_t)offset;
-                            size_t len = (size_t)length;
-
-                            if(off < len)
-                                
-                                len = netStrm->WriteTo(data->data.data()+off,std::min(len, std::min(data->data.size() - off, data->data.size())), ip, (int64_t)port);
-                                
-                            else
-                                len = 0;
-                            
-                            cse.back()->Push(gc, (int64_t)len);
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                        }
-                    }
-
-                    if(key == "Read")
-                    {
-                        TByteArray* data;
-                        int64_t offset;
-                        int64_t length;
-                        if(GetArgumentHeap<TByteArray*>(args, 0, data) && GetArgument<int64_t>(args, 1, offset) && GetArgument<int64_t>(args,2,length))
-                        {
-                            size_t off = (size_t)offset;
-                            size_t len = (size_t)length;
-
-                            if(off < len)
-                               
-                                len = strm->stream->Read(data->data.data()+off,std::min(len,std::min(data->data.size() - off, data->data.size())));
-                               
-                            else
-                                len = 0;
-                            
-                            cse.back()->Push(gc, (int64_t)len);
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "Write")
-                    {
-                        TByteArray* data;
-                        int64_t offset;
-                        int64_t length;
-                        if(GetArgumentHeap<TByteArray*>(args, 0, data) && GetArgument<int64_t>(args, 1, offset) && GetArgument<int64_t>(args,2,length))
-                        {
-                            size_t off = (size_t)offset;
-                            size_t len = (size_t)length;
-
-                            if(off < len)
-                               
-                                len = strm->stream->Write(data->data.data()+off,std::min(len, std::min(data->data.size() - off, data->data.size())));
-                                
-                            else
-                                len = 0;
-                            
-                            cse.back()->Push(gc, (int64_t)len);
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "ReadBlock")
-                    {
-                        TByteArray* data;
-                        int64_t offset;
-                        int64_t length;
-                        if(GetArgumentHeap<TByteArray*>(args, 0, data) && GetArgument<int64_t>(args, 1, offset) && GetArgument<int64_t>(args,2,length))
-                        {
-                            size_t off = (size_t)offset;
-                            size_t len = (size_t)length;
-
-                            if(off < len)
-                                
-                                len = strm->stream->ReadBlock(data->data.data()+off,std::min(len, std::min(data->data.size() - off, data->data.size())));
-                               
-                            else
-                                len = 0;
-                            
-                            cse.back()->Push(gc, (int64_t)len);
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "WriteText")
-                    {
-                        std::string text;
-
-                        if(GetArgument(args,0,text))
-                        {
-                            strm->stream->WriteBlock((const uint8_t*)text.data(), text.size());
-                        }
-
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "WriteBlock")
-                    {
-                        TByteArray* data;
-                        int64_t offset;
-                        int64_t length;
-                        if(GetArgumentHeap<TByteArray*>(args, 0, data) && GetArgument<int64_t>(args, 1, offset) && GetArgument<int64_t>(args,2,length))
-                        {
-                            size_t off = (size_t)offset;
-                            size_t len = (size_t)length;
-
-                            if(off < len)
-                               
-                                strm->stream->WriteBlock(data->data.data()+off,std::min(len,std::min(data->data.size() - off, data->data.size())));
-                                
-
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "CopyTo")
-                    {
-                        TStreamHeapObject* data;
-                        int64_t buffSize;
-                        if(GetArgumentHeap(args,0,data))
-                        {
-                            if(!GetArgument<int64_t>(args,1,buffSize)) buffSize=1024;
-                            strm->stream->CopyTo(*data->stream,(size_t)buffSize);
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "Flush")
-                    {
-                        strm->stream->Flush();
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "Seek")
-                    {
-                        int64_t pos,whence;
-                        if(!GetArgument<int64_t>(args,0,pos)) pos=0;
-
-                        if(!GetArgument<int64_t>(args,1,whence)) whence=0;
-                        
-                     
-                        strm->stream->Seek(pos, whence == 0 ? Tesses::Framework::Streams::SeekOrigin::Begin : whence == 1 ? Tesses::Framework::Streams::SeekOrigin::Current : Tesses::Framework::Streams::SeekOrigin::End);
-
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if(key == "Close")
-                    {
-                        strm->Close();
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    cse.back()->Push(gc, nullptr);
-                    return false;
-                }
 
                 if(ittr != nullptr)
                 {
@@ -5202,6 +5203,67 @@ namespace Tesses::CrossLang {
                 cse.back()->Push(gc, Undefined());
                 return false;
             }
+            if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Streams::Stream>>(instance))
+            {
+                auto strm = std::get<std::shared_ptr<Tesses::Framework::Streams::Stream>>(instance);
+                 if(strm != nullptr)
+                {
+                    auto netStrm = std::dynamic_pointer_cast<Tesses::Framework::Streams::NetworkStream>(strm);
+                   
+                        if(key == "CanRead")
+                        {
+                             ;
+                            
+                            cse.back()->Push(gc, strm->CanRead());
+                            return false;
+                        }
+                        if(key == "CanWrite")
+                        {
+                            
+                            cse.back()->Push(gc, strm->CanWrite());
+                            return false;
+                        }
+                        if(key == "CanSeek")
+                        {
+                            
+                            
+                            cse.back()->Push(gc, strm->CanSeek());
+                            return false;
+                        }
+                        if(key == "EndOfStream")
+                        {
+                            
+                            cse.back()->Push(gc, strm->EndOfStream());
+                            return false;
+                        }
+                        if(key == "Length")
+                        {
+                            
+                            cse.back()->Push(gc, strm->GetLength());
+                            return false;
+                        }
+                         if(key == "Position")
+                        {
+                            
+                            cse.back()->Push(gc, strm->GetPosition());
+                            return false;
+                        }
+
+                        if(netStrm != nullptr)
+                        {
+                            if(key == "Port")
+                            {
+                                cse.back()->Push(gc, netStrm->GetPort());
+                                return false;
+                            }
+                        }
+
+                        cse.back()->Push(gc, Undefined());
+
+                        return false;
+                    
+                }
+            }
             if(std::holds_alternative<TVMVersion>(instance))
             {
                 TVMVersion& version = std::get<TVMVersion>(instance);
@@ -5312,8 +5374,7 @@ namespace Tesses::CrossLang {
                 auto closure = dynamic_cast<TClosure*>(obj);
                 auto externalMethod = dynamic_cast<TExternalMethod*>(obj);
                 auto ittr = dynamic_cast<TEnumerator*>(obj);
-                auto strm = dynamic_cast<TStreamHeapObject*>(obj);
-                auto vfs = dynamic_cast<TVFSHeapObject*>(obj);
+                
                 auto callstackEntry = dynamic_cast<CallStackEntry*>(obj);
                 auto file = dynamic_cast<TFile*>(obj);
                 auto chunk = dynamic_cast<TFileChunk*>(obj);
@@ -5593,70 +5654,8 @@ namespace Tesses::CrossLang {
                     return false;
                 }
             
-                if(strm != nullptr)
-                {
-                    auto netStrm = dynamic_cast<Tesses::Framework::Streams::NetworkStream*>(strm->stream);
-                    auto objStrm = dynamic_cast<TObjectStream*>(strm->stream);
-                    if(objStrm != nullptr)
-                    {
-                        GetObjectHeap(objStrm->obj,dict);
-                    }else{
-                        if(key == "CanRead")
-                        {
-                            bool r = strm->stream != nullptr ? strm->stream->CanRead() : false;
-                            
-                            cse.back()->Push(gc, r);
-                            return false;
-                        }
-                        if(key == "CanWrite")
-                        {
-                            bool r = strm->stream != nullptr ? strm->stream->CanWrite() : false;
-                            
-                            cse.back()->Push(gc, r);
-                            return false;
-                        }
-                        if(key == "CanSeek")
-                        {
-                            bool r = strm->stream != nullptr ? strm->stream->CanSeek() : false;
-                            
-                            cse.back()->Push(gc, r);
-                            return false;
-                        }
-                        if(key == "EndOfStream")
-                        {
-                            bool r = strm->stream != nullptr ? strm->stream->EndOfStream() : false;
-                            
-                            cse.back()->Push(gc, r);
-                            return false;
-                        }
-                        if(key == "Length")
-                        {
-                            int64_t r = strm->stream != nullptr ? strm->stream->GetLength() : 0;
-                            
-                            cse.back()->Push(gc, r);
-                            return false;
-                        }
-                         if(key == "Position")
-                        {
-                            int64_t r = strm->stream != nullptr ? strm->stream->GetPosition() : 0;
-                            
-                            cse.back()->Push(gc, r);
-                            return false;
-                        }
-
-                        cse.back()->Push(gc, Undefined());
-
-                        return false;
-                    }
-                }
-                if(vfs != nullptr)
-                {
-                    auto d = dynamic_cast<TObjectVFS*>(vfs->vfs);
-                    if(d != nullptr)
-                    {
-                        GetObjectHeap(d->obj,dict);
-                    }
-                }
+               
+               
                 
                 if(ittr != nullptr)
                 {
@@ -5811,11 +5810,26 @@ namespace Tesses::CrossLang {
             }
 
             std::string key = std::get<std::string>(_key);
+            if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Streams::Stream>>(instance))
+            {
+                auto strm = std::get<std::shared_ptr<Tesses::Framework::Streams::Stream>>(instance);
+
+                auto netStrm = std::dynamic_pointer_cast<Tesses::Framework::Streams::NetworkStream>(strm);
+                if(netStrm != nullptr)
+                {
+                    bool bc;
+                    if(key == "Broadcast" && GetObject(value,bc))
+                        netStrm->SetBroadcast(bc);
+                    if(key == "NoDelay" && GetObject(value,bc))
+                        netStrm->SetNoDelay(bc);
+                }
+                stk->Push(gc, Undefined());
+                return false;
+            }
             if(std::holds_alternative<THeapObjectHolder>(instance))
             {
                 auto obj = std::get<THeapObjectHolder>(instance).obj;
-                auto vfs = dynamic_cast<TVFSHeapObject*>(obj);
-                auto strm = dynamic_cast<TStreamHeapObject*>(obj);
+                
                 auto dict = dynamic_cast<TDictionary*>(obj);
                 auto dynDict = dynamic_cast<TDynamicDictionary*>(obj);
                 auto natObj = dynamic_cast<TNativeObject*>(obj);
@@ -5860,31 +5874,6 @@ namespace Tesses::CrossLang {
                         gc->BarrierEnd();
                         cse.back()->Push(gc,nullptr);
                         return false;
-                    }
-                }
-                if(strm != nullptr)
-                {
-                    auto netStrm = dynamic_cast<Tesses::Framework::Streams::NetworkStream*>(strm->stream);
-                    auto objStrm = dynamic_cast<TObjectStream*>(strm->stream);
-                    if(objStrm != nullptr)
-                    {
-                        GetObjectHeap(objStrm->obj,dict);
-                    }
-                    if(netStrm != nullptr && key == "Broadcast")
-                    {
-                        bool r;
-                        if(GetObject(value,r)) netStrm->SetBroadcast(r);
-                        cse.back()->Push(gc,nullptr);
-                        return false;
-                    }
-                }
-                if(vfs != nullptr)
-                {
-                    auto d = dynamic_cast<TObjectVFS*>(vfs->vfs);
-                    if(d != nullptr)
-                    {
-                        GetObjectHeap(d->obj,dict);
-                        
                     }
                 }
                 if(dynDict != nullptr)

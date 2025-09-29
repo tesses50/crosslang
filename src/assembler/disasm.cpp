@@ -2,7 +2,7 @@
 
 namespace Tesses::CrossLang {
     class CrossLangFileReader {
-        Tesses::Framework::Streams::Stream* strm;
+        std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
 
         void Ensure(uint8_t* buffer, size_t len)
         {
@@ -34,7 +34,7 @@ namespace Tesses::CrossLang {
         }
 
         public:
-        CrossLangFileReader(Tesses::Framework::Streams::Stream* strm)
+        CrossLangFileReader(std::shared_ptr<Tesses::Framework::Streams::Stream> strm)
         {
             this->strm = strm;
 
@@ -639,7 +639,7 @@ namespace Tesses::CrossLang {
     
 
 
-    void Disassemble(Tesses::Framework::Streams::Stream* src,Tesses::Framework::Filesystem::VFS* vfs, bool generateJSON,bool extractResources)
+    void Disassemble(std::shared_ptr<Tesses::Framework::Streams::Stream> src,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, bool generateJSON,bool extractResources)
     {
         using namespace Tesses::Framework::Filesystem;
         CrossLangFileReader file(src);
@@ -653,7 +653,7 @@ namespace Tesses::CrossLang {
                 auto path2 = path / file.name + "-" + file.version.ToString()+"_"+ std::to_string((uint32_t)i) + ".bin";
                 auto strm = vfs->OpenFile(path2,"wb");
                 strm->WriteBlock(file.resources[i].data(),file.resources[i].size());
-                delete strm;
+                
             }
 
             std::string secdir = "sections";
@@ -670,7 +670,7 @@ namespace Tesses::CrossLang {
                 auto strm = vfs->OpenFile(path2,"wb");
                 strm->WriteBlock((const uint8_t*)file.sections[i].first.data(), 4);
                 strm->WriteBlock(file.sections[i].second.data(),file.sections[i].second.size());
-                delete strm;
+                
             }
         }
 
@@ -812,7 +812,7 @@ namespace Tesses::CrossLang {
         std::string srcdirs = "src";
         VFSPath srcdir=srcdirs;
         vfs->CreateDirectory(srcdir);
-        Tesses::Framework::TextStreams::StreamWriter writer(vfs->OpenFile(srcdir / file.name + "-" + file.version.ToString() + ".tcasm","wb"),true);
+        Tesses::Framework::TextStreams::StreamWriter writer(vfs->OpenFile(srcdir / file.name + "-" + file.version.ToString() + ".tcasm","wb"));
         writer.Write(srcFile);
 
         if(generateJSON)
@@ -889,7 +889,7 @@ namespace Tesses::CrossLang {
             }
 
 
-            Tesses::Framework::TextStreams::StreamWriter json_writer(vfs->OpenFile(VFSPath() / "crossapp.json","wb" ),true); 
+            Tesses::Framework::TextStreams::StreamWriter json_writer(vfs->OpenFile(VFSPath() / "crossapp.json","wb" )); 
             json_writer.WriteLine(Json::Encode(json_data,true));
 
         }

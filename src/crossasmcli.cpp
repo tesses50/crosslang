@@ -12,8 +12,8 @@ int main(int argc, char** argv)
         return 0;
     }
     auto curdir = VFSPath::GetAbsoluteCurrentDirectory();
-    SubdirFilesystem sdfs(&LocalFS,curdir,false);
-    auto path = Assemble(&sdfs);
+    auto sdfs=std::make_shared<SubdirFilesystem>(LocalFS,curdir);
+    auto path = Assemble(sdfs);
     path.relative = true;
     std::cout << "Output: " << (curdir / path).ToString() << std::endl;
 

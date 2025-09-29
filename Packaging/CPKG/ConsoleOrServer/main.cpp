@@ -4,8 +4,7 @@ using namespace Tesses::CrossLang;
 int main(int argc, char** argv)
 {
     std::string name = argv[0];
-    Tesses::Framework::Filesystem::LocalFilesystem fs;
-    Tesses::Framework::Filesystem::VFSPath exePath=fs.SystemToVFSPath(name);
+    Tesses::Framework::Filesystem::VFSPath exePath=Tesses::Framework::Filesystem::LocalFS->SystemToVFSPath(name);
     exePath.MakeAbsolute();
     exePath.ChangeExtension(".crvm");
 
@@ -18,7 +17,7 @@ int main(int argc, char** argv)
     TRootEnvironment* env = TRootEnvironment::Create(ls, TDictionary::Create(ls));
     
     TStd::RegisterStd(&gc,env);
-    env->LoadFileWithDependencies(&gc, &fs, exePath);
+    env->LoadFileWithDependencies(&gc, Tesses::Framework::Filesystem::LocalFS, exePath);
     
    
 
@@ -41,8 +40,9 @@ int main(int argc, char** argv)
         }
 
         auto res = env->CallFunction(ls, "WebAppMain", {args2});
-        TObjectHttpServer http(&gc, res);
-        Tesses::Framework::Http::HttpServer svr(port,http,false);
+        auto svr2 = Tesses::CrossLang::ToHttpServer(&gc,res);
+        if(svr2 == nullptr) return 1;
+        Tesses::Framework::Http::HttpServer svr(port,svr2);
         svr.StartAccepting();
         TF_RunEventLoop();
         TF_Quit();

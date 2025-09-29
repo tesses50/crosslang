@@ -57,7 +57,7 @@ namespace Tesses::CrossLang
             item->Mark();
         
     }
-    void TFile::Skip(Tesses::Framework::Streams::Stream* stream,size_t len)
+    void TFile::Skip(std::shared_ptr<Tesses::Framework::Streams::Stream> stream,size_t len)
     {
         if(stream->CanSeek())
         {
@@ -69,12 +69,12 @@ namespace Tesses::CrossLang
         delete[] buffer;
         }
     }
-    void TFile::Ensure(Tesses::Framework::Streams::Stream* stream, uint8_t* buffer,size_t len)
+    void TFile::Ensure(std::shared_ptr<Tesses::Framework::Streams::Stream> stream, uint8_t* buffer,size_t len)
     {
         size_t read = stream->ReadBlock(buffer, len);
         if(read < len) throw VMException("End of file, could not read " + std::to_string((int64_t)len) + " byte(s)., offset=" + std::to_string(stream->GetLength()));
     }
-    std::string TFile::EnsureString(Tesses::Framework::Streams::Stream* stream)
+    std::string TFile::EnsureString(std::shared_ptr<Tesses::Framework::Streams::Stream> stream)
     {
         auto len = EnsureInt(stream);
         if(len == 0) return {};
@@ -84,13 +84,13 @@ namespace Tesses::CrossLang
         return str;
     }
     
-    uint32_t TFile::EnsureInt(Tesses::Framework::Streams::Stream* stream)
+    uint32_t TFile::EnsureInt(std::shared_ptr<Tesses::Framework::Streams::Stream> stream)
     {
         uint8_t buffer[4];
         Ensure(stream,buffer,4);
         return BitConverter::ToUint32BE(buffer[0]);
     }
-    std::string TFile::GetString(Tesses::Framework::Streams::Stream* stream)
+    std::string TFile::GetString(std::shared_ptr<Tesses::Framework::Streams::Stream> stream)
     {
         uint32_t index=EnsureInt(stream);
         if(index >= this->strings.size()) throw VMException("String does not exist in TCrossVM file, expected string index: " + std::to_string(index) + ", total strings: " + std::to_string(this->strings.size()));
@@ -118,7 +118,7 @@ namespace Tesses::CrossLang
         throw VMException(errorMessage);
     }
 
-    void TFile::Load(GC* gc, Tesses::Framework::Streams::Stream* stream)
+    void TFile::Load(GC* gc, std::shared_ptr<Tesses::Framework::Streams::Stream> stream)
     {
         
         uint8_t main_header[18];

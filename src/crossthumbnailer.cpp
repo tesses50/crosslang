@@ -19,26 +19,24 @@ int main(int argc,char** argv)
     std::string crvm = argv[1];
     std::string png = argv[2];
 
-    Tesses::Framework::Filesystem::LocalFilesystem lfs;
     
-    if(lfs.FileExists(crvm))
+    if(Tesses::Framework::Filesystem::LocalFS->FileExists(crvm))
     {
         
             Tesses::CrossLang::TFile file;
-            auto f = lfs.OpenFile(crvm, "rb");
+            auto f = Tesses::Framework::Filesystem::LocalFS->OpenFile(crvm, "rb");
     
             file.Load(nullptr,f);
 
-            delete f;
 
             if(file.icon >= 0 && file.icon < file.resources.size())
             {
-                auto f2 = lfs.OpenFile(png, "wb");
+                auto f2 = Tesses::Framework::Filesystem::LocalFS->OpenFile(png, "wb");
                 if(f2 != nullptr)
                 {
                     auto& icon = file.resources[file.icon];
                     f2->WriteBlock(icon.data(),icon.size());
-                    delete f2;
+                    
                 }
                 return 0;
             
@@ -46,16 +44,15 @@ int main(int argc,char** argv)
 
 
     }
-    if(lfs.FileExists(emptyThumb))
+    if(Tesses::Framework::Filesystem::LocalFS->FileExists(emptyThumb))
     {
-        auto src = lfs.OpenFile(emptyThumb,"rb");
-        auto dest = lfs.OpenFile(png,"wb");
+        auto src = Tesses::Framework::Filesystem::LocalFS->OpenFile(emptyThumb,"rb");
+        auto dest = Tesses::Framework::Filesystem::LocalFS->OpenFile(png,"wb");
         if(src != nullptr && dest != nullptr)
         {
             src->CopyTo(dest);
         }
-        delete src;
-        delete dest;
+        
     }
     return 0;
 }

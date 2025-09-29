@@ -238,7 +238,7 @@ int main(int argc, char** argv)
             TStd::RegisterIO(gc,env,false);
             env->permissions.locked=true;
             auto fs = env->EnsureDictionary(gc,"FS");
-            fs->SetValue("Local",TVFSHeapObject::Create(ls, new SubdirFilesystem(new Tesses::Framework::Filesystem::LocalFilesystem(),Tesses::Framework::Filesystem::VFSPath::GetAbsoluteCurrentDirectory(),true)));
+            fs->SetValue("Local", std::make_shared<SubdirFilesystem>(LocalFS,Tesses::Framework::Filesystem::VFSPath::GetAbsoluteCurrentDirectory()));
         }
         else if(comptime == "full")
         {
@@ -267,12 +267,11 @@ int main(int argc, char** argv)
     std::filesystem::create_directory(outputDir);
 
     {
-        Tesses::Framework::Streams::FileStream strm(outputDir / (name + "-" + version.ToString() + ".crvm"),"wb");
+        auto strm = std::make_shared<Tesses::Framework::Streams::FileStream>(outputDir / (name + "-" + version.ToString() + ".crvm"),"wb");
     
-        LocalFilesystem fs;
-        SubdirFilesystem sfs(&fs,fs.SystemToVFSPath(resourceDir.string()),false);
+        auto sfs = std::make_shared<SubdirFilesystem>(LocalFS,LocalFS->SystemToVFSPath(resourceDir.string()));
 
-        gen.Save(&sfs,&strm);
+        gen.Save(sfs,strm);
     }
     if(gc != nullptr)
     {

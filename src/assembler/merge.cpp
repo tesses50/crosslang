@@ -1,9 +1,9 @@
 #include "CrossLang.hpp"
 using namespace Tesses::Framework::Serialization::Json;
 namespace Tesses::CrossLang {
-    static void LoadDependency(Tesses::Framework::Filesystem::VFS* srcFS, Tesses::Framework::Filesystem::VFSPath sourceDir, std::pair<std::string,TVMVersion> dep, std::vector<std::pair<std::string, TVMVersion>>& files, std::vector<std::pair<std::string, TVMVersion>>& tools);
-    static void LoadDependencies(Tesses::Framework::Filesystem::VFS* srcFS, Tesses::Framework::Filesystem::VFSPath sourceDir,TFile* file, std::vector<std::pair<std::string, TVMVersion>>& files, std::vector<std::pair<std::string, TVMVersion>>& tools);
-    static void LoadDependency(Tesses::Framework::Filesystem::VFS* srcFS, Tesses::Framework::Filesystem::VFSPath sourceDir, std::pair<std::string,TVMVersion> dep, std::vector<std::pair<std::string, TVMVersion>>& files, std::vector<std::pair<std::string, TVMVersion>>& tools)
+    static void LoadDependency(std::shared_ptr<Tesses::Framework::Filesystem::VFS> srcFS, Tesses::Framework::Filesystem::VFSPath sourceDir, std::pair<std::string,TVMVersion> dep, std::vector<std::pair<std::string, TVMVersion>>& files, std::vector<std::pair<std::string, TVMVersion>>& tools);
+    static void LoadDependencies(std::shared_ptr<Tesses::Framework::Filesystem::VFS> srcFS, Tesses::Framework::Filesystem::VFSPath sourceDir,TFile* file, std::vector<std::pair<std::string, TVMVersion>>& files, std::vector<std::pair<std::string, TVMVersion>>& tools);
+    static void LoadDependency(std::shared_ptr<Tesses::Framework::Filesystem::VFS> srcFS, Tesses::Framework::Filesystem::VFSPath sourceDir, std::pair<std::string,TVMVersion> dep, std::vector<std::pair<std::string, TVMVersion>>& files, std::vector<std::pair<std::string, TVMVersion>>& tools)
     {
         for(auto index = files.begin(); index != files.end(); index++)
         {
@@ -23,17 +23,17 @@ namespace Tesses::CrossLang {
 
         if(srcFS->RegularFileExists(filename))
         {
-            Tesses::Framework::Streams::Stream* file = srcFS->OpenFile(filename,"rb");
+            auto file = srcFS->OpenFile(filename,"rb");
             
             TFile f;
             f.Load(nullptr, file);
-            delete file;
+            
             LoadDependencies(srcFS,sourceDir,&f,files,tools);
         }
         else throw VMException("Could not open file: \"" + name + "\".");
         
     }
-    static void LoadDependencies(Tesses::Framework::Filesystem::VFS* srcFS, Tesses::Framework::Filesystem::VFSPath sourceDir,TFile* file, std::vector<std::pair<std::string, TVMVersion>>& files, std::vector<std::pair<std::string, TVMVersion>>& tools)
+    static void LoadDependencies(std::shared_ptr<Tesses::Framework::Filesystem::VFS> srcFS, Tesses::Framework::Filesystem::VFSPath sourceDir,TFile* file, std::vector<std::pair<std::string, TVMVersion>>& files, std::vector<std::pair<std::string, TVMVersion>>& tools)
     {
         files.push_back(std::pair<std::string,TVMVersion>(file->name,file->version));
         for(auto item : file->tools)
@@ -58,7 +58,7 @@ namespace Tesses::CrossLang {
             LoadDependency(srcFS,sourceDir,item,files,tools);
         }
     }
-    static void EnumerateCRVM(Tesses::Framework::Filesystem::VFS* srcFS, Tesses::Framework::Filesystem::VFSPath sourceDir,std::string filename, std::vector<std::pair<std::string, TVMVersion>>& files, Tesses::Framework::Filesystem::VFS* destFS)
+    static void EnumerateCRVM(std::shared_ptr<Tesses::Framework::Filesystem::VFS> srcFS, Tesses::Framework::Filesystem::VFSPath sourceDir,std::string filename, std::vector<std::pair<std::string, TVMVersion>>& files, std::shared_ptr<Tesses::Framework::Filesystem::VFS> destFS)
     {
         
 
@@ -66,14 +66,12 @@ namespace Tesses::CrossLang {
         auto strm = srcFS->OpenFile(sourceDir / filename,"rb");
         if(strm->EndOfStream()) {
 
-            delete strm;
 
             throw std::runtime_error("File does not exist: " + (sourceDir / filename).ToString() );
         }
         file.Load(nullptr,strm);
 
       
-        delete strm;
 
         std::vector<std::pair<std::string, TVMVersion>> tools;
         LoadDependencies(srcFS,sourceDir,&file,files,tools);
@@ -135,10 +133,10 @@ namespace Tesses::CrossLang {
             }
 
 
-        Tesses::Framework::TextStreams::StreamWriter json_writer(destFS->OpenFile(Tesses::Framework::Filesystem::VFSPath() / "crossapp.json","wb" ),true); 
+        Tesses::Framework::TextStreams::StreamWriter json_writer(destFS->OpenFile(Tesses::Framework::Filesystem::VFSPath() / "crossapp.json","wb" )); 
         json_writer.WriteLine(Json::Encode(json_data,true));
     }
-    Tesses::Framework::Filesystem::VFSPath Merge(Tesses::Framework::Filesystem::VFS* srcFS, Tesses::Framework::Filesystem::VFSPath sourcePath, Tesses::Framework::Filesystem::VFS* destFS)
+    Tesses::Framework::Filesystem::VFSPath Merge(std::shared_ptr<Tesses::Framework::Filesystem::VFS> srcFS, Tesses::Framework::Filesystem::VFSPath sourcePath, std::shared_ptr<Tesses::Framework::Filesystem::VFS> destFS)
     {
         std::vector<std::pair<std::string, TVMVersion>> files;
 

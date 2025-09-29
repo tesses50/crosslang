@@ -65,7 +65,7 @@ namespace Tesses::CrossLang {
         return value;
     }
             
-    void TRootEnvironment::LoadDependency(GC* gc,Tesses::Framework::Filesystem::VFS* vfs, std::pair<std::string,TVMVersion> dep)
+    void TRootEnvironment::LoadDependency(GC* gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, std::pair<std::string,TVMVersion> dep)
     {
          for(auto item : this->dependencies)
             if(item.first == dep.first && item.second.CompareTo(dep.second) >= 0) return;
@@ -78,11 +78,11 @@ namespace Tesses::CrossLang {
         
         if(vfs->RegularFileExists(filename))
         {
-            Tesses::Framework::Streams::Stream* file = vfs->OpenFile(filename,"rb");
+            auto file = vfs->OpenFile(filename,"rb");
             GCList ls(gc);
             TFile* f = TFile::Create(ls);
             f->Load(gc, file);
-            delete file;
+            
             LoadFileWithDependencies(gc, vfs, f);
         }
         else throw VMException("Could not open file: \"" + name + "\".");
@@ -100,11 +100,11 @@ namespace Tesses::CrossLang {
             SyntaxNode n = parser.ParseRoot();
             CodeGen gen;
             gen.GenRoot(n);
-            Tesses::Framework::Streams::MemoryStream ms(true);
-            gen.Save(nullptr, &ms);
-            ms.Seek(0,Tesses::Framework::Streams::SeekOrigin::Begin);
+            auto ms = std::make_shared<Tesses::Framework::Streams::MemoryStream>(true);
+            gen.Save(nullptr, ms);
+            ms->Seek(0,Tesses::Framework::Streams::SeekOrigin::Begin);
             TFile* f = TFile::Create(ls);
-            f->Load(ls.GetGC(),&ms);
+            f->Load(ls.GetGC(),ms);
         return this->LoadFile(ls.GetGC(), f);
     }
     TDictionary* TEnvironment::EnsureDictionary(GC* gc, std::string key)
@@ -241,7 +241,7 @@ namespace Tesses::CrossLang {
         }
         return nullptr;
     }
-    void TRootEnvironment::LoadFileWithDependencies(GC* gc,Tesses::Framework::Filesystem::VFS* vfs, TFile* file)
+    void TRootEnvironment::LoadFileWithDependencies(GC* gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, TFile* file)
     {
         this->dependencies.push_back(std::pair<std::string,TVMVersion>(file->name,file->version));
         for(auto item : file->dependencies)
@@ -251,19 +251,19 @@ namespace Tesses::CrossLang {
         LoadFile(gc, file);
       
     }
-    void TRootEnvironment::LoadFileWithDependencies(GC* gc,Tesses::Framework::Filesystem::VFS* vfs, Tesses::Framework::Filesystem::VFSPath path)
+    void TRootEnvironment::LoadFileWithDependencies(GC* gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, Tesses::Framework::Filesystem::VFSPath path)
     {
        
 
         if(vfs->RegularFileExists(path))
         {
-            Tesses::Framework::Streams::Stream* file=vfs->OpenFile(path,"rb");
+            auto file=vfs->OpenFile(path,"rb");
             GCList ls(gc);
             TFile* f = TFile::Create(ls);
             f->Load(gc, file);
-            delete file;
-            Tesses::Framework::Filesystem::SubdirFilesystem dir(vfs,path.GetParent(),false);
-            LoadFileWithDependencies(gc,&dir,f);
+            
+            auto dir = std::make_shared<Tesses::Framework::Filesystem::SubdirFilesystem>(vfs,path.GetParent());
+            LoadFileWithDependencies(gc,dir,f);
         }
         else throw VMException("Could not open file: \"" + path.GetFileName() + "\".");
         

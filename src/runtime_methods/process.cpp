@@ -171,15 +171,15 @@ namespace Tesses::CrossLang
                 }
                 if(key == "getStandardInput")
                 {
-                    return TStreamHeapObject::Create(ls,process.GetStdinStream());
+                    return process.GetStdinStream();
                 }
                 if(key == "getStandardOutput")
                 {
-                    return TStreamHeapObject::Create(ls,process.GetStdoutStream());
+                    return process.GetStdoutStream();
                 }
                 if(key == "getStandardError")
                 {
-                    return TStreamHeapObject::Create(ls,process.GetStderrStream());
+                    return process.GetStderrStream();
                 }
                 return Undefined();
             }

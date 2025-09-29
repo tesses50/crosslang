@@ -28,15 +28,15 @@ int main(int argc, char** argv)
     destF.MakeAbsolute();
 
 
-    SubdirFilesystem sdir(&LocalFS,srcF.GetParent(),false);
-    SubdirFilesystem ddir(&LocalFS,destF+"_tmp",false);
+    auto sdir = std::make_shared<SubdirFilesystem>(LocalFS,srcF.GetParent());
+    auto ddir = std::make_shared<SubdirFilesystem>(LocalFS,destF+"_tmp");
 
    
-    auto outpath = Merge(&sdir,"/"+srcF.GetFileName(), &ddir);
+    auto outpath = Merge(sdir,"/"+srcF.GetFileName(), ddir);
     outpath.relative=true;
     outpath = (destF+"_tmp") / outpath;
-    LocalFS.MoveFile(outpath,destF);
-    LocalFS.DeleteDirectoryRecurse(destF+"_tmp");
+    LocalFS->MoveFile(outpath,destF);
+    LocalFS->DeleteDirectoryRecurse(destF+"_tmp");
     
     
     return 0;

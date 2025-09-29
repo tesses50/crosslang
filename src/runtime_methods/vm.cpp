@@ -232,7 +232,7 @@ namespace Tesses::CrossLang
         std::vector<std::pair<std::string,TVMVersion>> tools;
         std::string info;
         std::string icon;
-        TVFSHeapObject* vfsHO =nullptr;
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
 
         ls.GetGC()->BarrierBegin();
         TObject _name = dict->GetValue("Name");
@@ -252,7 +252,7 @@ namespace Tesses::CrossLang
         GetObject<std::string>(_name,name);
         GetObject<std::string>(_info,info);
         GetObject<std::string>(_icon,icon);
-        GetObjectHeap(_resourceFileSystem, vfsHO);
+        GetObject(_resourceFileSystem, vfs);
         GetObjectHeap(_comptime,comptimeEnv);
         std::string v2;
         if(GetObject<std::string>(_version,v2))
@@ -362,10 +362,10 @@ namespace Tesses::CrossLang
         gen.version = version;
         gen.icon = icon;
         std::string outpath;
-        TStreamHeapObject* stream;
-        if(GetObjectHeap<TStreamHeapObject*>(_out, stream))
+        std::shared_ptr<Tesses::Framework::Streams::Stream> stream;
+        if(GetObject(_out, stream))
         {
-            gen.Save(vfsHO != nullptr ? vfsHO->vfs : nullptr, stream->stream);
+            gen.Save(vfs, stream);
         }
 
         
@@ -403,11 +403,11 @@ namespace Tesses::CrossLang
             }
         });
         dict->DeclareFunction(gc, "LoadExecutable", "Load a crossvm executable",{"stream"},[](GCList& ls,std::vector<TObject> args)->TObject{
-            TStreamHeapObject* strm;
-            if(GetArgumentHeap(args,0,strm))
+            std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
+            if(GetArgument(args,0,strm))
             {
                 TFile* f =TFile::Create(ls);
-                f->Load(ls.GetGC(),strm->stream);
+                f->Load(ls.GetGC(),strm);
                 return f;
             }
             return nullptr;
@@ -431,30 +431,30 @@ namespace Tesses::CrossLang
             return Undefined();
         });
         dict->DeclareFunction(gc, "Merge", "Merge crvm files", {"srcVFS","sourcePath","destVFS"},[](GCList& ls, std::vector<TObject> args)->TObject {
-            TVFSHeapObject* srcVFS;
-            TVFSHeapObject* destVFS;
+            std::shared_ptr<Tesses::Framework::Filesystem::VFS> srcVFS;
+            std::shared_ptr<Tesses::Framework::Filesystem::VFS> destVFS;
             Tesses::Framework::Filesystem::VFSPath sourcePath;
-            if(GetArgumentHeap(args,0, srcVFS) && GetArgumentAsPath(args,1,sourcePath) && GetArgumentHeap(args,2,destVFS))
-            return Merge(srcVFS->vfs, sourcePath, destVFS->vfs);
+            if(GetArgument(args,0, srcVFS) && GetArgumentAsPath(args,1,sourcePath) && GetArgument(args,2,destVFS))
+            return Merge(srcVFS, sourcePath, destVFS);
             return Undefined();
         });
         dict->DeclareFunction(gc, "Disassemble","Disassemble crvm file",{"strm","vfs","$generateJSON","$extractResources"},[](GCList& ls, std::vector<TObject> args)->TObject {
-            TStreamHeapObject* strm;
-            TVFSHeapObject* vfs;
+            std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
+            std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
             bool generateJSON=true;
             bool extractResources=true;
-            if(GetArgumentHeap(args,0,strm) && GetArgumentHeap(args,1, vfs))
+            if(GetArgument(args,0,strm) && GetArgument(args,1, vfs))
             {
                 GetArgument(args,2,generateJSON);
                 GetArgument(args,3,extractResources);
-                Disassemble(strm->stream,vfs->vfs, generateJSON, extractResources);
+                Disassemble(strm,vfs, generateJSON, extractResources);
             }
             return Undefined();
         });
         dict->DeclareFunction(gc, "Assemble", "Assemble crvm file",{"vfs"},[](GCList& ls, std::vector<TObject> args)->TObject {
-            TVFSHeapObject* vfs;
-            if(GetArgumentHeap(args,0, vfs))
-                return Assemble(vfs->vfs);
+            std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+            if(GetArgument(args,0, vfs))
+                return Assemble(vfs);
             return Undefined();
         });
         

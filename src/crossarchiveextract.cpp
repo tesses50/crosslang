@@ -12,8 +12,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    LocalFilesystem fs;
-    SubdirFilesystem sdfs(&fs,std::string(argv[2]),false);
+    auto sdfs= std::make_shared<SubdirFilesystem>(Tesses::Framework::Filesystem::LocalFS,std::string(argv[2]));
 
     FILE* f = fopen(argv[1],"rb");
     if(f == NULL) 
@@ -22,9 +21,9 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    FileStream strm(f,true,"rb",true);
+    auto strm = std::make_shared<FileStream>(f,true,"rb",true);
 
-    auto res = CrossArchiveExtract(&strm,&sdfs);
+    auto res = CrossArchiveExtract(strm,sdfs);
 
     std::cout << "Crvm Name: " << res.first.first << std::endl;
     std::cout << "Crvm Version: " << res.first.second.ToString() << std::endl;

@@ -74,10 +74,9 @@ int main(int argc, char** argv)
    if(args.size() < 2) Help(argv[0]);
  
     
-    LocalFilesystem fs;
-    auto path = fs.SystemToVFSPath(args[0]);
-    fs.CreateDirectory(path);
-    SubdirFilesystem sdfs(&fs,path,false);
+    auto path = Tesses::Framework::Filesystem::LocalFS->SystemToVFSPath(args[0]);
+    Tesses::Framework::Filesystem::LocalFS->CreateDirectory(path);
+    auto sdfs = std::make_shared<SubdirFilesystem>(Tesses::Framework::Filesystem::LocalFS,path);
 
     FILE* f = fopen(args[1].c_str(),"wb");
     if(f == NULL) 
@@ -86,8 +85,8 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    FileStream strm(f,true,"wb",true);
-    CrossArchiveCreate(&sdfs,&strm,name,version,info,icon);
+    auto strm = std::make_shared<FileStream>(f,true,"wb",true);
+    CrossArchiveCreate(sdfs,strm,name,version,info,icon);
 
     return 0;
 }

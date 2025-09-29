@@ -26,23 +26,24 @@ int main(int argc, char** argv)
         CodeGen gen;
         gen.GenRoot(parser.ParseRoot());
         std::vector<uint8_t> data;
-         LocalFilesystem fs;
-        SubdirFilesystem sfs(&fs,VFSPath("."),false);
+        {
+        auto sfs = std::make_shared<SubdirFilesystem>(LocalFS,VFSPath("."));
         
-            Tesses::Framework::Streams::MemoryStream strm2(true);
-        gen.Save(&sfs,&strm2);
+        auto strm2 = std::make_shared<Tesses::Framework::Streams::MemoryStream>(true);
+        gen.Save(sfs,strm2);
 
         
         {
             TFile* file = TFile::Create(ls);
 
-            strm2.Seek(0,Tesses::Framework::Streams::SeekOrigin::Begin);
-            file->Load(&gc,&strm2);
+            strm2->Seek(0,Tesses::Framework::Streams::SeekOrigin::Begin);
+            file->Load(&gc,strm2);
     
             env->LoadFile(&gc, file);
 
             
         }
+    }
 
          TList* args = TList::Create(ls);
     for(int arg=1;arg<argc;arg++)
@@ -64,7 +65,7 @@ int main(int argc, char** argv)
             std::string source;
             std::getline(std::cin,source);
 
-            Tesses::Framework::Streams::MemoryStream strm2(true);
+            auto strm2 = std::make_shared<Tesses::Framework::Streams::MemoryStream>(true);
 
             if(source.find("loadfile ") == 0)
             {
@@ -79,10 +80,9 @@ int main(int argc, char** argv)
                 CodeGen gen;
                 gen.GenRoot(parser.ParseRoot());
                 
-                  LocalFilesystem fs;
-                SubdirFilesystem sfs(&fs,VFSPath("."),false);
+                auto sfs = std::make_shared<SubdirFilesystem>(LocalFS,VFSPath("."));
 
-                gen.Save(&sfs, &strm2);
+                gen.Save(sfs, strm2);
 
             }
             else if(source == "exit")
@@ -100,18 +100,17 @@ int main(int argc, char** argv)
                 CodeGen gen;
                 gen.GenRoot(parser.ParseRoot());
                 
-                 LocalFilesystem fs;
-                SubdirFilesystem sfs(&fs,VFSPath("."),false);
+                auto sfs = std::make_shared<SubdirFilesystem>(LocalFS,VFSPath("."));
 
-                gen.Save(&sfs,&strm2);
+                gen.Save(sfs,strm2);
             }
 
             {
                 
             TFile* file = TFile::Create(ls);
 
-            strm2.Seek(0,Tesses::Framework::Streams::SeekOrigin::Begin);
-            file->Load(&gc,&strm2);
+            strm2->Seek(0,Tesses::Framework::Streams::SeekOrigin::Begin);
+            file->Load(&gc,strm2);
     
             env->LoadFile(&gc, file);
 

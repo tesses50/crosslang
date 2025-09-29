@@ -131,34 +131,26 @@ namespace Tesses::CrossLang {
         }
         
     }
-    Tesses::Framework::Streams::Stream* TObjectVFS::OpenFile(Tesses::Framework::Filesystem::VFSPath path, std::string mode)
+    std::shared_ptr<Tesses::Framework::Streams::Stream> TObjectVFS::OpenFile(Tesses::Framework::Filesystem::VFSPath path, std::string mode)
     {
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            return vfs->vfs->OpenFile(path,mode);
-        }
+        
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
             auto res = dict->CallMethod(ls, "OpenFile",{path,mode});
-            TStreamHeapObject* strm;
-            if(GetObjectHeap(res,strm))
+            std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
+            if(GetObject(res,strm))
             {
-                return new TObjectStream(this->ls->GetGC(), strm);
+                return strm;
             }
         }
         return nullptr;
     }
     void TObjectVFS::CreateDirectory(Tesses::Framework::Filesystem::VFSPath path)
     {
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            vfs->vfs->CreateDirectory(path);
-        }
+       
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -169,12 +161,7 @@ namespace Tesses::CrossLang {
     }
     void TObjectVFS::DeleteDirectory(Tesses::Framework::Filesystem::VFSPath path)
     {
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            vfs->vfs->DeleteDirectory(path);
-        }
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -185,12 +172,7 @@ namespace Tesses::CrossLang {
     bool TObjectVFS::RegularFileExists(Tesses::Framework::Filesystem::VFSPath path)
     {
 
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            return vfs->vfs->RegularFileExists(path);
-        }
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -206,12 +188,8 @@ namespace Tesses::CrossLang {
 
     bool TObjectVFS::SymlinkExists(Tesses::Framework::Filesystem::VFSPath path)
     {
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            return vfs->vfs->SymlinkExists(path);
-        }
+        
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -226,12 +204,8 @@ namespace Tesses::CrossLang {
     }
     bool TObjectVFS::CharacterDeviceExists(Tesses::Framework::Filesystem::VFSPath path)
     {
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            return vfs->vfs->CharacterDeviceExists(path);
-        }
+        
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -246,12 +220,8 @@ namespace Tesses::CrossLang {
     }
     bool TObjectVFS::BlockDeviceExists(Tesses::Framework::Filesystem::VFSPath path)
     {
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            return vfs->vfs->BlockDeviceExists(path);
-        }
+        
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -266,12 +236,8 @@ namespace Tesses::CrossLang {
     }
     bool TObjectVFS::SocketFileExists(Tesses::Framework::Filesystem::VFSPath path)
     {
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            return vfs->vfs->SocketFileExists(path);
-        }
+        
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -286,12 +252,8 @@ namespace Tesses::CrossLang {
     }
     bool TObjectVFS::FIFOFileExists(Tesses::Framework::Filesystem::VFSPath path)
     {
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            return vfs->vfs->FIFOFileExists(path);
-        }
+        
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -306,12 +268,8 @@ namespace Tesses::CrossLang {
     }
     bool TObjectVFS::FileExists(Tesses::Framework::Filesystem::VFSPath path)
     {
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            return vfs->vfs->FileExists(path);
-        }
+        
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -326,12 +284,8 @@ namespace Tesses::CrossLang {
     }
     bool TObjectVFS::SpecialFileExists(Tesses::Framework::Filesystem::VFSPath path)
     {
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            return vfs->vfs->SpecialFileExists(path);
-        }
+        
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -346,12 +300,8 @@ namespace Tesses::CrossLang {
     }
     void TObjectVFS::CreateSymlink(Tesses::Framework::Filesystem::VFSPath existingFile, Tesses::Framework::Filesystem::VFSPath symlinkFile)
     {
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            vfs->vfs->CreateSymlink(existingFile,symlinkFile);
-        }
+        
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -361,12 +311,8 @@ namespace Tesses::CrossLang {
     }
     void TObjectVFS::CreateHardlink(Tesses::Framework::Filesystem::VFSPath existingFile, Tesses::Framework::Filesystem::VFSPath newName)
     {
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            vfs->vfs->CreateHardlink(existingFile,newName);
-        }
+       
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -376,12 +322,7 @@ namespace Tesses::CrossLang {
     }
     bool TObjectVFS::DirectoryExists(Tesses::Framework::Filesystem::VFSPath path)
     {
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            return vfs->vfs->DirectoryExists(path);
-        }
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -396,12 +337,8 @@ namespace Tesses::CrossLang {
     }
     void TObjectVFS::DeleteFile(Tesses::Framework::Filesystem::VFSPath path)
     {
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            vfs->vfs->DeleteFile(path);
-        }
+        
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -411,12 +348,8 @@ namespace Tesses::CrossLang {
     }
     void TObjectVFS::DeleteDirectoryRecurse(Tesses::Framework::Filesystem::VFSPath path)
     {
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            vfs->vfs->DeleteDirectoryRecurse(path);
-        }
+        
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -426,12 +359,8 @@ namespace Tesses::CrossLang {
     }
     Tesses::Framework::Filesystem::VFSPathEnumerator TObjectVFS::EnumeratePaths(Tesses::Framework::Filesystem::VFSPath path)
     {
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            return vfs->vfs->EnumeratePaths(path);
-        }
+        
         if(GetObjectHeap(this->obj, dict))
         {
             GCList* ls=new GCList(this->ls->GetGC());
@@ -465,12 +394,8 @@ namespace Tesses::CrossLang {
     void TObjectVFS::MoveFile(Tesses::Framework::Filesystem::VFSPath src, Tesses::Framework::Filesystem::VFSPath dest)
     {
 
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            vfs->vfs->MoveFile(src,dest);
-        }
+        
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -481,12 +406,8 @@ namespace Tesses::CrossLang {
     void TObjectVFS::MoveDirectory(Tesses::Framework::Filesystem::VFSPath src, Tesses::Framework::Filesystem::VFSPath dest)
     {
 
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            vfs->vfs->MoveDirectory(src,dest);
-        }
+       
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -497,12 +418,7 @@ namespace Tesses::CrossLang {
     Tesses::Framework::Filesystem::VFSPath TObjectVFS::ReadLink(Tesses::Framework::Filesystem::VFSPath path)
     {
 
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            return vfs->vfs->ReadLink(path);
-        }
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -518,12 +434,8 @@ namespace Tesses::CrossLang {
     std::string TObjectVFS::VFSPathToSystem(Tesses::Framework::Filesystem::VFSPath path)
     {
 
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            return vfs->vfs->VFSPathToSystem(path);
-        }
+        
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -538,12 +450,8 @@ namespace Tesses::CrossLang {
     }
     Tesses::Framework::Filesystem::VFSPath TObjectVFS::SystemToVFSPath(std::string path)
     {
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            return vfs->vfs->SystemToVFSPath(path);
-        }
+       
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -559,12 +467,7 @@ namespace Tesses::CrossLang {
     void TObjectVFS::GetDate(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Date::DateTime& lastWrite, Tesses::Framework::Date::DateTime& lastAccess)
     {
 
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            vfs->vfs->GetDate(path,lastWrite,lastAccess);
-        }
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -589,12 +492,8 @@ namespace Tesses::CrossLang {
     void TObjectVFS::SetDate(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Date::DateTime lastWrite, Tesses::Framework::Date::DateTime lastAccess)
     {
 
-        TVFSHeapObject* vfs;
         TDictionary* dict;
-        if(GetObjectHeap(this->obj, vfs))
-        {
-            vfs->vfs->SetDate(path,lastWrite,lastAccess);
-        }
+        
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
@@ -604,37 +503,14 @@ namespace Tesses::CrossLang {
     }
     TObjectVFS::~TObjectVFS()
     {
+
+        TDictionary* dict;
+        if(GetObjectHeap(this->obj, dict))
+        {
+            GCList ls(this->ls->GetGC());
+            dict->CallMethod(ls,"Dispose",{});
+        }
         delete this->ls;
     }
-    TVFSHeapObject* TVFSHeapObject::Create(GCList& ls, Tesses::Framework::Filesystem::VFS* vfs)
-    {
-        TVFSHeapObject* heapObj = new TVFSHeapObject();
-        GC* _gc = ls.GetGC();
-        ls.Add(heapObj);
-        _gc->Watch(heapObj);
-        heapObj->vfs = vfs;
-        return heapObj;
-    }
-    TVFSHeapObject* TVFSHeapObject::Create(GCList* ls, Tesses::Framework::Filesystem::VFS* vfs)
-    {
-        TVFSHeapObject* heapObj = new TVFSHeapObject();
-        GC* _gc = ls->GetGC();
-        ls->Add(heapObj);
-        _gc->Watch(heapObj);
-        heapObj->vfs = vfs;
-        return heapObj;
-    }
-    TVFSHeapObject::~TVFSHeapObject()
-    {
-        if(this->vfs != nullptr)
-        delete this->vfs;
-    }
-    void TVFSHeapObject::Close()
-    {
-        if(this->vfs != nullptr)
-        {
-            delete this->vfs;
-            this->vfs = nullptr;
-        }
-    }
+    
 }

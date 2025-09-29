@@ -44,7 +44,7 @@ int main(int argc, char** argv)
             }
             else if(curPos == 1)
             {
-                path = LocalFS.SystemToVFSPath(argv[i]);
+                path = LocalFS->SystemToVFSPath(argv[i]);
             }
         }
     }
@@ -52,10 +52,10 @@ int main(int argc, char** argv)
     {
         help(argv[0]);
     }
-    auto strm = LocalFS.OpenFile(file,"rb");
-    SubdirFilesystem sdir(&LocalFS,path,false);
+    auto strm = LocalFS->OpenFile(file,"rb");
+    auto sdir = std::make_shared<SubdirFilesystem>(LocalFS,path);
     if(strm->CanRead())
-    Disassemble(strm, &sdir,json,resources);
-    delete strm;
+    Disassemble(strm, sdir,json,resources);
+    
     return 0;
 }

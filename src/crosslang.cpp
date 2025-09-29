@@ -6,7 +6,7 @@ using namespace Tesses::Framework;
 using namespace Tesses::CrossLang;
 using namespace Tesses::Framework::Http;
 
-bool Download(Tesses::Framework::Filesystem::VFSPath filename,Tesses::Framework::Filesystem::VFS* vfs)
+bool Download(Tesses::Framework::Filesystem::VFSPath filename,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs)
 {
     while(true)
     {
@@ -23,7 +23,7 @@ bool Download(Tesses::Framework::Filesystem::VFSPath filename,Tesses::Framework:
             {
                 auto strm = resp.ReadAsStream();
                 CrossArchiveExtract(strm, vfs);
-                delete strm;
+               
                 return true;
             }
             else
@@ -56,14 +56,13 @@ int main(int argc, char** argv)
 
     Tesses::Framework::Filesystem::VFSPath filename = dir / "Shell" / "Shell.crvm";
     
-    Tesses::Framework::Filesystem::LocalFilesystem fs;
 
-    auto p = Tesses::Framework::Platform::Environment::GetRealExecutablePath(fs.SystemToVFSPath(argv[0])).GetParent().GetParent() / "share" / "Tesses" / "CrossLang" / "Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm";
+    auto p = Tesses::Framework::Platform::Environment::GetRealExecutablePath(Tesses::Framework::Filesystem::LocalFS->SystemToVFSPath(argv[0])).GetParent().GetParent() / "share" / "Tesses" / "CrossLang" / "Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm";
 
     if(argc > 1 && strcmp(argv[1],"update-shell") == 0)
     {
 
-        Tesses::Framework::Filesystem::SubdirFilesystem subdir(&fs,dir,false);
+        auto subdir = std::make_shared<Tesses::Framework::Filesystem::SubdirFilesystem>(Tesses::Framework::Filesystem::LocalFS,dir);
         HttpRequest req;
             req.url = "https://downloads.tesses.net/ShellPackage.crvm";
             req.method = "GET";
@@ -71,8 +70,8 @@ int main(int argc, char** argv)
             if(resp.statusCode == StatusCode::OK)
             {
                 auto strm = resp.ReadAsStream();
-                CrossArchiveExtract(strm, &subdir);
-                delete strm;
+                CrossArchiveExtract(strm, subdir);
+                
                 return 0;
             }
             else
@@ -83,17 +82,17 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    if(!fs.RegularFileExists(filename))
+    if(!Tesses::Framework::Filesystem::LocalFS->RegularFileExists(filename))
     {
-        Tesses::Framework::Filesystem::SubdirFilesystem subdir(&fs,dir,false);
-        if(fs.RegularFileExists(p))
+        auto subdir = std::make_shared<Tesses::Framework::Filesystem::SubdirFilesystem>(Tesses::Framework::Filesystem::LocalFS,dir);
+        if(Tesses::Framework::Filesystem::LocalFS->RegularFileExists(p))
         {
             std::cout << "Installing " << p.ToString() << " -> " << dir.ToString() << std::endl;
-            auto strm = fs.OpenFile(p,"rb");
+            auto strm = Tesses::Framework::Filesystem::LocalFS->OpenFile(p,"rb");
             if(strm != nullptr)
             {
-                CrossArchiveExtract(strm, &subdir);
-                delete strm;
+                CrossArchiveExtract(strm, subdir);
+                
             }
             else
             {
@@ -102,7 +101,7 @@ int main(int argc, char** argv)
         }
         else
         {
-            if(!Download(filename,&subdir)) return 1;
+            if(!Download(filename,subdir)) return 1;
             return 0;
         }
     }
@@ -118,7 +117,7 @@ int main(int argc, char** argv)
     TStd::RegisterStd(&gc,env);
     
     
-    env->LoadFileWithDependencies(&gc, &fs, filename);
+    env->LoadFileWithDependencies(&gc, Tesses::Framework::Filesystem::LocalFS, filename);
     
 
     TList* args = TList::Create(ls);

@@ -7,17 +7,17 @@
 
 namespace Tesses::CrossLang
 {
-    void Write(Tesses::Framework::Streams::Stream* strm, uint8_t* buffer, size_t len)
+    void Write(std::shared_ptr<Tesses::Framework::Streams::Stream> strm, uint8_t* buffer, size_t len)
     {
         strm->WriteBlock(buffer,len);
     }
-    void WriteInt(Tesses::Framework::Streams::Stream* strm,uint32_t v)
+    void WriteInt(std::shared_ptr<Tesses::Framework::Streams::Stream> strm,uint32_t v)
     {
         uint8_t buffer[4];
         BitConverter::FromUint32BE(buffer[0],v);
         Write(strm,buffer,4);
     }
-    void WriteString(Tesses::Framework::Streams::Stream* strm,std::string v)
+    void WriteString(std::shared_ptr<Tesses::Framework::Streams::Stream> strm,std::string v)
     {
         WriteInt(strm,(uint32_t)v.size());
         Write(strm,(uint8_t*)v.data(),v.size());
@@ -34,7 +34,7 @@ namespace Tesses::CrossLang
     }
 
 
-    void CodeGen::Save(Tesses::Framework::Filesystem::VFS* vfs, Tesses::Framework::Streams::Stream* stream)
+    void CodeGen::Save(std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, std::shared_ptr<Tesses::Framework::Streams::Stream> stream)
     {
         TVMVersion runtime_version(TVM_MAJOR,TVM_MINOR,TVM_PATCH,TVM_BUILD,TVM_VERSIONSTAGE);
         uint8_t buffer[18];
@@ -1765,10 +1765,9 @@ namespace Tesses::CrossLang
     }
     ResourceFile::~ResourceFile()
     {
-        delete this->strm;
     }
 
-    uint32_t ResourceFile::GetLength(Tesses::Framework::Filesystem::VFS* embedFS)
+    uint32_t ResourceFile::GetLength(std::shared_ptr<Tesses::Framework::Filesystem::VFS> embedFS)
     {
         if(embedFS == nullptr) return 0;
         if(strm != nullptr) return strm->GetLength();
@@ -1783,17 +1782,17 @@ namespace Tesses::CrossLang
         if(res != nullptr) return this->file == res->file;
         return ResourceBase::IsEqual(base);
     }
-    void ResourceFile::Write(Tesses::Framework::Streams::Stream* output)
+    void ResourceFile::Write(std::shared_ptr<Tesses::Framework::Streams::Stream> output)
     {
         if(this->strm != nullptr)
         this->strm->CopyTo(output);
     }
    
-    uint32_t ResourceByteArray::GetLength(Tesses::Framework::Filesystem::VFS* embedFS)
+    uint32_t ResourceByteArray::GetLength(std::shared_ptr<Tesses::Framework::Filesystem::VFS> embedFS)
     {
         return (uint32_t)this->data.size();
     }
-    void ResourceByteArray::Write(Tesses::Framework::Streams::Stream* output)
+    void ResourceByteArray::Write(std::shared_ptr<Tesses::Framework::Streams::Stream> output)
     {
         output->WriteBlock(this->data.data(),this->data.size());
     }

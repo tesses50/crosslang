@@ -14,9 +14,9 @@ int main(int argc, char** argv)
     gc.Start();
     GCList ls(gc);
     TRootEnvironment* env = TRootEnvironment::Create(ls, TDictionary::Create(ls));
-    Tesses::Framework::Filesystem::LocalFilesystem fs;
+    
     TStd::RegisterStd(&gc,env);
-    env->LoadFileWithDependencies(&gc, &fs, fs.SystemToVFSPath(argv[1]));
+    env->LoadFileWithDependencies(&gc, Tesses::Framework::Filesystem::LocalFS, Tesses::Framework::Filesystem::LocalFS->SystemToVFSPath(argv[1]));
     
     TList* args = TList::Create(ls);
     for(int arg=1;arg<argc;arg++)

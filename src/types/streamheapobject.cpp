@@ -70,23 +70,18 @@ namespace Tesses::CrossLang
     bool TObjectStream::EndOfStream()
     {
         TDictionary* dict;
-        TStreamHeapObject* strm;
         if(GetObjectHeap(this->obj, dict))
         {
             auto res = dict->CallMethod(*ls, "getEndOfStream",{});
             bool r;
             if(GetObject(res,r)) return r;
         }
-        else if(GetObjectHeap(this->obj, strm))
-        {
-            return strm->stream->EndOfStream();
-        }
+    
         return false;
     }
     size_t TObjectStream::Read(uint8_t* buff, size_t sz)
     {
         TDictionary* dict;
-        TStreamHeapObject* strm;
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls2(this->ls->GetGC());
@@ -101,16 +96,11 @@ namespace Tesses::CrossLang
             int64_t r;
             if(GetObject(res,r)) return r;
         }
-        else if(GetObjectHeap(this->obj, strm))
-        {
-            return strm->stream->Read(buff,sz);
-        }
         return 0;
     }
     size_t TObjectStream::Write(const uint8_t* buff, size_t sz)
     {
            TDictionary* dict;
-        TStreamHeapObject* strm;
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls2(this->ls->GetGC());
@@ -123,43 +113,31 @@ namespace Tesses::CrossLang
             int64_t r;
             if(GetObject(res,r)) return r;
         }
-        else if(GetObjectHeap(this->obj, strm))
-        {
-            return strm->stream->Write(buff,sz);
-        }
+        
         return 0;
     }
     bool TObjectStream::CanRead()
     {
 
         TDictionary* dict;
-        TStreamHeapObject* strm;
         if(GetObjectHeap(this->obj, dict))
         {
             auto res = dict->CallMethod(*ls, "getCanRead",{});
             bool r;
             if(GetObject(res,r)) return r;
         }
-        else if(GetObjectHeap(this->obj, strm))
-        {
-            return strm->stream->CanRead();
-        }
+       
         return false;
     }
     bool TObjectStream::CanWrite()
     {
 
         TDictionary* dict;
-        TStreamHeapObject* strm;
         if(GetObjectHeap(this->obj, dict))
         {
             auto res = dict->CallMethod(*ls, "getCanWrite",{});
             bool r;
             if(GetObject(res,r)) return r;
-        }
-        else if(GetObjectHeap(this->obj, strm))
-        {
-            return strm->stream->CanWrite();
         }
         return false;
     }
@@ -167,80 +145,60 @@ namespace Tesses::CrossLang
     {
 
         TDictionary* dict;
-        TStreamHeapObject* strm;
         if(GetObjectHeap(this->obj, dict))
         {
             auto res = dict->CallMethod(*ls, "getCanSeek",{});
             bool r;
             if(GetObject(res,r)) return r;
         }
-        else if(GetObjectHeap(this->obj, strm))
-        {
-            return strm->stream->CanSeek();
-        }
+        
         return false;
     }
     int64_t TObjectStream::GetPosition()
     {
 
         TDictionary* dict;
-        TStreamHeapObject* strm;
         if(GetObjectHeap(this->obj, dict))
         {
             auto res = dict->CallMethod(*ls, "getPosition",{});
             int64_t r;
             if(GetObject(res,r)) return r;
         }
-        else if(GetObjectHeap(this->obj, strm))
-        {
-            return strm->stream->GetPosition();
-        }
+        
         return 0;
     }
     int64_t TObjectStream::GetLength()
     {
 
         TDictionary* dict;
-        TStreamHeapObject* strm;
         if(GetObjectHeap(this->obj, dict))
         {
             auto res = dict->CallMethod(*ls, "getEndOfStream",{});
             bool r;
             if(GetObject(res,r)) return r;
         }
-        else if(GetObjectHeap(this->obj, strm))
-        {
-            return strm->stream->GetLength();
-        }
+        
         return Tesses::Framework::Streams::Stream::GetLength();
     }
     void TObjectStream::Flush()
     {
         
         TDictionary* dict;
-        TStreamHeapObject* strm;
         if(GetObjectHeap(this->obj, dict))
         {
             dict->CallMethod(*ls, "Flush",{});
            
         }
-        else if(GetObjectHeap(this->obj, strm))
-        {
-            strm->stream->Flush();
-        }
+        
     }
     void TObjectStream::Seek(int64_t pos, Tesses::Framework::Streams::SeekOrigin whence)
     {
         TDictionary* dict;
-        TStreamHeapObject* strm;
         if(GetObjectHeap(this->obj, dict))
         {
             dict->CallMethod(*ls, "Seek",{pos,(int64_t)(whence == Tesses::Framework::Streams::SeekOrigin::Begin ? 0 : whence == Tesses::Framework::Streams::SeekOrigin::Current ? 1 : 2) });
         }
-        else if(GetObjectHeap(this->obj, strm))
-        {
-            strm->stream->Seek(pos,whence);
-        }
+        
     }
     TObjectStream::~TObjectStream()
     {
@@ -248,37 +206,6 @@ namespace Tesses::CrossLang
     }
 
 
-    TStreamHeapObject* TStreamHeapObject::Create(GCList& ls, Tesses::Framework::Streams::Stream* strm)
-    {
-        TStreamHeapObject* heapObj = new TStreamHeapObject();
-        GC* _gc = ls.GetGC();
-        ls.Add(heapObj);
-        _gc->Watch(heapObj);
-        heapObj->stream = strm;
-        return heapObj;
-    }
-    TStreamHeapObject* TStreamHeapObject::Create(GCList* ls, Tesses::Framework::Streams::Stream* strm)
-    {
-        TStreamHeapObject* heapObj = new TStreamHeapObject();
-        GC* _gc = ls->GetGC();
-        ls->Add(heapObj);
-        _gc->Watch(heapObj);
-        heapObj->stream = strm;
-        return heapObj;
-    }
-    TStreamHeapObject::~TStreamHeapObject()
-    {
-        if(this->stream != nullptr)
-        {
-            delete this->stream;
-        }
-    }
-    void TStreamHeapObject::Close()
-    {
-        if(this->stream != nullptr)
-        {
-            delete this->stream;
-            this->stream = nullptr;
-        }
-    }
+    
+    
 }

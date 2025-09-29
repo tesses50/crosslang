@@ -489,7 +489,7 @@ namespace Tesses::CrossLang {
      * @param info the crvm info
      * @param icon the crvm icon
      */
-    void CrossArchiveCreate(Tesses::Framework::Filesystem::VFS* vfs,Tesses::Framework::Streams::Stream* strm,std::string name,TVMVersion version,std::string info, std::string icon="");
+    void CrossArchiveCreate(std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs,std::shared_ptr<Tesses::Framework::Streams::Stream> strm,std::string name,TVMVersion version,std::string info, std::string icon="");
     /**
      * @brief 
      * 
@@ -497,7 +497,7 @@ namespace Tesses::CrossLang {
      * @param vfs vfs to extract to (as root)
      * @return std::pair<std::pair<std::string,TVMVersion>,std::string> ((name, version),info)
      */
-    std::pair<std::pair<std::string,TVMVersion>,std::string> CrossArchiveExtract(Tesses::Framework::Streams::Stream* strm,Tesses::Framework::Filesystem::VFS* vfs);
+    std::pair<std::pair<std::string,TVMVersion>,std::string> CrossArchiveExtract(std::shared_ptr<Tesses::Framework::Streams::Stream> strm,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs);
 
 
 
@@ -800,7 +800,7 @@ class CharInstruction : public ByteCodeInstruction {
         void Write(std::vector<uint8_t>& data);
 };
 
-using SyntaxNode = std::variant<int64_t, double, std::string, char, bool, std::nullptr_t, Undefined,std::vector<uint8_t>, AdvancedSyntaxNode>;
+using SyntaxNode = std::variant<int64_t, double, std::string, char, bool, std::nullptr_t, Undefined,std::vector<uint8_t>, AdvancedSyntaxNode,std::shared_ptr<Tesses::Framework::Streams::Stream>,std::shared_ptr<Tesses::Framework::Filesystem::VFSPath>>;
 
 
 
@@ -821,21 +821,21 @@ struct CodeGenClass {
 
 class ResourceBase {
     public:
-        virtual uint32_t GetLength(Tesses::Framework::Filesystem::VFS* embedFS)=0;
-        virtual void Write(Tesses::Framework::Streams::Stream* output)=0;
+        virtual uint32_t GetLength(std::shared_ptr<Tesses::Framework::Filesystem::VFS> embedFS)=0;
+        virtual void Write(std::shared_ptr<Tesses::Framework::Streams::Stream> output)=0;
         virtual ~ResourceBase();
         virtual bool IsEqual(ResourceBase* base);
 };
 
 class ResourceFile : public ResourceBase 
 {
-    Tesses::Framework::Streams::Stream* strm=nullptr;
+    std::shared_ptr<Tesses::Framework::Streams::Stream> strm=nullptr;
     public:
         ResourceFile();
         ResourceFile(std::string file);
         std::string file;
-        uint32_t GetLength(Tesses::Framework::Filesystem::VFS* embedFS);
-        void Write(Tesses::Framework::Streams::Stream* output);
+        uint32_t GetLength(std::shared_ptr<Tesses::Framework::Filesystem::VFS> embedFS);
+        void Write(std::shared_ptr<Tesses::Framework::Streams::Stream> output);
         bool IsEqual(ResourceBase* base);
         ~ResourceFile();
 };
@@ -844,8 +844,8 @@ class ResourceByteArray : public ResourceBase
 {
     public:
         std::vector<uint8_t> data;
-        uint32_t GetLength(Tesses::Framework::Filesystem::VFS* embedFS);
-        void Write(Tesses::Framework::Streams::Stream* output);
+        uint32_t GetLength(std::shared_ptr<Tesses::Framework::Filesystem::VFS> embedFS);
+        void Write(std::shared_ptr<Tesses::Framework::Streams::Stream> output);
 };
 
 
@@ -878,7 +878,7 @@ class CodeGen {
         std::string info;
         std::string icon;
         void GenRoot(SyntaxNode n);
-        void Save(Tesses::Framework::Filesystem::VFS* embedFS,Tesses::Framework::Streams::Stream* output);
+        void Save(std::shared_ptr<Tesses::Framework::Filesystem::VFS> embedFS,std::shared_ptr<Tesses::Framework::Streams::Stream> output);
         ~CodeGen();
 };
 /**
@@ -1395,7 +1395,7 @@ class TContinue {
      * 
      */
 
-using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder,TVMVersion,TDateTime,TBreak,TContinue>;
+using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder,TVMVersion,TDateTime,TBreak,TContinue,std::shared_ptr<Tesses::Framework::Streams::Stream>,std::shared_ptr<Tesses::Framework::Filesystem::VFS>,std::shared_ptr<Tesses::Framework::Http::IHttpServer>,std::shared_ptr<Tesses::Framework::Http::HttpRequestBody>,std::shared_ptr<Tesses::Framework::TextStreams::TextReader>,std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>;
 
 class TRootEnvironment;
 class GC;
@@ -1533,13 +1533,13 @@ class GC {
             std::string info;
             int32_t icon;
         
-            void Load(GC* gc, Tesses::Framework::Streams::Stream* strm);
-            void Skip(Tesses::Framework::Streams::Stream* strm,size_t len);
-            void Ensure(Tesses::Framework::Streams::Stream* strm,uint8_t* buffer, size_t len);
-            uint32_t EnsureInt(Tesses::Framework::Streams::Stream* strm);
-            std::string EnsureString(Tesses::Framework::Streams::Stream* strm);
+            void Load(GC* gc, std::shared_ptr<Tesses::Framework::Streams::Stream> strm);
+            void Skip(std::shared_ptr<Tesses::Framework::Streams::Stream> strm,size_t len);
+            void Ensure(std::shared_ptr<Tesses::Framework::Streams::Stream> strm,uint8_t* buffer, size_t len);
+            uint32_t EnsureInt(std::shared_ptr<Tesses::Framework::Streams::Stream> strm);
+            std::string EnsureString(std::shared_ptr<Tesses::Framework::Streams::Stream> strm);
 
-            std::string GetString(Tesses::Framework::Streams::Stream* strm);
+            std::string GetString(std::shared_ptr<Tesses::Framework::Streams::Stream> strm);
             void Mark();
 
             void EnsureCanRunInCrossLang();
@@ -1781,7 +1781,7 @@ class GC {
         TDictionary* dict;
         TCallable* error=nullptr;
         
-        void LoadDependency(GC* gc,Tesses::Framework::Filesystem::VFS* vfs, std::pair<std::string,TVMVersion> dep);
+        void LoadDependency(GC* gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, std::pair<std::string,TVMVersion> dep);
         public:
             EnvironmentPermissions permissions;
 
@@ -1790,8 +1790,8 @@ class GC {
 
             bool TryFindClass(std::vector<std::string>& name, size_t& index);
             
-            void LoadFileWithDependencies(GC* gc,Tesses::Framework::Filesystem::VFS* vfs, TFile* f);
-            void LoadFileWithDependencies(GC* gc,Tesses::Framework::Filesystem::VFS* vfs, Tesses::Framework::Filesystem::VFSPath path);
+            void LoadFileWithDependencies(GC* gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, TFile* f);
+            void LoadFileWithDependencies(GC* gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, Tesses::Framework::Filesystem::VFSPath path);
     
             TDictionary* GetDictionary();
             static TRootEnvironment* Create(GCList* gc,TDictionary* dict);
@@ -1815,6 +1815,8 @@ class GC {
             void Mark();
     };
     class TStd {
+        private:
+            static void RegisterHelpers(GC* gc, TRootEnvironment* env);
         public:
             static void RegisterStd(GC* gc, TRootEnvironment* env);
             static void RegisterConsole(GC* gc,TRootEnvironment* env);
@@ -1990,69 +1992,14 @@ class GC {
     };
 
 
-    class TStreamHeapObject : public THeapObject
-    {
-        public:
-            Tesses::Framework::Streams::Stream* stream;
-            std::vector<TObject> watch;
-
-            static TStreamHeapObject* Create(GCList& ls, Tesses::Framework::Streams::Stream* strm);
-            static TStreamHeapObject* Create(GCList* ls, Tesses::Framework::Streams::Stream* strm);
-            ~TStreamHeapObject();
-            void Close();
-            void Mark()
-            {
-                if(this->marked) return;
-                this->marked=true;
-                for(auto item : watch)
-                    GC::Mark(item);
-            }
-    }; 
-
-    class TVFSHeapObject : public THeapObject
-    {
-        public:
-            Tesses::Framework::Filesystem::VFS* vfs;
-            std::vector<TObject> watch;
-            static TVFSHeapObject* Create(GCList& ls, Tesses::Framework::Filesystem::VFS* vfs);
-            static TVFSHeapObject* Create(GCList* ls, Tesses::Framework::Filesystem::VFS* vfs);
-            ~TVFSHeapObject();
-            void Close();
-
-            void Mark()
-            {
-                if(this->marked) return;
-                this->marked=true;
-                for(auto item : watch)
-                    GC::Mark(item);
-            }
-    };
-
-    class TServerHeapObject : public THeapObject
-    {
-        public:
-            Tesses::Framework::Http::IHttpServer* server;
-            std::vector<TObject> watch;
-            static TServerHeapObject* Create(GCList& ls, Tesses::Framework::Http::IHttpServer* vfs);
-            static TServerHeapObject* Create(GCList* ls, Tesses::Framework::Http::IHttpServer* vfs);
-            ~TServerHeapObject();
-            void Close();
-            bool Handle(std::vector<TObject> args);
-            void Mark()
-            {
-                if(this->marked) return;
-                this->marked=true;
-                for(auto item : watch)
-                    GC::Mark(item);
-            }
-    };
+  
     class TObjectVFS : public Tesses::Framework::Filesystem::VFS
     {
         public:
             TObject obj;
             GCList* ls;
             TObjectVFS(GC* gc, TObject obj);
-            Tesses::Framework::Streams::Stream* OpenFile(Tesses::Framework::Filesystem::VFSPath path, std::string mode);
+            std::shared_ptr<Tesses::Framework::Streams::Stream> OpenFile(Tesses::Framework::Filesystem::VFSPath path, std::string mode);
             void CreateDirectory(Tesses::Framework::Filesystem::VFSPath path);
             void DeleteDirectory(Tesses::Framework::Filesystem::VFSPath path);
             bool RegularFileExists(Tesses::Framework::Filesystem::VFSPath path);
@@ -2187,7 +2134,7 @@ class GC {
     };
 
     
-     class CallStackEntry : public THeapObject
+    class CallStackEntry : public THeapObject
     {
         public:
             static CallStackEntry* Create(GCList* ls);
@@ -2554,7 +2501,10 @@ class GC {
 
     extern Tesses::Framework::Filesystem::VFSPath CrossLangConfigPath;
 
-    Tesses::Framework::Filesystem::VFSPath Assemble(Tesses::Framework::Filesystem::VFS* vfs);
-    void Disassemble(Tesses::Framework::Streams::Stream* src,Tesses::Framework::Filesystem::VFS* vfs, bool generateJSON=true,bool extractResources=true);
-    Tesses::Framework::Filesystem::VFSPath Merge(Tesses::Framework::Filesystem::VFS* srcFS, Tesses::Framework::Filesystem::VFSPath sourcePath, Tesses::Framework::Filesystem::VFS* destFS);
+    Tesses::Framework::Filesystem::VFSPath Assemble(std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs);
+    void Disassemble(std::shared_ptr<Tesses::Framework::Streams::Stream> src,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, bool generateJSON=true,bool extractResources=true);
+    Tesses::Framework::Filesystem::VFSPath Merge(std::shared_ptr<Tesses::Framework::Filesystem::VFS> srcFS, Tesses::Framework::Filesystem::VFSPath sourcePath, std::shared_ptr<Tesses::Framework::Filesystem::VFS> destFS);
+
+
+    std::shared_ptr<Tesses::Framework::Http::IHttpServer> ToHttpServer(GC* gc,TObject obj);
 };

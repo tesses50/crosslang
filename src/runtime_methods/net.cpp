@@ -14,64 +14,32 @@ using namespace Tesses::Framework::Http;
 using namespace Tesses::Framework::Mail;
 namespace Tesses::CrossLang
 {
-    static SMTPBody* TObjectToSMTPBody(GCList& ls,std::string mimeType, TObject obj)
+    static std::shared_ptr<SMTPBody> TObjectToSMTPBody(GCList& ls,std::string mimeType, TObject obj)
     {
-        SMTPBody* body = nullptr;
+        std::shared_ptr<SMTPBody> body;
         std::string text;
         TByteArray* ba;
-        TStreamHeapObject* sho;
+        std::shared_ptr<Tesses::Framework::Streams::Stream> sho;
         if(GetObject(obj,text))
         {
-            body = new SMTPStringBody(text,mimeType);
+            body = std::make_shared<SMTPStringBody>(text,mimeType);
         }
         else if(GetObjectHeap(obj,ba)) {
-            MemoryStream* ms = new MemoryStream(true);
+            std::shared_ptr<MemoryStream> ms = std::make_shared<MemoryStream>(true);
             ms->WriteBlock(ba->data.data(), ba->data.size());
             ms->Seek(0L, SeekOrigin::Begin);
             
-            body = new SMTPStreamBody(mimeType,ms,true);
+            body = std::make_shared<SMTPStreamBody>(mimeType,ms);
         }
-        else if(GetObjectHeap(obj,sho))
+        else if(GetObject(obj,sho))
         {
             ls.Add(sho);
-            body = new SMTPStreamBody(mimeType,sho->stream,false);
+            body = std::make_shared<SMTPStreamBody>(mimeType,sho);
         }
         return body;
     }
-     TServerHeapObject* TServerHeapObject::Create(GCList& ls, Tesses::Framework::Http::IHttpServer* svr)
-    {
-        TServerHeapObject* ho = new TServerHeapObject();
-        ls.Add(ho);
-        auto gc = ls.GetGC();
-        gc->Watch(ho);
-        ho->server = svr;
-        return ho;
-    }
-    TServerHeapObject* TServerHeapObject::Create(GCList* ls, Tesses::Framework::Http::IHttpServer* svr)
-    {
-        TServerHeapObject* ho = new TServerHeapObject();
-        ls->Add(ho);
-        auto gc = ls->GetGC();
-        gc->Watch(ho);
-        ho->server = svr;
-        return ho;
-    }
-
-    void TServerHeapObject::Close()
-    {
-        if(this->server != nullptr)
-        {
-            delete this->server;
-            this->server = nullptr;
-        }
-    }
-    TServerHeapObject::~TServerHeapObject()
-    {
-        if(this->server != nullptr)
-        {
-            delete this->server;
-        }
-    }
+   
+    
     class TNativeObjectThatReturnsHttpDictionary : public TNativeObject {
         public:
             virtual bool IsAvailable()=0;
@@ -293,26 +261,31 @@ namespace Tesses::CrossLang
                 else if(key == "getQueryParams") return TNativeObject::Create<THttpDictionary>(ls, &ctx->queryParams,this);
                 else if(key == "getRequestHeaders") return TNativeObject::Create<THttpDictionary>(ls, &ctx->requestHeaders,this);
                 else if(key == "getResponseHeaders") return TNativeObject::Create<THttpDictionary>(ls, &ctx->responseHeaders,this);
-                else if(key == "GetStream") return TStreamHeapObject::Create(ls, &ctx->GetStream());
-                else if(key == "OpenRequestStream") return TStreamHeapObject::Create(ls, ctx->OpenRequestStream());
-                else if(key == "OpenResponseStream") return TStreamHeapObject::Create(ls, ctx->OpenResponseStream());
+                else if(key == "GetStream") return ctx->GetStream();
+                else if(key == "OpenRequestStream") return ctx->OpenRequestStream();
+                else if(key == "OpenResponseStream") return ctx->OpenResponseStream();
                 else if(key == "ParseFormData")
                 {
                     TCallable* callable;
-                    TVFSHeapObject* vfsHeapObject;
+                    std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
                     
                     if(GetArgumentHeap(args, 0, callable))
                     {
-                        ctx->ParseFormData([callable,&ls](std::string a,std::string b, std::string c)->Tesses::Framework::Streams::Stream*{
+                        ctx->ParseFormData([callable,&ls](std::string a,std::string b, std::string c)->std::shared_ptr<Tesses::Framework::Streams::Stream> {
                             auto res = callable->Call(ls,{a,b,c});
-                            return new Tesses::CrossLang::TObjectStream(ls.GetGC(),res);
+                            std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
+                            if(GetObject(res,strm))
+                            {
+                                return strm;
+                            }
+                            return nullptr;
                         });
                     }
-                    else if(GetArgumentHeap(args,0,vfsHeapObject))
+                    else if(GetArgument(args,0,vfs))
                     {
                         int i = 1;
                         std::vector<TObject> response;
-                        ctx->ParseFormData([vfsHeapObject,&response,&ls,&i](std::string mime,std::string filename, std::string name)->Tesses::Framework::Streams::Stream* {
+                        ctx->ParseFormData([vfs,&response,&ls,&i](std::string mime,std::string filename, std::string name)->std::shared_ptr<Tesses::Framework::Streams::Stream> {
                             std::string realFileName = "/" + std::to_string(i) + ".bin";
                             i++;
                             response.push_back(TDictionary::Create(ls,{
@@ -322,7 +295,7 @@ namespace Tesses::CrossLang
                                 TDItem("Name", name)        
                             }));
 
-                            auto strm = vfsHeapObject->vfs->OpenFile(realFileName,"wb");
+                            auto strm = vfs->OpenFile(realFileName,"wb");
                             
 
                             return strm;
@@ -334,10 +307,10 @@ namespace Tesses::CrossLang
                 else if(key == "getNeedToParseFormData") return ctx->NeedToParseFormData();
                 else if(key == "ReadString") return ctx->ReadString();
                 else if(key == "ReadStream") {
-                    Tesses::CrossLang::TStreamHeapObject* strm;
-                    if(GetArgumentHeap(args,0,strm))
+                    std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
+                    if(GetArgument(args,0,strm))
                     {
-                        ctx->ReadStream(strm->stream);
+                        ctx->ReadStream(strm);
                     }
                 }
                 else if(key == "ReadJson")
@@ -397,9 +370,9 @@ namespace Tesses::CrossLang
                 }
                 else if(key == "SendStream")
                 {
-                    TStreamHeapObject* strmHeapObj;
-                    if(GetArgumentHeap(args,0,strmHeapObj))
-                        ctx->SendStream(strmHeapObj->stream);
+                    std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
+                    if(GetArgument(args,0,strm))
+                        ctx->SendStream(strm);
                    
                 }
                 else if(key == "SendBytes")
@@ -552,12 +525,12 @@ namespace Tesses::CrossLang
                 req->CallMethod(ls,"HandleHeaders",{res});
                 dummy->Close();
             }
-            void Write(Tesses::Framework::Streams::Stream* strm)
+            void Write(std::shared_ptr<Tesses::Framework::Streams::Stream> strm)
             {
                 GCList ls(gc);
-                auto res=TStreamHeapObject::Create(ls,strm);
-                req->CallMethod(ls,"Write",{res});
-                res->stream=nullptr;
+                
+                req->CallMethod(ls,"Write",{strm});
+                
             }
 
             ~TDictionaryHttpRequestBody()
@@ -571,7 +544,6 @@ namespace Tesses::CrossLang
     {
         TCallable* callable;
         TDictionary* dict;
-        TServerHeapObject* server;
         TClassObject* clsObj;
         if(GetObjectHeap<TCallable*>(this->obj,callable))
         {
@@ -619,10 +591,6 @@ namespace Tesses::CrossLang
                 res->Finish();
             }
             
-        }
-        else if(GetObjectHeap<TServerHeapObject*>(this->obj,server))
-        {
-            return server->server->Handle(ctx);
         }
 
         return false;
@@ -678,7 +646,7 @@ namespace Tesses::CrossLang
         bool datagram;
         if(GetArgument(args,0,ipv6) && GetArgument(args,1,datagram))
         {
-            return TStreamHeapObject::Create(ls,new NetworkStream(ipv6,datagram));
+            return std::make_shared<NetworkStream>(ipv6,datagram);
         }
         return nullptr;
     }
@@ -686,13 +654,13 @@ namespace Tesses::CrossLang
     {
         HttpServer* server;
         public:
-            HttpServerNativeObject(uint16_t port, TObjectHttpServer* httpServer,bool printIps)
+            HttpServerNativeObject(uint16_t port, std::shared_ptr<IHttpServer> httpServer,bool printIps)
             {
-                server=new HttpServer(port,httpServer,true,printIps);
+                server=new HttpServer(port,httpServer,printIps);
             }
-            HttpServerNativeObject(std::string unixPath, TObjectHttpServer* httpServer)
+            HttpServerNativeObject(std::string unixPath, std::shared_ptr<IHttpServer> httpServer)
             {
-                server=new HttpServer(unixPath,httpServer,true);
+                server=new HttpServer(unixPath,httpServer);
             }
             std::string TypeName()
             {
@@ -722,15 +690,25 @@ namespace Tesses::CrossLang
         {
             bool printIPs=true;
             GetArgument(args,2,printIPs);
-            TObjectHttpServer* httpServer = new TObjectHttpServer(ls.GetGC(),args[0]);
-            uint16_t p = (uint16_t)port;
-            return TNativeObject::Create<HttpServerNativeObject>(ls,port,httpServer,printIPs);
+            
+            std::shared_ptr<IHttpServer> httpSvr = ToHttpServer(ls.GetGC(),args[0]);
+            
+            if(httpSvr) {
+                uint16_t p = (uint16_t)port;
+                return TNativeObject::Create<HttpServerNativeObject>(ls,port,httpSvr,printIPs);
+            }
+            
         }
+
         if(GetArgument(args,1,pathStr) && env->permissions.canRegisterLocalFS)
         {
-            TObjectHttpServer* httpServer = new TObjectHttpServer(ls.GetGC(),args[0]);
+            std::shared_ptr<IHttpServer> httpSvr = ToHttpServer(ls.GetGC(),args[0]);
+            
+            
+            if(httpSvr) {
+                return TNativeObject::Create<HttpServerNativeObject>(ls,pathStr,httpSvr);
+            }
 
-            return TNativeObject::Create<HttpServerNativeObject>(ls,pathStr,httpServer);
 
         }
         return nullptr;
@@ -740,27 +718,31 @@ namespace Tesses::CrossLang
         int64_t port;
         if(GetArgument(args,1,port))
         {
-            TObjectHttpServer httpServer(ls.GetGC(),args[0]);
-            uint16_t p = (uint16_t)port;
-            HttpServer server(p,httpServer);
-            server.StartAccepting();
-            Tesses::Framework::TF_RunEventLoop();
+            std::shared_ptr<IHttpServer> httpSvr = ToHttpServer(ls.GetGC(),args[0]);
+            
+            if(httpSvr) {
+                uint16_t p = (uint16_t)port;
+                HttpServer server(p,httpSvr);
+                server.StartAccepting();
+                Tesses::Framework::TF_RunEventLoop();
+            }
+            
         }
         return nullptr;
     }
     static TObject Net_Http_ListenOnUnusedPort(GCList& ls, std::vector<TObject> args)
     {
-        if(args.size() > 0)
-        {
-            TObjectHttpServer httpServer(ls.GetGC(),args[0]);
-            
-            
-            uint16_t port=0;
-            HttpServer server(port,httpServer, false);
-            std::cout << "Port: " << server.GetPort() << std::endl;
-            server.StartAccepting();
-            Tesses::Framework::TF_RunEventLoop();
+        if(args.empty()) return nullptr;
+        std::shared_ptr<IHttpServer> httpSvr=ToHttpServer(ls.GetGC(),args.front());
+        if(httpSvr) {
+                uint16_t p = 0;
+                HttpServer server(p,httpSvr);
+                std::cout << "Port: " << server.GetPort() << std::endl;
+                server.StartAccepting();
+                
+                Tesses::Framework::TF_RunEventLoop();
         }
+        
         return nullptr;
     }
     static TObject Net_Http_MimeType(GCList& ls, std::vector<TObject> args)
@@ -840,10 +822,10 @@ namespace Tesses::CrossLang
 
                 else if(key == "CopyToStream")
                 {
-                    TStreamHeapObject* strm;
-                    if(GetArgumentHeap(args,0,strm))
+                    std::shared_ptr<Stream> strm;
+                    if(GetArgument(args,0,strm))
                     {
-                        response->CopyToStream(strm->stream);
+                        response->CopyToStream(strm);
                     }
                 }
                 else if(key == "ReadAsString")
@@ -856,10 +838,9 @@ namespace Tesses::CrossLang
                 }
                 else if(key == "ReadAsStream")
                 {
-                    auto strm = TStreamHeapObject::Create(ls, response->ReadAsStream());
-                    strm->watch.push_back(this);
+                    
                    
-                    return strm;
+                    return response->ReadAsStream();
                 }
                 else if(key == "getStatusCode")
                 {
@@ -1018,9 +999,9 @@ namespace Tesses::CrossLang
             ls.GetGC()->BarrierBegin();
             auto server = dict->GetValue("server");
             TDictionary* dict2;
-            Tesses::Framework::Streams::Stream* strm=nullptr;
+            std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
             bool ownsStream=true;
-            TStreamHeapObject* objStrm;
+            std::shared_ptr<Stream> objStrm;
             if(GetObjectHeap(server,dict2))
             {
                 auto tlsO = dict2->GetValue("tls");
@@ -1034,19 +1015,19 @@ namespace Tesses::CrossLang
                 if(!GetObject(portO, port)) port = tls ? 465 : 25;
                 
                 GetObject(hostO,host);
-                strm = new NetworkStream(host,(uint16_t)port,false,false,false);
+                strm = std::make_shared<NetworkStream>(host,(uint16_t)port,false,false,false);
                 if(tls)
                 {
-                    strm = new Framework::Crypto::ClientTLSStream(strm,true,true,host);
+                    strm = std::make_shared<Framework::Crypto::ClientTLSStream>(strm,true,host);
                 }
 
             }
-            else if (GetObjectHeap(server, objStrm)) {
+            else if (GetObject(server, objStrm)) {
                 ownsStream=false;
-                strm = objStrm->stream;    
+                strm = objStrm;  
             }
 
-            Tesses::Framework::Mail::SMTPClient client(strm,ownsStream);
+            Tesses::Framework::Mail::SMTPClient client(strm);
             auto o = dict->GetValue("domain");
             
             GetObject(o,client.domain);
@@ -1097,7 +1078,7 @@ namespace Tesses::CrossLang
                         GetObject(o,type);
                         o = dict2->GetValue("data");
 
-                        client.attachments.push_back(std::pair<std::string,SMTPBody*>(name,TObjectToSMTPBody(ls, type, o)));
+                        client.attachments.push_back(std::pair<std::string,std::shared_ptr<SMTPBody>>(name,TObjectToSMTPBody(ls, type, o)));
                     }
                 }
             }
@@ -1139,7 +1120,7 @@ namespace Tesses::CrossLang
                     hdict.AddValue(key,value);
                 }
             }
-            CallbackWebSocketConnection conn([dict,&ls](std::function<void(WebSocketMessage&)> sendMessage,std::function<void()> ping,std::function<void()> close)->void{
+            auto conn = std::make_shared<CallbackWebSocketConnection>([dict,&ls](std::function<void(WebSocketMessage&)> sendMessage,std::function<void()> ping,std::function<void()> close)->void{
                 GCList ls2(ls.GetGC());
                 dict->CallMethod(ls2,"Open",{
                     TExternalMethod::Create(ls2,"Send a message",{"messageTextOrByteArray"},[sendMessage](GCList& ls,std::vector<TObject> args)->TObject{
@@ -1225,7 +1206,7 @@ namespace Tesses::CrossLang
                 }
             }
 
-             CallbackWebSocketConnection conn([co,&ls](std::function<void(WebSocketMessage&)> sendMessage,std::function<void()> ping,std::function<void()> close)->void{
+             auto conn = std::make_shared<CallbackWebSocketConnection>([co,&ls](std::function<void(WebSocketMessage&)> sendMessage,std::function<void()> ping,std::function<void()> close)->void{
                 GCList ls2(ls.GetGC());
                 co->CallMethod(ls2,"","Open",{
                     TExternalMethod::Create(ls2,"Send a message",{"messageTextOrByteArray"},[sendMessage](GCList& ls,std::vector<TObject> args)->TObject{
@@ -1298,33 +1279,55 @@ namespace Tesses::CrossLang
     static TObject Net_Http_DownloadToStream(GCList& ls, std::vector<TObject> args)
     {
         std::string url;
-        TStreamHeapObject* strm;
-        if(GetArgument(args,0,url) && GetArgumentHeap(args,1,strm))
+        std::shared_ptr<Stream> strm;
+        if(GetArgument(args,0,url) && GetArgument(args,1,strm))
         {
-            DownloadToStreamSimple(url,strm->stream);
+            DownloadToStreamSimple(url,strm);
         }
         return nullptr;
     }
     static TObject Net_Http_DownloadToFile(GCList& ls, std::vector<TObject> args)
     {
         std::string url;
-        TVFSHeapObject* vfs;
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
         Tesses::Framework::Filesystem::VFSPath path;
-        if(GetArgument(args,0,url) && GetArgumentHeap(args,1,vfs) && GetArgumentAsPath(args,2, path))
+        if(GetArgument(args,0,url) && GetArgument(args,1,vfs) && GetArgumentAsPath(args,2, path))
         {
-            DownloadToFileSimple(url,vfs->vfs,path);
+            DownloadToFileSimple(url,vfs,path);
         }
         return nullptr;
     }
-    bool TServerHeapObject::Handle(std::vector<TObject> args)
+    bool IHttpServer_Handle(std::shared_ptr<IHttpServer> svr,std::vector<TObject>& args)
     {
         TServerContext* ctx;
-        if(this->server != nullptr && GetArgumentHeap(args,0,ctx) && ctx->IsAvailable())
+        if(GetArgumentHeap(args,0,ctx))
         {
-            return this->server->Handle(*ctx->GetContext());
+            return svr->Handle(*ctx->GetContext());
         }
         return false;
     }
+
+    std::shared_ptr<IHttpServer> ToHttpServer(GC* gc, TObject obj)
+    {
+        if(std::holds_alternative<std::shared_ptr<IHttpServer>>(obj)) return std::get<std::shared_ptr<IHttpServer>>(obj);
+        TDictionary* dict;
+        TClassObject* clo;
+        TCallable* call;
+        if(GetObjectHeap(obj,dict))
+        {
+            return std::make_shared<TObjectHttpServer>(gc,dict); 
+        }
+        else if(GetObjectHeap(obj,clo))
+        {
+            return std::make_shared<TObjectHttpServer>(gc,clo); 
+        }
+        else if(GetObjectHeap(obj,call))
+        {
+            return std::make_shared<TObjectHttpServer>(gc,call); 
+        }
+        return nullptr;
+    }
+    
     void TStd::RegisterNet(GC* gc, TRootEnvironment* env)
     {
 
@@ -1345,10 +1348,12 @@ namespace Tesses::CrossLang
        
         //http->DeclareFunction(gc, "ProcessServer","Process HTTP server connection",{"networkstream","server","ip","port","encrypted"},, Net_ProcessServer);
         http->DeclareFunction(gc, "StreamHttpRequestBody","Create a stream request body",{"stream","mimeType"},[](GCList& ls, std::vector<TObject> args)->TObject {
+            std::shared_ptr<Stream> strm;
             std::string mimeType;
-            if(GetArgument(args, 1, mimeType))
+
+            if(GetArgument(args,0,strm) && GetArgument(args, 1, mimeType))
             {
-                return TNativeObject::Create<THttpRequestBody>(ls, new StreamHttpRequestBody(new TObjectStream(ls.GetGC(),args[0]), true, mimeType));
+                return TNativeObject::Create<THttpRequestBody>(ls, new StreamHttpRequestBody(strm, mimeType));
             }
             return nullptr;
         });
@@ -1382,24 +1387,36 @@ namespace Tesses::CrossLang
         http->DeclareFunction(gc, "ListenSimpleWithLoop", "Listen (creates application loop)", {"server","port"},Net_Http_ListenSimpleWithLoop);
         http->DeclareFunction(gc, "ListenOnUnusedPort","Listen on unused localhost port and print Port: theport",{"server"},Net_Http_ListenOnUnusedPort);
         //FileServer svr()
-        http->DeclareFunction(gc, "FileServer","Create a file server",{"path","allowlisting","spa"}, [](GCList& ls, std::vector<TObject> args)->TObject{
+        http->DeclareFunction(gc, "FileServer","Create a file server",{"vfs","allowlisting","spa"}, [](GCList& ls, std::vector<TObject> args)->TObject{
             
+            std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
             bool allowlisting;
             bool spa;
-            if(GetArgument(args,1,allowlisting) && GetArgument(args,2,spa))
+            if(GetArgument(args,0,vfs) && GetArgument(args,1,allowlisting) && GetArgument(args,2,spa))
             {
-                auto fserver = new FileServer(new TObjectVFS(ls.GetGC(),args[0]),true,allowlisting,spa);
-                return TServerHeapObject::Create(ls,fserver);
+                return std::make_shared<FileServer>(vfs,allowlisting,spa);
+                
             }
             return nullptr;
         });
         http->DeclareFunction(gc, "MountableServer","Create a server you can mount to, must mount parents before child",{"root"}, [](GCList& ls, std::vector<TObject> args)->TObject{
-            if(args.size() > 0)
+            TDictionary* dict;
+            TClassObject* cls;
+            std::shared_ptr<Tesses::Framework::Http::IHttpServer> mySvr;
+            if(GetArgumentHeap(args,0,dict))
             {
-                auto svr = new TObjectHttpServer(ls.GetGC(), args[0]);
-                auto svr2 = new MountableServer(svr,true);
+                auto svr = std::make_shared<TObjectHttpServer>(ls.GetGC(), dict);
+                return std::make_shared<MountableServer>(svr);
                 
-                return TServerHeapObject::Create(ls,svr2);
+            }
+            else if(GetArgumentHeap(args,0,cls))
+            {
+                auto svr = std::make_shared<TObjectHttpServer>(ls.GetGC(), cls);
+                return std::make_shared<MountableServer>(svr);
+            }
+            else if(GetArgument(args,0,mySvr))
+            {
+                return std::make_shared<MountableServer>(mySvr);
             }
             return nullptr;
         });

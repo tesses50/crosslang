@@ -3,7 +3,7 @@
 namespace Tesses::CrossLang 
 {
     
-    void CrossArchiveCreate(Tesses::Framework::Filesystem::VFS* vfs,Tesses::Framework::Streams::Stream* strm,std::string name, TVMVersion version, std::string info, std::string icon)
+    void CrossArchiveCreate(std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs,std::shared_ptr<Tesses::Framework::Streams::Stream> strm,std::string name, TVMVersion version, std::string info, std::string icon)
     {
         std::vector<std::string> ignored_files;
         std::string file = "/.crossarchiveignore";
@@ -12,7 +12,7 @@ namespace Tesses::CrossLang
             auto strm = vfs->OpenFile(file,"rb");
             if(strm != nullptr)
             {
-                Tesses::Framework::TextStreams::StreamReader reader(strm,true);
+                Tesses::Framework::TextStreams::StreamReader reader(strm);
                 std::string ignores;
                 while(reader.ReadLine(ignores))
                 {
@@ -53,12 +53,12 @@ namespace Tesses::CrossLang
             CALLMETHOD,
             RET
         };
-        auto writeInt = [](Tesses::Framework::Streams::Stream* strm,uint32_t number)->void{
+        auto writeInt = [](std::shared_ptr<Tesses::Framework::Streams::Stream> strm,uint32_t number)->void{
             uint8_t buff[4];
             BitConverter::FromUint32BE(buff[0],number);
             strm->WriteBlock(buff,4);
         };
-        auto writeStr = [&writeInt](Tesses::Framework::Streams::Stream* strm,std::string text)->void {
+        auto writeStr = [&writeInt](std::shared_ptr<Tesses::Framework::Streams::Stream> strm,std::string text)->void {
             writeInt(strm,(uint32_t)text.size());
             strm->WriteBlock((const uint8_t*)text.c_str(),text.size());
         };
@@ -90,14 +90,14 @@ namespace Tesses::CrossLang
             strs.push_back(str);
             return index;
         };
-        Tesses::Framework::Streams::MemoryStream ms(true);
+        auto ms = std::make_shared<Tesses::Framework::Streams::MemoryStream>(true);
 
         std::function<void(Tesses::Framework::Filesystem::VFSPath)> walkFS = [&ignored_files,vfs,&ensureString,&ensureResource,&ms,&walkFS,&writeInt](Tesses::Framework::Filesystem::VFSPath path)->void {
            
             if(vfs->DirectoryExists(path))
             {
 
-                ms.WriteByte(1);
+                ms->WriteByte(1);
                 std::vector<std::string> paths;
                 for(auto item : vfs->EnumeratePaths(path))
                 {
@@ -110,17 +110,17 @@ namespace Tesses::CrossLang
                     if(vfs->DirectoryExists(item) || vfs->RegularFileExists(item))
                         paths.push_back(item.GetFileName());
                 }
-                writeInt(&ms,(uint32_t)paths.size());
+                writeInt(ms,(uint32_t)paths.size());
                 for(auto item : paths)
                 {
-                    writeInt(&ms,ensureString(item));
+                    writeInt(ms,ensureString(item));
                     walkFS(path / item);
                 }
             }
             else if(vfs->RegularFileExists(path))
             {
-                ms.WriteByte(0);
-                writeInt(&ms,ensureResource(path.ToString()));
+                ms->WriteByte(0);
+                writeInt(ms,ensureResource(path.ToString()));
             }
         };
 
@@ -166,14 +166,14 @@ namespace Tesses::CrossLang
             auto strm2 = vfs->OpenFile(res,"rb");
             writeInt(strm,(uint32_t)strm2->GetLength());
             strm2->CopyTo(strm);
-            delete strm2;
+            
         }
         strm->WriteBlock((const uint8_t*)"ARCV",4);
-        writeInt(strm,(uint32_t)ms.GetLength());
-        ms.Seek(0,Tesses::Framework::Streams::SeekOrigin::Begin);
-        ms.CopyTo(strm);
+        writeInt(strm,(uint32_t)ms->GetLength());
+        ms->Seek(0,Tesses::Framework::Streams::SeekOrigin::Begin);
+        ms->CopyTo(strm);
     }
-    std::pair<std::pair<std::string,TVMVersion>,std::string> CrossArchiveExtract(Tesses::Framework::Streams::Stream* strm,Tesses::Framework::Filesystem::VFS* vfs)
+    std::pair<std::pair<std::string,TVMVersion>,std::string> CrossArchiveExtract(std::shared_ptr<Tesses::Framework::Streams::Stream> strm,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs)
     {
         auto ensure = [strm](uint8_t* buffer,size_t count)->void{
 
@@ -252,7 +252,7 @@ namespace Tesses::CrossLang
                         strm2->WriteBlock(buff,read);
                     offset+=read;
                 } while(read > 0);
-                delete strm2;
+                
                 resource_id++;
             }
 

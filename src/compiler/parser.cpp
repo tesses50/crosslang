@@ -718,14 +718,14 @@ namespace Tesses::CrossLang
                 CodeGen gen;
                 gen.GenRoot(n);
 
-                Tesses::Framework::Streams::MemoryStream ms(true);
+                auto ms = std::make_shared<Tesses::Framework::Streams::MemoryStream>(true);
                 
-                gen.Save(nullptr,&ms);
+                gen.Save(nullptr,ms);
 
-                ms.Seek(0, Tesses::Framework::Streams::SeekOrigin::Begin);
+                ms->Seek(0, Tesses::Framework::Streams::SeekOrigin::Begin);
 
                 TFile* f = TFile::Create(ls);
-                f->Load(gc,&ms);
+                f->Load(gc,ms);
 
                 node = TObject2SyntaxNode(env->LoadFile(gc,f));
             }

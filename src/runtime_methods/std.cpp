@@ -844,14 +844,14 @@ namespace Tesses::CrossLang
     static TObject TypeIsStream(GCList& ls, std::vector<TObject> args)
     {
         if(args.empty()) return nullptr;
-        TStreamHeapObject* strm;
-        return GetArgumentHeap(args,0,strm);
+        std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
+        return GetArgument(args,0,strm);
     }
     static TObject TypeIsVFS(GCList& ls, std::vector<TObject> args)
     {
         if(args.empty()) return nullptr;
-        TVFSHeapObject* vfs;
-        return GetArgumentHeap(args,0,vfs);
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+        return GetArgument(args,0,vfs);
     }
 
     static TObject TypeIsDateTime(GCList& ls, std::vector<TObject> args)
@@ -862,23 +862,23 @@ namespace Tesses::CrossLang
     }
     static TObject New_SubdirFilesystem(GCList& ls, std::vector<TObject> args)
     {
-        TVFSHeapObject* vfsho;
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
 
         Tesses::Framework::Filesystem::VFSPath path;
 
-        if(GetArgumentHeap(args,0,vfsho) && GetArgumentAsPath(args,1,path))
+        if(GetArgument(args,0,vfs) && GetArgumentAsPath(args,1,path))
         {
-            return TVFSHeapObject::Create(ls,new Tesses::Framework::Filesystem::SubdirFilesystem(new TObjectVFS(ls.GetGC(),vfsho),path,true));
+            return std::make_shared<Tesses::Framework::Filesystem::SubdirFilesystem>(vfs,path);
         }
         return nullptr;
     }
     static TObject New_MountableFilesystem(GCList& ls, std::vector<TObject> args)
     {
-        TVFSHeapObject* vfsho;
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
 
-        if(GetArgumentHeap(args,0,vfsho))
+        if(GetArgument(args,0,vfs))
         {
-            return TVFSHeapObject::Create(ls,new Tesses::Framework::Filesystem::MountableFilesystem(new TObjectVFS(ls.GetGC(),vfsho),true));
+            return std::make_shared<Tesses::Framework::Filesystem::MountableFilesystem>(vfs);
         }
         return nullptr;
     }
@@ -887,13 +887,13 @@ namespace Tesses::CrossLang
         bool writable;
         if(GetArgument(args,0,writable))
         {
-            return TStreamHeapObject::Create(ls,new Tesses::Framework::Streams::MemoryStream(writable));
+            return std::make_shared<Tesses::Framework::Streams::MemoryStream>(writable);
         }
         return nullptr;
     }
     static TObject New_MemoryFilesystem(GCList& ls, std::vector<TObject> args)
     {
-        return TVFSHeapObject::Create(ls, new Tesses::Framework::Filesystem::MemoryFilesystem());
+        return std::make_shared<Tesses::Framework::Filesystem::MemoryFilesystem>();
     }
 
     static TObject New_Filesystem(GCList& ls, std::vector<TObject> args)
@@ -901,7 +901,7 @@ namespace Tesses::CrossLang
         TDictionary* dict;
         if(GetArgumentHeap(args,0,dict))
         {
-            return TVFSHeapObject::Create(ls, new TObjectVFS(ls.GetGC(),dict));
+            return std::make_shared<TObjectVFS>(ls.GetGC(),dict);
         }
         return nullptr;
     }
@@ -910,7 +910,7 @@ namespace Tesses::CrossLang
         TDictionary* dict;
         if(GetArgumentHeap(args,0,dict))
         {
-            return TStreamHeapObject::Create(ls, new TObjectStream(ls.GetGC(),dict));
+            return std::make_shared<TObjectStream>(ls.GetGC(), dict);
         }
         return nullptr;
     }
@@ -960,6 +960,62 @@ namespace Tesses::CrossLang
         
         if(std::holds_alternative<Tesses::Framework::Filesystem::VFSPath>(_obj)) return "Path";
         if(std::holds_alternative<TDateTime>(_obj)) return "DateTime";
+        if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Streams::Stream>>(_obj))
+        {
+            auto strm = std::get<std::shared_ptr<Tesses::Framework::Streams::Stream>>(_obj);
+            if(strm != nullptr)
+            {
+                auto netStrm = std::dynamic_pointer_cast<Tesses::Framework::Streams::NetworkStream>(strm);
+                if(netStrm != nullptr)
+                {
+                    return "NetworkStream";
+                }
+                
+
+                
+            }
+            return "Stream";
+        }
+        if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Http::IHttpServer>>(_obj))
+        {
+            auto svr = std::get<std::shared_ptr<Tesses::Framework::Http::IHttpServer>>(_obj);
+            if(svr != nullptr)
+            {
+                auto fileServer = std::dynamic_pointer_cast<Tesses::Framework::Http::FileServer>(svr);
+                auto mountableServer = std::dynamic_pointer_cast<Tesses::Framework::Http::MountableServer>(svr);
+                if(fileServer != nullptr)
+                {
+                    return "FileServer";
+                }
+                if(mountableServer != nullptr)
+                {
+                    return "MountableServer";
+                }
+                
+            }
+            return "HttpServer";
+            
+        }
+        if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Filesystem::VFS>>(_obj))
+        {
+            auto vfs = std::get<std::shared_ptr<Tesses::Framework::Filesystem::VFS>>(_obj);
+            if(vfs != nullptr)
+            {
+                auto localVFS = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::LocalFilesystem>(vfs);
+
+                auto mountableVFS = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::MountableFilesystem>(vfs);
+
+
+                auto subFS = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::SubdirFilesystem>(vfs);
+
+                if(localVFS != nullptr) return "LocalFilesystem";
+                if(subFS != nullptr) return "SubdirFilesystem";
+                if(mountableVFS != nullptr) return "MountableFilesystem";
+                
+                
+            }
+            return "VFS";
+        }
         if(std::holds_alternative<THeapObjectHolder>(_obj))
         {
             auto obj = std::get<THeapObjectHolder>(_obj).obj;
@@ -974,9 +1030,7 @@ namespace Tesses::CrossLang
             auto byteArray = dynamic_cast<TByteArray*>(obj);
             auto native = dynamic_cast<TNative*>(obj);
             auto any = dynamic_cast<TAny*>(obj);
-            auto vfs = dynamic_cast<TVFSHeapObject*>(obj);
-            auto strm = dynamic_cast<TStreamHeapObject*>(obj);
-            auto svr = dynamic_cast<TServerHeapObject*>(obj);
+            
             auto cse = dynamic_cast<CallStackEntry*>(obj);
             auto rootEnv = dynamic_cast<TRootEnvironment*>(obj);
             auto subEnv = dynamic_cast<TSubEnvironment*>(obj);
@@ -995,46 +1049,7 @@ namespace Tesses::CrossLang
             if(dynList != nullptr) return "DynamicList";
             if(aarray != nullptr) return "AssociativeArray";
             if(natObj != nullptr) return natObj->TypeName();
-            if(strm != nullptr)
-            {
-                auto netStrm = dynamic_cast<Tesses::Framework::Streams::NetworkStream*>(strm->stream);
-                if(netStrm != nullptr)
-                {
-                    return "NetworkStream";
-                }
-                
-
-                return "Stream";
-            }
-            if(svr != nullptr)
-            {
-                auto fileServer = dynamic_cast<Tesses::Framework::Http::FileServer*>(svr->server);
-                auto mountableServer = dynamic_cast<Tesses::Framework::Http::MountableServer*>(svr->server);
-                if(fileServer != nullptr)
-                {
-                    return "FileServer";
-                }
-                if(mountableServer != nullptr)
-                {
-                    return "MountableServer";
-                }
-                return "HttpServer";
-            }
-            if(vfs != nullptr)
-            {
-                auto localVFS = dynamic_cast<Tesses::Framework::Filesystem::LocalFilesystem*>(vfs->vfs);
-
-                auto mountableVFS = dynamic_cast<Tesses::Framework::Filesystem::MountableFilesystem*>(vfs->vfs);
-
-
-                auto subFS = dynamic_cast<Tesses::Framework::Filesystem::SubdirFilesystem*>(vfs->vfs);
-
-                if(localVFS != nullptr) return "LocalFilesystem";
-                if(subFS != nullptr) return "SubdirFilesystem";
-                if(mountableVFS != nullptr) return "MountableFilesystem";
-                
-                return "VFS";
-            }
+            
             if(dict != nullptr) return "Dictionary";
             if(list != nullptr) return "List";
             if(argWrapper != nullptr) return "ArgWrapper";
@@ -1221,6 +1236,7 @@ namespace Tesses::CrossLang
         gc->BarrierBegin();  
         
         env->permissions.canRegisterRoot=true;
+        RegisterHelpers(gc,env);
        
         auto date =env->EnsureDictionary(gc,"DateTime");
         date->DeclareFunction(gc, "Sleep","Sleep for a specified amount of milliseconds (multiply seconds by 1000 to get milliseconds)", {"ms"},DateTime_Sleep);
@@ -1258,8 +1274,8 @@ namespace Tesses::CrossLang
         newTypes->DeclareFunction(gc, "MountableFilesystem","Create a mountable filesystem",{"root"}, New_MountableFilesystem);
         newTypes->DeclareFunction(gc, "SubdirFilesystem","Create a subdir filesystem",{"fs","subdir"}, New_SubdirFilesystem);
         newTypes->DeclareFunction(gc, "MemoryStream","Create a memory stream",{"writable"}, New_MemoryStream);
-        newTypes->DeclareFunction(gc, "Stream","Create stream", {"strm"},New_Stream);
         newTypes->DeclareFunction(gc, "Filesystem","Create filesystem", {"fs"},New_Filesystem);
+        newTypes->DeclareFunction(gc, "Stream","Create stream", {"strm"},New_Stream);
 
         newTypes->DeclareFunction(gc, "MemoryFilesystem","Create in memory filesystem", {},New_MemoryFilesystem);
 

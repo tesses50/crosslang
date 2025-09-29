@@ -23,29 +23,33 @@ namespace Tesses::CrossLang
     }
     static TObject FS_CreateArchive(GCList& ls, std::vector<TObject> args)
     {
-        TVFSHeapObject* vfs;
-        TStreamHeapObject* strm;
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+        
+        std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
+        
         std::string name;
         std::string version;
         std::string info;
         std::string icon="";
         TVMVersion version2;
 
-        if(GetArgumentHeap(args,0,vfs) && GetArgumentHeap(args,1,strm) && GetArgument(args,2,name)  && GetArgument(args,4,info) && ((GetArgument(args,3,version) && TVMVersion::TryParse(version,version2)) || GetArgument(args,3,version2)))
+        if(GetArgument(args,0,vfs) && GetArgument(args,1,strm) && GetArgument(args,2,name)  && GetArgument(args,4,info) && ((GetArgument(args,3,version) && TVMVersion::TryParse(version,version2)) || GetArgument(args,3,version2)))
         {
             GetArgument(args,5,icon);
-            CrossArchiveCreate(vfs->vfs,strm->stream,name,version2,info,icon);
+            CrossArchiveCreate(vfs,strm,name,version2,info,icon);
         }
         return nullptr;
     }
     static TObject FS_ExtractArchive(GCList& ls, std::vector<TObject> args)
     {
-        TVFSHeapObject* vfs;
-        TStreamHeapObject* strm;
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+        
+        std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
+        
      
-        if(GetArgumentHeap(args,0,strm) && GetArgumentHeap(args,1,vfs))
+        if(GetArgument(args,0,strm) && GetArgument(args,1,vfs))
         {
-            auto res = CrossArchiveExtract(strm->stream,vfs->vfs);
+            auto res = CrossArchiveExtract(strm,vfs);
 
             TDictionary* dict = TDictionary::Create(ls);
             ls.GetGC()->BarrierBegin();
@@ -62,12 +66,13 @@ namespace Tesses::CrossLang
     {
         Tesses::Framework::Filesystem::VFSPath path;
 
-        TVFSHeapObject* vfs;
-        if(GetArgumentHeap(args,0,vfs) && GetArgumentAsPath(args,1,path))
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+        
+        if(GetArgument(args,0,vfs) && GetArgumentAsPath(args,1,path))
         {
-            auto txtFile = vfs->vfs->OpenFile(path,"rb");
+            auto txtFile = vfs->OpenFile(path,"rb");
             if(txtFile == nullptr) return "";
-            Tesses::Framework::TextStreams::StreamReader reader(txtFile,true);
+            Tesses::Framework::TextStreams::StreamReader reader(txtFile);
             return reader.ReadToEnd();
         }
         return "";
@@ -75,10 +80,11 @@ namespace Tesses::CrossLang
     static TObject FS_ReadAllBytes(GCList& ls, std::vector<TObject> args)
     {
         Tesses::Framework::Filesystem::VFSPath path;
-        TVFSHeapObject* vfs;
-        if(GetArgumentHeap(args,0,vfs) && GetArgumentAsPath(args,1,path))
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+        
+        if(GetArgument(args,0,vfs) && GetArgumentAsPath(args,1,path))
         {
-            auto txtFile = vfs->vfs->OpenFile(path,"rb");
+            auto txtFile = vfs->OpenFile(path,"rb");
             if(txtFile == nullptr) return nullptr;
             auto res = TByteArray::Create(ls);
             std::array<uint8_t,1024> data;
@@ -87,7 +93,7 @@ namespace Tesses::CrossLang
                 read = txtFile->ReadBlock(data.data(),data.size());
                 res->data.insert(res->data.end(),data.begin(),data.begin()+read);
             } while(read != 0);
-            delete txtFile;
+            
             return res;
         }
         return nullptr;
@@ -97,15 +103,15 @@ namespace Tesses::CrossLang
     static TObject FS_WriteAllText(GCList& ls, std::vector<TObject> args)
     {
         Tesses::Framework::Filesystem::VFSPath path;
-
-        TVFSHeapObject* vfs;
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+        
 
         std::string content;
-        if(GetArgumentHeap(args,0,vfs) && GetArgumentAsPath(args,1,path) && GetArgument(args,2,content))
+        if(GetArgument(args,0,vfs) && GetArgumentAsPath(args,1,path) && GetArgument(args,2,content))
         {
-            auto txtFile = vfs->vfs->OpenFile(path,"wb");
+            auto txtFile = vfs->OpenFile(path,"wb");
             if(txtFile == nullptr) return nullptr;
-            Tesses::Framework::TextStreams::StreamWriter writer(txtFile,true);
+            Tesses::Framework::TextStreams::StreamWriter writer(txtFile);
             writer.Write(content);
         }
         return nullptr;
@@ -114,15 +120,15 @@ namespace Tesses::CrossLang
     {
         Tesses::Framework::Filesystem::VFSPath path;
 
-        TVFSHeapObject* vfs;
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
 
         TByteArray* bArray;
-        if(GetArgumentHeap(args,0,vfs) && GetArgumentAsPath(args,1,path) && GetArgumentHeap(args,2,bArray))
+        if(GetArgument(args,0,vfs) && GetArgumentAsPath(args,1,path) && GetArgumentHeap(args,2,bArray))
         {
-            auto txtFile = vfs->vfs->OpenFile(path,"wb");
+            auto txtFile = vfs->OpenFile(path,"wb");
             if(txtFile == nullptr) return nullptr;
             txtFile->WriteBlock(bArray->data.data(),bArray->data.size());
-            delete txtFile;
+            
         }
         return nullptr;
     }
@@ -150,9 +156,9 @@ namespace Tesses::CrossLang
         gc->BarrierBegin();
         if(enableLocalFilesystem)
         {
-            TVFSHeapObject* vfs = TVFSHeapObject::Create(ls, new Tesses::Framework::Filesystem::LocalFilesystem());
+            
         
-            dict->SetValue("Local", vfs);
+            dict->SetValue("Local", Tesses::Framework::Filesystem::LocalFS);
             dict->DeclareFunction(gc, "MakeFull", "Make absolute path from relative path",{"path"},FS_MakeFull);
             dict->DeclareFunction(gc,"getCurrentPath","Get current path",{},FS_getCurrentPath);
             dict->DeclareFunction(gc,"setCurrentPath","Set the current path",{"path"},FS_setCurrentPath);

@@ -723,22 +723,22 @@ namespace Tesses::CrossLang {
 
     class CodeGen2 {
         public:
-              void Write(Tesses::Framework::Streams::Stream* strm, uint8_t* buffer, size_t len)
+    void Write(std::shared_ptr<Tesses::Framework::Streams::Stream> strm, uint8_t* buffer, size_t len)
     {
         strm->WriteBlock(buffer,len);
     }
-    void WriteInt(Tesses::Framework::Streams::Stream* strm,uint32_t v)
+    void WriteInt(std::shared_ptr<Tesses::Framework::Streams::Stream> strm,uint32_t v)
     {
         uint8_t buffer[4];
         BitConverter::FromUint32BE(buffer[0],v);
         Write(strm,buffer,4);
     }
-    void WriteString(Tesses::Framework::Streams::Stream* strm,std::string v)
+    void WriteString(std::shared_ptr<Tesses::Framework::Streams::Stream> strm,std::string v)
     {
         WriteInt(strm,(uint32_t)v.size());
         Write(strm,(uint8_t*)v.data(),v.size());
     }
-    void Save(Tesses::Framework::Filesystem::VFS* vfs, Tesses::Framework::Streams::Stream* stream)
+    void Save(std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, std::shared_ptr<Tesses::Framework::Streams::Stream> stream)
     {
 
         TVMVersion runtime_version(TVM_MAJOR,TVM_MINOR,TVM_PATCH,TVM_BUILD,TVM_VERSIONSTAGE);
@@ -941,7 +941,6 @@ namespace Tesses::CrossLang {
                 strm->CopyTo(stream);
             }
             
-            delete strm;
         }
         if(!this->icon.empty())
         {
@@ -1085,7 +1084,7 @@ namespace Tesses::CrossLang {
 
 
 
-    Tesses::Framework::Filesystem::VFSPath Assemble(Tesses::Framework::Filesystem::VFS* vfs)
+    Tesses::Framework::Filesystem::VFSPath Assemble(std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs)
     {
         using namespace Tesses::Framework::Filesystem;
         using namespace Tesses::Framework::TextStreams;
@@ -1104,7 +1103,7 @@ namespace Tesses::CrossLang {
                 else {
                     if(item.GetExtension() == ".tcasm")
                     {
-                        StreamReader reader(vfs->OpenFile(item,"rb"),true);
+                        StreamReader reader(vfs->OpenFile(item,"rb"));
                         
                         std::stringstream strm(reader.ReadToEnd(),std::ios_base::binary | std::ios_base::in);
                         Lex(item.ToString(), strm, tokens);
@@ -1124,7 +1123,7 @@ namespace Tesses::CrossLang {
         auto confFile = VFSPath() / "crossapp.json";
         if(vfs->FileExists(confFile))
         {
-            Tesses::Framework::TextStreams::StreamReader reader(vfs->OpenFile(confFile,"rb"),true);
+            Tesses::Framework::TextStreams::StreamReader reader(vfs->OpenFile(confFile,"rb"));
             auto jobj = Json::Decode(reader.ReadToEnd());
             JObject main;
             if(TryGetJToken(jobj,main))
@@ -1249,14 +1248,14 @@ namespace Tesses::CrossLang {
         vfs->CreateDirectory(VFSPath() / "bin");
         vfs->CreateDirectory(VFSPath() / "sections");
 
-        SubdirFilesystem sectionsdir(vfs,VFSPath() / "sections",false);
-        SubdirFilesystem resdir(vfs,VFSPath() / "res",false);
+        auto sectionsdir = std::make_shared<SubdirFilesystem>(vfs,VFSPath() / "sections");
+        auto resdir = std::make_shared<SubdirFilesystem>(vfs,VFSPath() / "res");
 
-        for(auto file : sectionsdir.EnumeratePaths(VFSPath()))
+        for(auto file : sectionsdir->EnumeratePaths(VFSPath()))
         {
-            if(file.GetExtension() == ".tsec" && sectionsdir.FileExists(file))
+            if(file.GetExtension() == ".tsec" && sectionsdir->FileExists(file))
             {
-                auto strm0 = sectionsdir.OpenFile(file,"rb");
+                auto strm0 = sectionsdir->OpenFile(file,"rb");
                 int64_t len = strm0->GetLength();
                 if(len > 4)
                 {
@@ -1269,15 +1268,15 @@ namespace Tesses::CrossLang {
                     strm0->ReadBlock(cg2.sections[off].second.data(), cg2.sections[off].second.size());
                 }
 
-                delete strm0;
+                
             }
         }
 
         
 
         auto strm = vfs->OpenFile(VFSPath() / "bin" / cg2.name + "-" + cg2.version.ToString() + ".crvm","wb");
-        cg2.Save(&resdir, strm);
-        delete strm;
+        cg2.Save(resdir, strm);
+        
 
 
         return VFSPath() / "bin" / cg2.name + "-" + cg2.version.ToString() + ".crvm";
