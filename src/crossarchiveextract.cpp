@@ -6,6 +6,7 @@ using namespace Tesses::Framework::Streams;
 
 int main(int argc, char** argv)
 {
+    Tesses::Framework::TF_Init();
     if(argc < 3)
     {
         printf("USAGE: %s <archive.crvm> <dirasroot>\n", argv[0]);

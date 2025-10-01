@@ -3,13 +3,14 @@ using namespace Tesses::Framework;
 using namespace Tesses::CrossLang;
 int main(int argc, char** argv)
 {
-    std::string name = argv[0];
+    TF_InitWithConsole();
+    std::string name = "boot.dol";
     Tesses::Framework::Filesystem::VFSPath exePath=Tesses::Framework::Filesystem::LocalFS->SystemToVFSPath(name);
     exePath.MakeAbsolute();
     exePath.ChangeExtension(".crvm");
 
 
-    TF_InitWithConsole();
+    
         
     GC gc;
     gc.Start();
@@ -23,7 +24,13 @@ int main(int argc, char** argv)
 
     if(env->HasVariable("WebAppMain"))
     {
-        Args args(argc, argv);
+        std::vector<std::string> argsls={"boot.dol"};
+        for(int i = 0; i < argc; i++)
+        {
+            argsls.push_back(argv[i]);
+        }
+
+        Args args(argsls);
         int port = 4206;
         for(auto& item : args.options)
         {
@@ -60,7 +67,7 @@ int main(int argc, char** argv)
     else {
          TList* args = TList::Create(ls);
          args->Add(exePath.ToString());
-        for(int arg=1;arg<argc;arg++)
+        for(int arg=0;arg<argc;arg++)
             args->Add(argv[arg]);
         auto res = env->CallFunction(ls,"main",{args});
         int64_t iresult;

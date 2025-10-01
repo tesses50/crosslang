@@ -17,6 +17,7 @@ void Help(const char* filename)
 }
 int main(int argc, char** argv)
 {
+    Tesses::Framework::TF_Init();
     std::string name="out";
    std::string info="{}";
    TVMVersion version;

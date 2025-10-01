@@ -11,6 +11,7 @@ int main(int argc, char** argv)
     using namespace Tesses::Framework::Streams;
     using namespace Tesses::Framework::Filesystem;
     using namespace Tesses::CrossLang;
+    TF_Init();
 
     if(argc < 3)
     {

@@ -8,6 +8,7 @@
 #include <fstream>
 int main(int argc,char** argv)
 {
+    Tesses::Framework::TF_Init();
     std::string p = argv[0];
     auto emptyThumb =Tesses::Framework::Platform::Environment::GetRealExecutablePath(p).GetParent().GetParent() / "share" / "icons" / "crosslang.png";
     

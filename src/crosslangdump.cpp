@@ -265,6 +265,7 @@ void DumpFile(std::filesystem::path p)
 }
 int main(int argc, char** argv)
 {
+    Tesses::Framework::TF_Init();
     for(int i = 1; i < argc; i++)
     {
         DumpFile(argv[i]);

@@ -12,10 +12,12 @@ void help(char* program)
 }
 int main(int argc, char** argv)
 {
+    
     using namespace Tesses::Framework;
     using namespace Tesses::Framework::Streams;
     using namespace Tesses::Framework::Filesystem;
     using namespace Tesses::CrossLang;
+    TF_Init();
 
     std::string file;
     Tesses::Framework::Filesystem::VFSPath path = VFSPath::GetAbsoluteCurrentDirectory();

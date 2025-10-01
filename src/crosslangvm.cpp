@@ -18,6 +18,42 @@ int main(int argc, char** argv)
     TStd::RegisterStd(&gc,env);
     env->LoadFileWithDependencies(&gc, Tesses::Framework::Filesystem::LocalFS, Tesses::Framework::Filesystem::LocalFS->SystemToVFSPath(argv[1]));
     
+    if(env->HasVariable("WebAppMain"))
+    {
+        Args args(argc, argv);
+        int port = 4206;
+        for(auto& item : args.options)
+        {
+            if(item.first == "port")
+            {
+                port = std::stoi(item.second);
+            }
+        }
+        TList* args2 = TList::Create(ls);
+        for(auto& item : args.positional)
+        {
+            args2->Add(item);
+        }
+
+        auto res = env->CallFunction(ls, "WebAppMain", {args2});
+        auto svr2 = Tesses::CrossLang::ToHttpServer(&gc,res);
+        if(svr2 == nullptr) return 1;
+        Tesses::Framework::Http::HttpServer svr(port,svr2);
+        svr.StartAccepting();
+        TF_RunEventLoop();
+        TDictionary* _dict;
+        TClassObject* _co;
+        if(GetObjectHeap(res,_dict))
+        {
+            _dict->CallMethod(ls,"Close",{});
+        }
+        if(GetObjectHeap(res,_co))
+        {
+            _co->CallMethod(ls,"","Close",{});
+        }
+        TF_Quit();
+    }
+    else {
     TList* args = TList::Create(ls);
     for(int arg=1;arg<argc;arg++)
         args->Add(std::string(argv[arg]));
@@ -26,5 +62,6 @@ int main(int argc, char** argv)
     int64_t iresult;
     if(GetObject(res,iresult))
         return (int)iresult;
+    }
     return 0;
 }
