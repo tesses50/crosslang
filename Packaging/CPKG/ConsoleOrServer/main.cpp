@@ -3,13 +3,14 @@ using namespace Tesses::Framework;
 using namespace Tesses::CrossLang;
 int main(int argc, char** argv)
 {
+    TF_InitWithConsole();
     std::string name = argv[0];
     Tesses::Framework::Filesystem::VFSPath exePath=Tesses::Framework::Filesystem::LocalFS->SystemToVFSPath(name);
     exePath.MakeAbsolute();
     exePath.ChangeExtension(".crvm");
 
 
-    TF_InitWithConsole();
+    
         
     GC gc;
     gc.Start();
