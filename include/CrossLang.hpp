@@ -2023,6 +2023,8 @@ class GC {
             Tesses::Framework::Filesystem::VFSPath SystemToVFSPath(std::string path);
             void GetDate(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Date::DateTime& lastWrite, Tesses::Framework::Date::DateTime& lastAccess);
             void SetDate(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Date::DateTime lastWrite, Tesses::Framework::Date::DateTime lastAccess);
+            void Chmod(Tesses::Framework::Filesystem::VFSPath path, uint32_t mode);
+            bool StatVFS(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Filesystem::StatVFSData& data);
             void Close();
             ~TObjectVFS();
     };

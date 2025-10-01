@@ -501,6 +501,67 @@ namespace Tesses::CrossLang {
             
         }
     }
+    void TObjectVFS::Chmod(Tesses::Framework::Filesystem::VFSPath path, uint32_t mode)
+    {
+        TDictionary* dict;
+        
+        if(GetObjectHeap(this->obj, dict))
+        {
+            GCList ls(this->ls->GetGC());
+            dict->CallMethod(ls, "Chmod",{path,(int64_t)mode});
+            
+        }
+    }
+    bool TObjectVFS::StatVFS(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Filesystem::StatVFSData& data)
+    {
+        TDictionary* dict;
+        
+        if(GetObjectHeap(this->obj, dict))
+        {
+            GCList ls(this->ls->GetGC());
+            auto res = dict->CallMethod(ls, "StatVFS",{path});
+            int64_t _num;
+            TDictionary* _dict;
+            TObject _o;
+            if(GetObjectHeap(res,_dict))
+            {
+                this->ls->GetGC()->BarrierBegin();
+                _o = dict->GetValue("BlockSize");
+                if(GetObject(_o,_num)) data.BlockSize = (uint64_t)_num;
+
+                _o = dict->GetValue("FragmentSize");
+                if(GetObject(_o,_num)) data.FragmentSize = (uint64_t)_num;
+                _o = dict->GetValue("Blocks");
+                if(GetObject(_o,_num)) data.Blocks = (uint64_t)_num;
+                _o = dict->GetValue("BlocksFree");
+                if(GetObject(_o,_num)) data.BlocksFree = (uint64_t)_num;
+                _o = dict->GetValue("BlocksAvailable");
+                if(GetObject(_o,_num)) data.BlocksAvailable = (uint64_t)_num;
+                _o = dict->GetValue("TotalInodes");
+                if(GetObject(_o,_num)) data.TotalInodes = (uint64_t)_num;
+                _o = dict->GetValue("FreeInodes");
+                if(GetObject(_o,_num)) data.FreeInodes = (uint64_t)_num;
+                _o = dict->GetValue("AvailableInodes");
+                if(GetObject(_o,_num)) data.AvailableInodes = (uint64_t)_num;
+                _o = dict->GetValue("Id");
+                if(GetObject(_o,_num)) data.Id = (uint64_t)_num;
+                _o = dict->GetValue("Flags");
+                if(GetObject(_o,_num)) data.Flags = (uint64_t)_num;
+                _o = dict->GetValue("MaxNameLength");
+                if(GetObject(_o,_num)) data.MaxNameLength = (uint64_t)_num;
+                
+                
+                
+                
+                
+
+                this->ls->GetGC()->BarrierEnd();
+                return true;
+            }
+        }
+
+        return false;
+    }
     void TObjectVFS::Close()
     {
         TDictionary* dict;

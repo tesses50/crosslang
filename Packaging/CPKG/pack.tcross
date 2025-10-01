@@ -88,7 +88,8 @@ func BuildConsoleOrServerLinuxStatic(dir,cmake_toolchain)
             homepage = "https://crosslang.tesseslanguage.com/",
             executable_name = "crossapp",
             executable_can_be_renamed = true,
-            executable_runtime = $"linux-{dir}-static"
+            executable_runtime = $"linux-{dir}-static",
+            description = $"Runtime files for linux-{dir}-static",
     };
     
     var name = $"Tesses.CrossLang.Runtime.linux-{dir}-static";
@@ -170,6 +171,7 @@ func BuildConsoleOrServerLinuxShared(dir,$cmake_toolchain)
             maintainer = "Mike Nolan",
             repo = "https://onedev.site.tesses.net/crosslang",
             homepage = "https://crosslang.tesseslanguage.com/",
+            description = $"Runtime files for linux-{dir}",
             executable_name = "crossapp",
             executable_can_be_renamed = true,
             executable_runtime = $"linux-{dir}"
@@ -202,5 +204,23 @@ func main(args)
     {
         BuildConsoleOrServerLinuxStaticBasedOnTarget(static.target,static.cpu);
     }
+
+    var info = {
+            type = "archive",
+            maintainer = "Mike Nolan",
+            repo = "https://onedev.site.tesses.net/crosslang",
+            homepage = "https://crosslang.tesseslanguage.com/",
+            executable_name = "boot.dol",
+            executable_can_be_renamed = false,
+            executable_runtime = "wii",
+            description = $"Runtime files for wii",
+    };
+    
+    var name = $"Tesses.CrossLang.Runtime.wii";
+    
+    var subDir = new SubdirFilesystem(FS.Local,"publish"/"wii");
+    var pkgStrm = FS.Local.OpenFile("publish"/$"{name}-{VERSION}.crvm","wb");
+    FS.CreateArchive(subDir,pkgStrm, name ,VERSION, Json.Encode(info));
+    pkgStrm.Close();
 
 }

@@ -52,6 +52,16 @@ jobs:
     artifacts: crosslang-x86_64.tar.gz
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   - !CommandStep
+    name: Wii Build
+    runInContainer: true
+    image: onedev.site.tesses.net/dependencies/wiidev:latest
+    interpreter: !DefaultInterpreter
+      commands: |
+        cd Packaging
+        bash wiibuild.sh
+    useTTY: true
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+  - !CommandStep
     name: Build and Publish Deb Package
     runInContainer: true
     image: onedev.site.tesses.net/dependencies/debbuilder/jammy:latest
@@ -78,12 +88,7 @@ jobs:
     runInContainer: true
     image: onedev.site.tesses.net/dependencies/debbuilder/plucky:latest
     interpreter: !DefaultInterpreter
-      commands: |
-        apt update -y
-        apt install -y pkg-config 
-        cd Packaging/Linux
-        bash build-ubuntu-plucky.sh
-        bash push-ubuntu-plucky.sh
+      commands: "apt update -y\napt install -y pkg-config \ncd Packaging/Linux\nbash build-ubuntu-plucky.sh\nbash push-ubuntu-plucky.sh\n"
     envVars:
     - name: GITEA_AUTH
       value: '@secret:GITEA_AUTH@'

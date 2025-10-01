@@ -3900,7 +3900,47 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc, nullptr);
                         return false;
                     }
-                    
+                    if(key == "Chmod")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath path;
+                        int64_t mode;
+                        if(GetArgumentAsPath(args,0,path) && GetArgument(args,0,mode))
+                        {
+                            vfs->Chmod(path,(uint32_t)mode);
+                        }
+                        
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "StatVFS")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath path;
+                        
+                        if(GetArgumentAsPath(args,0,path))
+                        {
+                            Tesses::Framework::Filesystem::StatVFSData data;
+                            if(vfs->StatVFS(path,data))
+                            {
+                                cse.back()->Push(gc, TDictionary::Create(ls,{
+                                    TDItem("BlockSize", (int64_t)data.BlockSize),
+                                    TDItem("FragmentSize",(int64_t)data.FragmentSize),
+                                    TDItem("Blocks",(int64_t)data.Blocks),
+                                    TDItem("BlocksFree",(int64_t)data.BlocksFree),
+                                    TDItem("BlocksAvailable", (int64_t)data.BlocksAvailable),
+                                    TDItem("TotalInodes", (int64_t)data.TotalInodes),
+                                    TDItem("FreeInodes",(int64_t)data.FreeInodes),
+                                    TDItem("AvailableInodes",(int64_t)data.AvailableInodes),
+                                    TDItem("Id",(int64_t)data.Id),
+                                    TDItem("Flags",(int64_t)data.Flags),
+                                    TDItem("MaxNameLength",(int64_t)data.MaxNameLength)
+                                }));
+                                return false;
+                            }
+                        }
+
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
                     cse.back()->Push(gc, nullptr);
                     return false;
                 }

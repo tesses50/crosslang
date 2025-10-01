@@ -24,3 +24,4 @@ FetchContent_MakeAvailable(TessesCrossLang)
 
 add_executable(boot main.cpp)
 target_link_libraries(boot PUBLIC crosslang_static)
+ogc_create_dol(boot)
