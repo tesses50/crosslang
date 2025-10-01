@@ -57,7 +57,7 @@ jobs:
     image: onedev.site.tesses.net/dependencies/wiidev:latest
     interpreter: !DefaultInterpreter
       commands: |
-        cd Packaging
+        cd Packaging/CPKG
         bash wiibuild.sh
     useTTY: true
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
