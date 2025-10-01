@@ -9,6 +9,7 @@
 #ifdef CROSSLANG_ENABLE_TERMIOS
 #include <termios.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
 #endif
 namespace Tesses::CrossLang {
     #ifdef CROSSLANG_ENABLE_TERMIOS
