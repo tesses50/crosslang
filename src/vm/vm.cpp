@@ -7273,7 +7273,8 @@ namespace Tesses::CrossLang {
             {
                 cse->env->DeclareVariable(trimStart(closure->closure->args[i]), args[i]);
             }
-            if(i == closure->closure->args.size()-1)
+            std::string back = closure->closure->args.empty() ? std::string() : closure->closure->args.back();
+            if(i == closure->closure->args.size()-1 && back.size() > 2 && back[0] == '$' && back[1] == '$')
             {
                 auto argName = closure->closure->args[i];
                 auto lsArgs = TList::Create(ls);

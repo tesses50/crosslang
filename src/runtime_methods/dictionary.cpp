@@ -2,6 +2,50 @@
 
 namespace Tesses::CrossLang
 {
+    TObject Dictionary_FindByKey(GCList& ls, std::vector<TObject> args)
+    {
+        TList* dest = TList::Create(ls);
+        ls.GetGC()->BarrierBegin();
+        std::string key;
+        if(GetArgument(args,1,key))
+        {
+
+            std::function<void(TObject)> crawl;
+            crawl = [&](TObject o) -> void {
+                TDictionary* dict;
+                TList* list;
+                TAssociativeArray* aa;
+                if(GetObjectHeap(o,aa))
+                {
+                    std::string k0;
+                    for(auto& item : aa->items)
+                    {
+                        
+                        if(GetObject(item.first,k0) && k0 == key) dest->Add(item.second);
+                        crawl(item.second);
+                    }
+                }
+                if(GetObjectHeap(o,dict))
+                {
+                    for(auto& item : dict->items)
+                    {
+                        if(item.first == key) dest->Add(item.second);
+                        crawl(item.second);
+                    }
+                }
+                if(GetObjectHeap(o,list))
+                {
+                    for(auto& item : list->items)
+                    {
+                        crawl(item);
+                    }
+                }
+            };
+            crawl(args[0]);
+        }
+        ls.GetGC()->BarrierEnd();
+        return dest;
+    }
     TObject Dictionary_Items(GCList& ls, std::vector<TObject> args)
     {
         
@@ -94,7 +138,7 @@ namespace Tesses::CrossLang
         
 
         gc->BarrierBegin();
-       
+        dict->DeclareFunction(gc, "FindByKey","Scan object recursively, return list of items with key",{"obj","key"}, Dictionary_FindByKey);
         dict->DeclareFunction(gc, "Items","Get Dictionary Item Enumerable, for the each(item : Dictionary.Items(myDict)){item.Key; item.Value;}",{"dictionary"},Dictionary_Items);
         dict->DeclareFunction(gc, "SetField","Set a field in dictionary",{"dict","key","value"},Dictionary_SetField);
         dict->DeclareFunction(gc, "GetField","Get a field in dictionary",{"dict","key"},Dictionary_GetField);
