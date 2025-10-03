@@ -5,9 +5,11 @@ namespace Tesses::CrossLang {
     {
         std::shared_ptr<Tesses::Framework::Streams::Stream> src;
         std::shared_ptr<Tesses::Framework::Streams::Stream> dest;
+        double precision=1000.0;
         TCallable* callable;
         if(GetArgument(args,0,src) && GetArgument(args,1,dest) && GetArgumentHeap(args,2,callable))
         {
+            GetArgument(args,3,precision);
             auto len = src->GetLength();
             callable->Call(ls,{0.0});
             if(len > 0)
@@ -25,7 +27,7 @@ namespace Tesses::CrossLang {
                     pos += (int64_t)read;
 
                     double percent = ((double)pos / len);
-                    percent *= 10000.0;
+                    percent *= precision;
                     
                     curPercent = (int)percent;
 
@@ -33,7 +35,7 @@ namespace Tesses::CrossLang {
                     if(curPercent > lastPercent)
                     {
                         lastPercent = curPercent;
-                        callable->Call(ls,{curPercent/10000.0});
+                        callable->Call(ls,{curPercent/precision});
                     }
 
 
