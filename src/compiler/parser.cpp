@@ -863,7 +863,7 @@ namespace Tesses::CrossLang
                     EnsureSymbol("]");
                     continue;
                 }
-                if(tokens[i].type != LexTokenType::Identifier) throw std::exception();
+                if(tokens[i].type != LexTokenType::Identifier) throw std::runtime_error("Not an identifier (member)");
                 std::string name = tokens[i].text; 
                 if(name == "operator")
                 {

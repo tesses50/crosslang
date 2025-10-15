@@ -129,11 +129,14 @@ namespace Tesses::CrossLang
 
     void GC::BarrierBegin()
     {
+        
         this->mtx->Lock();
     }
     void GC::BarrierEnd()
     {  
+        
         this->mtx->Unlock();
+        
     }
     void GC::Watch(TObject obj)
     {

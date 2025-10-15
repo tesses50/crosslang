@@ -182,7 +182,7 @@ namespace Tesses::CrossLang {
                 
                 if(GetObjectHeap(obj,callable))
                 {
-                    return ToBool(callable->Call(ls,{}));
+                    return ToBool(callable->Call(ls,{right}));
                    
                 }
                 else if(std::holds_alternative<std::nullptr_t>(right)) {
@@ -235,9 +235,21 @@ namespace Tesses::CrossLang {
 
                             }
                         }
+                        else {
 
-                    }
+                            
+                            return dict == std::get<THeapObjectHolder>(right).obj;
+                        }  
 
+                    } else {
+
+                            return dict == std::get<THeapObjectHolder>(right).obj;
+                        }
+
+                }
+                else {
+
+                    return dict == std::get<THeapObjectHolder>(right).obj;
                 }
                 return false;
 
@@ -404,7 +416,7 @@ namespace Tesses::CrossLang {
         auto env = cse.back()->env;
         if(!env->GetRootEnvironment()->HandleBreakpoint(gc, env, res))
         {
-            throw std::exception();
+            throw std::runtime_error("Breakpoint unhandled");
         }
 
         return false;
