@@ -6967,7 +6967,7 @@ namespace Tesses::CrossLang {
 
             stk->mustReturn=false;
             }
-             catch(VMByteCodeException& ex)
+            catch(...)
             {
                 
                 {
@@ -6997,71 +6997,7 @@ namespace Tesses::CrossLang {
                         item->Call(ls2,{});
                     }
                 }
-                throw ex;
-            }
-             catch(VMException& ex)
-            {
-                
-                {
-                    gc->BarrierBegin();
-                    GCList ls(gc);
-                    std::vector<TCallable*> callable;
-                    while(!cse.empty())
-                    {
-                        auto r= cse.back();
-                        auto e = r->env;
-                        for(uint32_t i = 0; i < r->scopes; i++)
-                        {
-                            if(!e->defers.empty())
-                            {
-                                ls.Add(e);
-                                callable.insert(callable.end(), e->defers.begin(),e->defers.end());
-                            }
-                            e = e->GetParentEnvironment();
-                        }
-                        cse.erase(cse.end()-1);
-                    }
-                    gc->BarrierEnd();
-
-                    for(auto item : callable) 
-                    {
-                        GCList ls2(gc);
-                        item->Call(ls2,{});
-                    }
-                }
-                throw ex;
-            }
-             catch(std::exception& ex)
-            {
-                
-                {
-                    gc->BarrierBegin();
-                    GCList ls(gc);
-                    std::vector<TCallable*> callable;
-                    while(!cse.empty())
-                    {
-                        auto r= cse.back();
-                        auto e = r->env;
-                        for(uint32_t i = 0; i < r->scopes; i++)
-                        {
-                            if(!e->defers.empty())
-                            {
-                                ls.Add(e);
-                                callable.insert(callable.end(), e->defers.begin(),e->defers.end());
-                            }
-                            e = e->GetParentEnvironment();
-                        }
-                        cse.erase(cse.end()-1);
-                    }
-                    gc->BarrierEnd();
-
-                    for(auto item : callable) 
-                    {
-                        GCList ls2(gc);
-                        item->Call(ls2,{});
-                    }
-                }
-                throw ex;
+                std::rethrow_exception(std::current_exception());
             }
             if(cse.size()==1)
             {
