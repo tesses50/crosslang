@@ -116,13 +116,30 @@ namespace Tesses::CrossLang {
 
     TObject Sqlite_Escape(GCList& ls, std::vector<TObject> args)
     {
+        int64_t n;
+        double d;
+        bool b;
+
+
         std::string str;
         if(GetArgument(args,0,str))
         {
             return SQLiteDatabase::Escape(str);
         }
+        if(GetArgument(args,0,n))
+        {
+            return std::to_string(n);
+        }
+        if(GetArgument(args,0,b))
+        {
+            return b ? "1" : "0";
+        }
+        if(GetArgument(args,0,d))
+        {
+            return std::to_string(d);
+        }
 
-        return Undefined();
+        return "NULL";
     }
     
      TObject Sqlite_Close(GCList& ls, std::vector<TObject> args)

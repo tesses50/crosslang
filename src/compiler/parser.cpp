@@ -318,6 +318,38 @@ namespace Tesses::CrossLang
                         })
                     }));
                 }
+                else if(tagName == "plink")
+                {
+                    EnsureSymbol("(");
+                    SyntaxNode expr = ParseExpression();
+                    
+                    EnsureSymbol(")");
+                    EnsureSymbol(">");
+
+                    nodes.push_back(AdvancedSyntaxNode::Create(CompoundAssignExpression,true,{
+                        AdvancedSyntaxNode::Create(AddExpression,true,{
+                            AdvancedSyntaxNode::Create(GetVariableExpression,true,{var}),
+                            AdvancedSyntaxNode::Create(AddExpression,true,{
+                                "<p>",
+                                AdvancedSyntaxNode::Create(AddExpression,true,{
+                                    AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                                        AdvancedSyntaxNode::Create(GetFieldExpression,true,{
+                                            AdvancedSyntaxNode::Create(GetFieldExpression,true,{
+                                                AdvancedSyntaxNode::Create(GetVariableExpression,true,{"Net"}),
+                                                "Http"
+                                            })
+                                            ,
+                                            "HtmlP"
+                                        }),
+                                        expr
+                                    })
+                                    ,
+                                    "</p>"
+                                })
+                            })
+                        })
+                    }));
+                }
                 else if(tagName == "if")
                 {
                     EnsureSymbol("(");

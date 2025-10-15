@@ -1327,6 +1327,26 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }
+
+    static TObject Net_Http_HtmlP(GCList& ls, std::vector<TObject> args)
+    {
+        std::string str;
+        if(GetArgument(args,0,str))
+        {
+            return HttpUtils::HtmlP(str);
+        }
+        return "";
+    }
+
+    static TObject Net_Http_StatusCodeString(GCList& ls, std::vector<TObject> args)
+    {
+        int64_t sc;
+        if(GetArgument(args,0,sc))
+        {
+            return HttpUtils::StatusCodeString((StatusCode)sc);
+        }
+        return "";
+    }
     
     void TStd::RegisterNet(GC* gc, TRootEnvironment* env)
     {
@@ -1337,6 +1357,8 @@ namespace Tesses::CrossLang
         
         TDictionary* http = TDictionary::Create(ls);
         TDictionary* smtp = TDictionary::Create(ls);
+        http->DeclareFunction(gc, "StatusCodeString", "Get the status code string",{"statusCode"},Net_Http_StatusCodeString);
+        http->DeclareFunction(gc, "HtmlP", "Linkify text", {"text"},Net_Http_HtmlP);
         http->DeclareFunction(gc, "HtmlEncode","Html encode",{"param"}, Net_HtmlEncode);
        
         http->DeclareFunction(gc, "UrlEncode","Url encode query param",{"param"}, Net_UrlEncode);
