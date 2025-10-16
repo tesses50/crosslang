@@ -3489,6 +3489,19 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc, nullptr);
                         return false;
                     }
+                    if(key == "CopyToLimit")
+                    {
+                        std::shared_ptr<Tesses::Framework::Streams::Stream> data;
+                        int64_t cnt;
+                        int64_t buffSize;
+                        if(GetArgument(args,0,data) && GetArgument(args,1,cnt))
+                        {
+                            if(!GetArgument<int64_t>(args,2,buffSize)) buffSize=1024;
+                            strm->CopyToLimit(data,(uint64_t)cnt,(size_t)buffSize);
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
                     if(key == "Flush")
                     {
                         strm->Flush();

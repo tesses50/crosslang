@@ -5,6 +5,35 @@
 namespace Tesses::CrossLang {
     #if defined(TESSESFRAMEWORK_ENABLE_SQLITE)
     using namespace Tesses::Framework::Serialization;
+     TObject Sqlite_Escape(GCList& ls, std::vector<TObject> args)
+    {
+        int64_t n;
+        double d;
+        bool b;
+
+
+        std::string str;
+        if(GetArgument(args,0,str))
+        {
+            return SQLiteDatabase::Escape(str);
+        }
+        if(GetArgument(args,0,n))
+        {
+            return std::to_string(n);
+        }
+        if(GetArgument(args,0,b))
+        {
+            return b ? "1" : "0";
+        }
+        if(GetArgument(args,0,d))
+        {
+            return std::to_string(d);
+        }
+
+        return "NULL";
+    }
+    
+     
     class SQLiteObject : public TNativeObject
     {   
         public:
@@ -34,11 +63,7 @@ namespace Tesses::CrossLang {
             {
                 if(name == "Close") this->Close();
                 if(name == "Escape") {
-                    std::string str;
-                    if(GetArgument(args,0,str))
-                    {
-                        return SQLiteDatabase::Escape(str); //here for completeness
-                    }
+                    return Sqlite_Escape(ls,args);
                 }
                 if(name == "Exec")
                 {
@@ -114,35 +139,7 @@ namespace Tesses::CrossLang {
         
     }
 
-    TObject Sqlite_Escape(GCList& ls, std::vector<TObject> args)
-    {
-        int64_t n;
-        double d;
-        bool b;
-
-
-        std::string str;
-        if(GetArgument(args,0,str))
-        {
-            return SQLiteDatabase::Escape(str);
-        }
-        if(GetArgument(args,0,n))
-        {
-            return std::to_string(n);
-        }
-        if(GetArgument(args,0,b))
-        {
-            return b ? "1" : "0";
-        }
-        if(GetArgument(args,0,d))
-        {
-            return std::to_string(d);
-        }
-
-        return "NULL";
-    }
-    
-     TObject Sqlite_Close(GCList& ls, std::vector<TObject> args)
+   TObject Sqlite_Close(GCList& ls, std::vector<TObject> args)
     {
         SQLiteObject* sql;
         if(GetArgumentHeap(args,0,sql))

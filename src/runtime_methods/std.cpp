@@ -959,6 +959,7 @@ namespace Tesses::CrossLang
         if(std::holds_alternative<std::string>(_obj)) return "String";
         
         if(std::holds_alternative<Tesses::Framework::Filesystem::VFSPath>(_obj)) return "Path";
+        if(std::holds_alternative<TVMVersion>(_obj)) return "Version";
         if(std::holds_alternative<TDateTime>(_obj)) return "DateTime";
         if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Streams::Stream>>(_obj))
         {
@@ -1373,6 +1374,8 @@ namespace Tesses::CrossLang
         env->DeclareVariable("Version", TDictionary::Create(ls,{
             TDItem("Parse",TExternalMethod::Create(ls,"Parse version from string",{"versionStr"},[](GCList& ls, std::vector<TObject> args)->TObject{
                 std::string str;
+                TVMVersion v;
+                if(GetArgument(args,0,v)) return v;
                 if(GetArgument(args, 0, str))
                 {
                     TVMVersion version;

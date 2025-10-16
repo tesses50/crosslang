@@ -52,6 +52,6 @@ namespace Tesses::CrossLang {
     void TStd::RegisterHelpers(GC* gc, TRootEnvironment* env)
     {
         auto helpers=env->EnsureDictionary(gc,"Helpers");
-        helpers->DeclareFunction(gc,"CopyToProgress","Copy Stream to another (but with progress event)",{"src","dest","progressCB"},Helpers_CopyToProgress);
+        helpers->DeclareFunction(gc,"CopyToProgress","Copy Stream to another (but with progress event)",{"src","dest","progressCB","$precision"},Helpers_CopyToProgress);
     }
 }

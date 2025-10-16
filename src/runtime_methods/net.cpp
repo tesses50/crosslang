@@ -206,7 +206,41 @@ namespace Tesses::CrossLang
                     }
                     return _ls;
                 }
+                else if(key == "SetContentDisposition")
+                {
+                    std::string type;
+                    std::string filename;
+                    std::string fieldName;
 
+                    if(GetArgument(args,0,filename) && GetArgument(args,1,type))
+                    {
+                        ContentDisposition dispo;
+                        dispo.filename = filename;
+                        dispo.type = type;
+
+                        if(GetArgument(args,2, fieldName))
+                            dispo.fieldName = fieldName;
+                        
+                        this->dict->SetValue("Content-Disposition", dispo.ToString());
+                    }
+                    return nullptr;
+                }
+                else if(key == "TryGetContentDisposition")
+                {
+                    std::string cdStr;
+                    ContentDisposition cd;
+
+                    if(this->dict->TryGetFirst("Content-Disposition", cdStr) && ContentDisposition::TryParse(cdStr,cd))
+                    {
+                        return TDictionary::Create(ls,{
+                            TDItem("Type",cd.type),
+                            TDItem("FileName",cd.filename),
+                            TDItem("FieldName",cd.fieldName)
+                        });
+                    }
+
+                    return nullptr;
+                }
                 return Undefined();
             }
     };
@@ -380,6 +414,60 @@ namespace Tesses::CrossLang
                     TByteArray* ba;
                     if(GetArgumentHeap(args,0,ba))
                         ctx->SendBytes(ba->data);
+                }
+                else if(key == "GetUrlWithQuery")
+                {
+                    return ctx->GetUrlWithQuery();
+                }
+                else if(key == "GetOriginalPathWithQuery")
+                {
+                    return ctx->GetOriginalPathWithQuery();
+                }
+                else if(key == "MakeAbsolute")
+                {
+                    std::string path;
+                    if(GetArgument(args,0,path))
+                    {
+                        return ctx->MakeAbsolute(path);
+
+                    }
+                    return nullptr;
+                }
+                else if(key == "WithLocationHeader")
+                {
+                    std::string path;
+                    if(GetArgument(args,0,path))
+                    {
+                        int64_t sc;
+                        if(GetArgument(args,1,sc))
+                        {
+                            ctx->WithLocationHeader(path,(StatusCode)sc);
+                            return nullptr;
+                        }
+                        ctx->WithLocationHeader(path);
+                        
+                    }
+                    return this;
+                }
+                else if(key == "GetServerRoot")
+                {
+                    return ctx->GetServerRoot();
+                }
+                else if(key == "SendRedirect")
+                {
+                    std::string path;
+                    if(GetArgument(args,0,path))
+                    {
+                        int64_t sc;
+                        if(GetArgument(args,1,sc))
+                        {
+                            ctx->SendRedirect(path,(StatusCode)sc);
+                            return nullptr;
+                        }
+                        ctx->SendRedirect(path);
+
+                    }
+                    return nullptr;
                 }
                 else if(key == "WriteHeaders") ctx->WriteHeaders();
                 else if(key == "StartWebSocketSession") {
@@ -1422,10 +1510,17 @@ namespace Tesses::CrossLang
             return nullptr;
         });
         http->DeclareFunction(gc, "MountableServer","Create a server you can mount to, must mount parents before child",{"root"}, [](GCList& ls, std::vector<TObject> args)->TObject{
+            TCallable* call;
             TDictionary* dict;
             TClassObject* cls;
             std::shared_ptr<Tesses::Framework::Http::IHttpServer> mySvr;
-            if(GetArgumentHeap(args,0,dict))
+            if(GetArgumentHeap(args,0,call))
+            {
+                auto svr = std::make_shared<TObjectHttpServer>(ls.GetGC(), call);
+                return std::make_shared<MountableServer>(svr);
+                
+            }
+            else if(GetArgumentHeap(args,0,dict))
             {
                 auto svr = std::make_shared<TObjectHttpServer>(ls.GetGC(), dict);
                 return std::make_shared<MountableServer>(svr);
