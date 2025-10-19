@@ -3929,7 +3929,7 @@ namespace Tesses::CrossLang {
                     {
                         Tesses::Framework::Filesystem::VFSPath path;
                         int64_t mode;
-                        if(GetArgumentAsPath(args,0,path) && GetArgument(args,0,mode))
+                        if(GetArgumentAsPath(args,0,path) && GetArgument(args,1,mode))
                         {
                             vfs->Chmod(path,(uint32_t)mode);
                         }
