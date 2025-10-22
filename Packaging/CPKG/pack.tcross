@@ -42,6 +42,10 @@ var statics = [
         }
         
 ];
+var winStatics = [
+    "x64",
+    "x86"
+];
 func CPUS()
 {
     var p = Process.Start({
@@ -53,6 +57,51 @@ func CPUS()
     return ParseLong(ms.GetBytes().ToString().Replace("\n","").Replace("\r",""));
 }
 var nproc = CPUS();
+func BuildConsoleOrServerWindowsStatic(arch)
+{
+    Console.WriteLine($"Building Windows Static {arch}");
+    var build_dir = "builds" / $"win-{arch}";
+    var publish_dir = "publish" / $"win-{arch}";
+    FS.Local.CreateDirectory(build_dir);
+    FS.Local.CreateDirectory(publish_dir);
+
+    var args = ["-S","ConsoleOrServer","-B",build_dir.ToString(),"-DCROSSAPPPUBLISH_STATIC=ON"];
+   
+        args.Add($"-DCMAKE_TOOLCHAIN_FILE=WindowsToolchains/{arch}.cmake");
+    
+    Process.Start({
+        FileName = Env.GetRealExecutablePath("cmake").ToString(),
+        Arguments = args
+    }).Join();
+    
+   
+    var p = new Process();
+    p.FileName = Env.GetRealExecutablePath("make").ToString();
+    p.WorkingDirectory = build_dir.MakeAbsolute().ToString();
+    p.Arguments = [$"-j{nproc}"];
+    if(p.Start())
+        p.Join();
+    
+
+    mvFile(build_dir/"crossapp", publish_dir / "crossapp");
+    var info = {
+            type = "archive",
+            maintainer = "Mike Nolan",
+            repo = "https://onedev.site.tesses.net/crosslang",
+            homepage = "https://crosslang.tesseslanguage.com/",
+            executable_name = "crossapp",
+            executable_can_be_renamed = true,
+            executable_runtime = $"win-{arch}",
+            description = $"Runtime files for win-{arch}",
+    };
+    
+    var name = $"Tesses.CrossLang.Runtime.win-{arch}";
+    
+    var subDir = new SubdirFilesystem(FS.Local,publish_dir);
+    var pkgStrm = FS.Local.OpenFile("publish"/$"{name}-{VERSION}.crvm","wb");
+    FS.CreateArchive(subDir,pkgStrm, name ,VERSION, Json.Encode(info));
+    pkgStrm.Close();
+}
 func BuildConsoleOrServerLinuxStatic(dir,cmake_toolchain)
 {
     Console.WriteLine($"Building Linux Static {dir}");
@@ -194,6 +243,11 @@ func mvFile(src,dest)
 func main(args)
 {
     Console.WriteLine($"Got {nproc} cpus");  
+    each(var static : winStatics)
+    {
+        BuildConsoleOrServerWindowsStatic(static);
+    }
+
     BuildConsoleOrServerLinuxShared("x86_64");
     BuildConsoleOrServerLinuxShared("aarch64", "/opt/toolchains/arm64.cmake");
     BuildConsoleOrServerLinuxShared("armv7l", "/opt/toolchains/armhf.cmake");
@@ -204,7 +258,7 @@ func main(args)
     {
         BuildConsoleOrServerLinuxStaticBasedOnTarget(static.target,static.cpu);
     }
-
+   
     var info = {
             type = "archive",
             maintainer = "Mike Nolan",

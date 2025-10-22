@@ -73,7 +73,7 @@ jobs:
         bash build-ubuntu-jammy.sh
         bash push-ubuntu-jammy.sh
         apt update -y
-        apt install -y crosslang git
+        apt install -y crosslang git gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 gcc-mingw-w64-i686 g++-mingw-w64-i686
         cd ../CPKG
         bash pack_and_publish.sh
     envVars:
