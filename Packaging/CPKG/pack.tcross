@@ -42,10 +42,7 @@ var statics = [
         }
         
 ];
-var winStatics = [
-    "x64",
-    "x86"
-];
+
 func CPUS()
 {
     var p = Process.Start({
@@ -85,24 +82,7 @@ func BuildConsoleOrServerWindowsStatic(arch)
         p.Join();
     
 
-    mvFile(build_dir/"crossapp", publish_dir / "crossapp");
-    var info = {
-            type = "archive",
-            maintainer = "Mike Nolan",
-            repo = "https://onedev.site.tesses.net/crosslang",
-            homepage = "https://crosslang.tesseslanguage.com/",
-            executable_name = "crossapp.exe",
-            executable_can_be_renamed = true,
-            executable_runtime = $"win-{arch}",
-            description = $"Runtime files for win-{arch}",
-    };
     
-    var name = $"Tesses.CrossLang.Runtime.win-{arch}";
-    
-    var subDir = new SubdirFilesystem(FS.Local,publish_dir);
-    var pkgStrm = FS.Local.OpenFile("publish"/$"{name}-{VERSION}.crvm","wb");
-    FS.CreateArchive(subDir,pkgStrm, name ,VERSION, Json.Encode(info));
-    pkgStrm.Close();
 }
 func BuildConsoleOrServerLinuxStatic(dir,cmake_toolchain)
 {
@@ -245,9 +225,29 @@ func mvFile(src,dest)
 func main(args)
 {
     Console.WriteLine($"Got {nproc} cpus");  
-    each(var static : winStatics)
+    each(var arch : ["x86","x64"])
     {
-        BuildConsoleOrServerWindowsStatic(static);
+        var build_dir = "builds" / $"win-{arch}";
+        var publish_dir = "publish" / $"win-{arch}";
+        FS.Local.CreateDirectory(publish_dir);
+        mvFile(build_dir/"crossapp.exe", publish_dir / "crossapp.exe");
+        var info = {
+            type = "archive",
+            maintainer = "Mike Nolan",
+            repo = "https://onedev.site.tesses.net/crosslang",
+            homepage = "https://crosslang.tesseslanguage.com/",
+            executable_name = "crossapp.exe",
+            executable_can_be_renamed = true,
+            executable_runtime = $"win-{arch}",
+            description = $"Runtime files for win-{arch}",
+        };
+    
+        var name = $"Tesses.CrossLang.Runtime.win-{arch}";
+    
+        var subDir = new SubdirFilesystem(FS.Local,publish_dir);
+        var pkgStrm = FS.Local.OpenFile("publish"/$"{name}-{VERSION}.crvm","wb");
+        FS.CreateArchive(subDir,pkgStrm, name ,VERSION, Json.Encode(info));
+        pkgStrm.Close();
     }
 
     BuildConsoleOrServerLinuxShared("x86_64");

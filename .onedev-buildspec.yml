@@ -43,28 +43,23 @@ jobs:
     useTTY: true
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   - !CommandStep
-    name: Build and Publish Deb Package
+    name: Build and Publish Deb Package (Plucky)
     runInContainer: true
-    image: onedev.site.tesses.net/dependencies/debbuilder/jammy:latest
+    image: onedev.site.tesses.net/dependencies/debbuilder/plucky:latest
     interpreter: !DefaultInterpreter
       commands: |
-        mkdir artifacts
         apt update -y
-        apt install -y pkg-config git gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 gcc-mingw-w64-i686 g++-mingw-w64-i686 nsis
+        apt install -y pkg-config gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 gcc-mingw-w64-i686 g++-mingw-w64-i686 nsis
         cd Packaging/Linux
-        bash build-ubuntu-jammy.sh
-        bash push-ubuntu-jammy.sh
+        bash build-ubuntu-plucky.sh
+        bash push-ubuntu-plucky.sh
+        cd ../CPKG
+        bash winbuild.sh
         cd ../Windows
         bash build.sh
-        apt update -y
-        apt install -y crosslang
-        cd ../CPKG
-        bash pack_and_publish.sh
     envVars:
     - name: GITEA_AUTH
       value: '@secret:GITEA_AUTH@'
-    - name: CPKG_KEY
-      value: '@secret:CPKG_KEY@'
     useTTY: true
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   - !SCPCommandStep
@@ -84,14 +79,26 @@ jobs:
       ln -s @build_number@ latest
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   - !CommandStep
-    name: Build and Publish Deb Package (Plucky)
+    name: Build and Publish Deb Package
     runInContainer: true
-    image: onedev.site.tesses.net/dependencies/debbuilder/plucky:latest
+    image: onedev.site.tesses.net/dependencies/debbuilder/jammy:latest
     interpreter: !DefaultInterpreter
-      commands: "apt update -y\napt install -y pkg-config \ncd Packaging/Linux\nbash build-ubuntu-plucky.sh\nbash push-ubuntu-plucky.sh\n"
+      commands: |
+        mkdir artifacts
+        apt update -y
+        apt install -y pkg-config git
+        cd Packaging/Linux
+        bash build-ubuntu-jammy.sh
+        bash push-ubuntu-jammy.sh
+        apt update -y
+        apt install -y crosslang
+        cd ../CPKG
+        bash pack_and_publish.sh
     envVars:
     - name: GITEA_AUTH
       value: '@secret:GITEA_AUTH@'
+    - name: CPKG_KEY
+      value: '@secret:CPKG_KEY@'
     useTTY: true
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   triggers:
