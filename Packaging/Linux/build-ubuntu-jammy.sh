@@ -1,4 +1,5 @@
 #!/bin/bash
+
 source ./version.sh
 mkdir -p build/jammy
 cd build/jammy
@@ -35,4 +36,3 @@ foreign() {
 
 foreign arm64
 foreign riscv64
-

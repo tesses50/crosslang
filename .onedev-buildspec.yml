@@ -62,6 +62,30 @@ jobs:
       value: '@secret:GITEA_AUTH@'
     useTTY: true
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+  - !CommandStep
+    name: Build and Publish Deb Package
+    runInContainer: true
+    image: onedev.site.tesses.net/dependencies/debbuilder/jammy:latest
+    interpreter: !DefaultInterpreter
+      commands: |
+        mkdir artifacts
+        apt update -y
+        apt install -y pkg-config git
+        cd Packaging/Linux
+        bash build-ubuntu-jammy.sh
+        bash push-ubuntu-jammy.sh
+        bash build-tars.sh
+        apt update -y
+        apt install -y crosslang
+        cd ../CPKG
+        bash pack_and_publish.sh
+    envVars:
+    - name: GITEA_AUTH
+      value: '@secret:GITEA_AUTH@'
+    - name: CPKG_KEY
+      value: '@secret:CPKG_KEY@'
+    useTTY: true
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   - !SCPCommandStep
     name: Copy Files
     privateKeySecret: TRUENAS_SSH
@@ -77,29 +101,6 @@ jobs:
     commands: |
       cd /mnt/storage24tb/Files/Public/CrossLang
       ln -s @build_number@ latest
-    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
-  - !CommandStep
-    name: Build and Publish Deb Package
-    runInContainer: true
-    image: onedev.site.tesses.net/dependencies/debbuilder/jammy:latest
-    interpreter: !DefaultInterpreter
-      commands: |
-        mkdir artifacts
-        apt update -y
-        apt install -y pkg-config git
-        cd Packaging/Linux
-        bash build-ubuntu-jammy.sh
-        bash push-ubuntu-jammy.sh
-        apt update -y
-        apt install -y crosslang
-        cd ../CPKG
-        bash pack_and_publish.sh
-    envVars:
-    - name: GITEA_AUTH
-      value: '@secret:GITEA_AUTH@'
-    - name: CPKG_KEY
-      value: '@secret:CPKG_KEY@'
-    useTTY: true
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   triggers:
   - !DependencyFinishedTrigger
