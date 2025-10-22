@@ -81,10 +81,7 @@ jobs:
     privateKeySecret: TRUENAS_SSH
     commands: |
       cd /mnt/storage24tb/Files/Public/CrossLang
-      ln -s "$NUMBER" latest
-    envVars:
-    - name: NUMBER
-      value: '@build_number@'
+      ln -s @build_number@ latest
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   - !CommandStep
     name: Build and Publish Deb Package (Plucky)
