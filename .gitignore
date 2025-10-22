@@ -2,6 +2,7 @@ publish
 build
 builds
 compilers
+artifacts
 bin
 *.db
 *.crvm

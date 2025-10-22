@@ -48,6 +48,7 @@ jobs:
     image: onedev.site.tesses.net/dependencies/debbuilder/plucky:latest
     interpreter: !DefaultInterpreter
       commands: |
+        mkdir artifacts
         apt update -y
         apt install -y pkg-config git gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 gcc-mingw-w64-i686 g++-mingw-w64-i686 nsis
         cd Packaging/Linux
@@ -68,7 +69,6 @@ jobs:
     image: onedev.site.tesses.net/dependencies/debbuilder/jammy:latest
     interpreter: !DefaultInterpreter
       commands: |
-        mkdir artifacts
         apt update -y
         apt install -y pkg-config git
         cd Packaging/Linux
