@@ -33,25 +33,6 @@ jobs:
     platforms: linux/amd64
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   - !CommandStep
-    name: Build Tar
-    runInContainer: true
-    image: onedev.site.tesses.net/dependencies/build:latest
-    interpreter: !DefaultInterpreter
-      commands: |
-        mkdir build2
-        cd build2
-        cmake -S .. -B . -DTESSESFRAMEWORK_ENABLE_SHARED=ON -DTESSESFRAMEWORK_ENABLE_STATIC=OFF -DTESSESFRAMEWORK_FETCHCONTENT=ON
-        make -j12
-        make install DESTDIR=../crosslang
-        cd ..
-        tar cvzf crosslang-x86_64.tar.gz crosslang
-    useTTY: true
-    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
-  - !PublishArtifactStep
-    name: Publish CrossLang Artifact
-    artifacts: crosslang-x86_64.tar.gz
-    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
-  - !CommandStep
     name: Wii Build
     runInContainer: true
     image: onedev.site.tesses.net/dependencies/wiidev:latest
@@ -67,6 +48,7 @@ jobs:
     image: onedev.site.tesses.net/dependencies/debbuilder/jammy:latest
     interpreter: !DefaultInterpreter
       commands: |
+        mkdir artifacts
         apt update -y
         apt install -y pkg-config git gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 gcc-mingw-w64-i686 g++-mingw-w64-i686
         cd Packaging/Linux
@@ -85,25 +67,24 @@ jobs:
       value: '@secret:CPKG_KEY@'
     useTTY: true
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
-  - !PublishArtifactStep
-    name: Publish Win32 Installer
-    sourcePath: Packaging/Windows/build-x86
-    artifacts: TessesCrossLang-*-win32.exe
+  - !SCPCommandStep
+    name: Copy Files
+    privateKeySecret: TRUENAS_SSH
+    source: artifacts
+    target: mike@@10.137.42.30:/mnt/storage24tb/Files/Public/CrossLang/@build_number@
+    options: -r
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
-  - !PublishArtifactStep
-    name: Publish Win32 ZIP
-    sourcePath: Packaging/Windows/build-x86
-    artifacts: TessesCrossLang-*-win32.zip
-    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
-  - !PublishArtifactStep
-    name: Publish Win64 Installer
-    sourcePath: Packaging/Windows/build-x64
-    artifacts: TessesCrossLang-*-win64.exe
-    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
-  - !PublishArtifactStep
-    name: Publish Win64 ZIP
-    sourcePath: Packaging/Windows/build-x64
-    artifacts: TessesCrossLang-*-win64.zip
+  - !SSHCommandStep
+    name: Link latest
+    remoteMachine: 10.137.42.30
+    userName: mike
+    privateKeySecret: TRUENAS_SSH
+    commands: |
+      cd /mnt/storage24tb/Files/Public/CrossLang
+      ln -s $NUMBER latest
+    envVars:
+    - name: NUMBER
+      value: '@build_number@'
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   - !CommandStep
     name: Build and Publish Deb Package (Plucky)
