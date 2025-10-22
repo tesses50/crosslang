@@ -49,7 +49,7 @@ jobs:
     interpreter: !DefaultInterpreter
       commands: |
         apt update -y
-        apt install -y pkg-config gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 gcc-mingw-w64-i686 g++-mingw-w64-i686 nsis
+        apt install -y pkg-config git gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 gcc-mingw-w64-i686 g++-mingw-w64-i686 nsis
         cd Packaging/Linux
         bash build-ubuntu-plucky.sh
         bash push-ubuntu-plucky.sh
