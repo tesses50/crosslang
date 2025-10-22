@@ -8,3 +8,5 @@ bin
 *.o
 *.a
 *.exe
+build-x86
+build-x64

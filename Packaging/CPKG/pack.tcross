@@ -66,8 +66,10 @@ func BuildConsoleOrServerWindowsStatic(arch)
     FS.Local.CreateDirectory(publish_dir);
 
     var args = ["-S","ConsoleOrServer","-B",build_dir.ToString(),"-DCROSSAPPPUBLISH_STATIC=ON"];
-   
-        args.Add($"-DCMAKE_TOOLCHAIN_FILE=WindowsToolchains/{arch}.cmake");
+    
+    var file= ("WindowsToolchains"/$"{arch}.cmake").MakeAbsolute().ToString();
+
+    args.Add($"-DCMAKE_TOOLCHAIN_FILE={file}");
     
     Process.Start({
         FileName = Env.GetRealExecutablePath("cmake").ToString(),
@@ -89,7 +91,7 @@ func BuildConsoleOrServerWindowsStatic(arch)
             maintainer = "Mike Nolan",
             repo = "https://onedev.site.tesses.net/crosslang",
             homepage = "https://crosslang.tesseslanguage.com/",
-            executable_name = "crossapp",
+            executable_name = "crossapp.exe",
             executable_can_be_renamed = true,
             executable_runtime = $"win-{arch}",
             description = $"Runtime files for win-{arch}",

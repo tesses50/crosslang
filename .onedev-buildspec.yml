@@ -68,12 +68,14 @@ jobs:
     interpreter: !DefaultInterpreter
       commands: |
         apt update -y
-        apt install -y pkg-config
+        apt install -y pkg-config git gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 gcc-mingw-w64-i686 g++-mingw-w64-i686
         cd Packaging/Linux
         bash build-ubuntu-jammy.sh
         bash push-ubuntu-jammy.sh
+        cd ../Windows
+        bash build.sh
         apt update -y
-        apt install -y crosslang git gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 gcc-mingw-w64-i686 g++-mingw-w64-i686
+        apt install -y crosslang
         cd ../CPKG
         bash pack_and_publish.sh
     envVars:
@@ -82,6 +84,26 @@ jobs:
     - name: CPKG_KEY
       value: '@secret:CPKG_KEY@'
     useTTY: true
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+  - !PublishArtifactStep
+    name: Publish Win32 Installer
+    sourcePath: Packaging/Windows/build-x86
+    artifacts: TessesCrossLang-*-win32.exe
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+  - !PublishArtifactStep
+    name: Publish Win32 ZIP
+    sourcePath: Packaging/Windows/build-x86
+    artifacts: TessesCrossLang-*-win32.zip
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+  - !PublishArtifactStep
+    name: Publish Win64 Installer
+    sourcePath: Packaging/Windows/build-x64
+    artifacts: TessesCrossLang-*-win64.exe
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+  - !PublishArtifactStep
+    name: Publish Win64 ZIP
+    sourcePath: Packaging/Windows/build-x64
+    artifacts: TessesCrossLang-*-win64.zip
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   - !CommandStep
     name: Build and Publish Deb Package (Plucky)
