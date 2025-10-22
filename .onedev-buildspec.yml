@@ -50,7 +50,7 @@ jobs:
       commands: |
         mkdir artifacts
         apt update -y
-        apt install -y pkg-config git gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 gcc-mingw-w64-i686 g++-mingw-w64-i686
+        apt install -y pkg-config git gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 gcc-mingw-w64-i686 g++-mingw-w64-i686 nsis
         cd Packaging/Linux
         bash build-ubuntu-jammy.sh
         bash push-ubuntu-jammy.sh
@@ -81,7 +81,7 @@ jobs:
     privateKeySecret: TRUENAS_SSH
     commands: |
       cd /mnt/storage24tb/Files/Public/CrossLang
-      ln -s $NUMBER latest
+      ln -s "$NUMBER" latest
     envVars:
     - name: NUMBER
       value: '@build_number@'
