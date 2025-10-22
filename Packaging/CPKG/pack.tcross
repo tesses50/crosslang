@@ -227,7 +227,7 @@ func main(args)
     Console.WriteLine($"Got {nproc} cpus");  
     each(var arch : ["x86","x64"])
     {
-        var build_dir = "builds" / $"win-{arch}";
+        var build_dir = "build" / $"win-{arch}";
         var publish_dir = "publish" / $"win-{arch}";
         FS.Local.CreateDirectory(publish_dir);
         mvFile(build_dir/"crossapp.exe", publish_dir / "crossapp.exe");
