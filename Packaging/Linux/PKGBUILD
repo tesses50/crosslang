@@ -7,7 +7,7 @@ arch=('x86_64' 'powerpc')
 url="https://onedev.site.tesses.net/crosslang"
 license=('GPLv3')
 groups=()
-depends=('mbedtls' 'tesses-framework' 'libffi')
+depends=('mbedtls' 'tesses-framework')
 makedepends=('git' 'cmake' 'make' 'base-devel' 'wget') # 'bzr', 'git', 'mercurial' or 'subversion'
 install=
 source=('crosslang::git+https://onedev.site.tesses.net/crosslang')
@@ -36,7 +36,6 @@ pkgver() {
 
 prepare() {
 	cd "$srcdir/${pkgname}"
-	wget -O Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm https://downloads.tesses.net/ShellPackage.crvm
 }
 
 build() {
@@ -44,9 +43,9 @@ build() {
 	mkdir build
 	
 	if [[ -z "$CMAKE_TOOLCHAIN" ]]; then
- 	cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr -DCROSSLANG_FETCHCONTENT=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCROSSLANG_ENABLE_FFI=ON
+ 	cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr -DCROSSLANG_FETCHCONTENT=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo
   	else
-	cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr -DCROSSLANG_FETCHCONTENT=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE="$CMAKE_TOOLCHAIN" -DCROSSLANG_ENABLE_FFI=ON
+	cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr -DCROSSLANG_FETCHCONTENT=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE="$CMAKE_TOOLCHAIN"
 	fi
  
 	cd build
@@ -60,7 +59,5 @@ build() {
 package() {
 	cd "$srcdir/${pkgname}/build"
 	make install DESTDIR="$pkgdir/"
-    mkdir -p "$pkgdir/share/Tesses/CrossLang/"
-    cp "$srcdir/Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm" "$pkgdir/share/Tesses/CrossLang/Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm"
 }
 

@@ -54,8 +54,8 @@ jobs:
         printf "[tesses50.git.tesseslanguage.com]\nSigLevel = Optional TrustAll\nServer = https://git.tesseslanguage.com/api/packages/tesses50/arch/core/\$arch\n" >> /etc/pacman.conf
         printf "[tesses50.git.tesseslanguage.com]\nSigLevel = Optional TrustAll\nServer = https://git.tesseslanguage.com/api/packages/tesses50/arch/core/\$arch\n" >> /opt/cross/ppc/pacman.conf
 
-        pacman --noconfirm -Sy mbedtls curl tesses-framework libffi
-        pacman --config /opt/cross/ppc/pacman.conf --noconfirm -Sy mbedtls tesses-framework libffi
+        pacman --noconfirm -Sy mbedtls curl tesses-framework
+        pacman --config /opt/cross/ppc/pacman.conf --noconfirm -Sy mbedtls tesses-framework
         cp Packaging/Linux/PKGBUILD /home/build/PKGBUILD
         cp Packaging/Linux/build-arch.sh /home/build/build-arch.sh
         chmod 755 /home/build/build-arch.sh
