@@ -1,0 +1,66 @@
+# Maintainer: Mike Nolan <tesses@tesses.net>
+pkgname=crosslang # '-bzr', '-git', '-hg' or '-svn'
+pkgver=1.0.0
+pkgrel=1
+pkgdesc=""
+arch=('x86_64' 'powerpc')
+url="https://onedev.site.tesses.net/crosslang"
+license=('GPLv3')
+groups=()
+depends=('mbedtls' 'tesses-framework' 'libffi')
+makedepends=('git' 'cmake' 'make' 'base-devel' 'wget') # 'bzr', 'git', 'mercurial' or 'subversion'
+install=
+source=('crosslang::git+https://onedev.site.tesses.net/crosslang')
+noextract=()
+sha256sums=('SKIP')
+if [[ -z "$CMAKE_TOOLCHAIN" ]]; then
+options=(!strip)
+else
+options=(!buildflags !strip)
+fi
+# Please refer to the 'USING VCS SOURCES' section of the PKGBUILD man page for
+# a description of each element in the source array.
+
+pkgver() {
+	cd "$srcdir/${pkgname}"
+
+# The examples below are not absolute and need to be adapted to each repo. The
+# primary goal is to generate version numbers that will increase according to
+# pacman's version comparisons with later commits to the repo. The format
+# VERSION='VER_NUM.rREV_NUM.HASH', or a relevant subset in case VER_NUM or HASH
+# are not available, is recommended.
+
+# Git, no tags available
+	printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+	cd "$srcdir/${pkgname}"
+	wget -O Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm https://downloads.tesses.net/ShellPackage.crvm
+}
+
+build() {
+	cd "$srcdir/${pkgname}"
+	mkdir build
+	
+	if [[ -z "$CMAKE_TOOLCHAIN" ]]; then
+ 	cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr -DCROSSLANG_FETCHCONTENT=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCROSSLANG_ENABLE_FFI=ON
+  	else
+	cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr -DCROSSLANG_FETCHCONTENT=OFF -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_TOOLCHAIN_FILE="$CMAKE_TOOLCHAIN" -DCROSSLANG_ENABLE_FFI=ON
+	fi
+ 
+	cd build
+	make -j`nproc`
+	
+}
+
+
+
+
+package() {
+	cd "$srcdir/${pkgname}/build"
+	make install DESTDIR="$pkgdir/"
+    mkdir -p "$pkgdir/share/Tesses/CrossLang/"
+    cp "$srcdir/Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm" "$pkgdir/share/Tesses/CrossLang/Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm"
+}
+

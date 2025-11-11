@@ -43,6 +43,31 @@ jobs:
     useTTY: true
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   - !CommandStep
+    name: Build archlinux
+    runInContainer: true
+    image: git.tesseslanguage.com/tesses50/arch-builds:2025-11-11
+    interpreter: !DefaultInterpreter
+      commands: |
+        wget -O /root/repository.key wget https://git.tesseslanguage.com/api/packages/tesses50/arch/repository.key
+        pacman-key --add /root/repository.key
+        pacman-key --config /opt/cross/ppc/pacman.conf --add /root/repository.key
+        printf "[tesses50.git.tesseslanguage.com]\nSigLevel = Optional TrustAll\nServer = https://git.tesseslanguage.com/api/packages/tesses50/arch/core/\$arch\n" >> /etc/pacman.conf
+        printf "[tesses50.git.tesseslanguage.com]\nSigLevel = Optional TrustAll\nServer = https://git.tesseslanguage.com/api/packages/tesses50/arch/core/\$arch\n" >> /opt/cross/ppc/pacman.conf
+
+        pacman --noconfirm -Sy mbedtls curl tesses-framework libffi
+        pacman --config /opt/cross/ppc/pacman.conf --noconfirm -Sy mbedtls tesses-framework libffi
+        cp Packaging/Linux/PKGBUILD /home/build/PKGBUILD
+        cp Packaging/Linux/build-arch.sh /home/build/build-arch.sh
+        chmod 755 /home/build/build-arch.sh
+        chown build:build /home/build/PKGBUILD
+        chown build:build /home/build/build-arch.sh
+        su build -c /home/build/build-arch.sh
+    envVars:
+    - name: GITEA_AUTH
+      value: '@secret:GITEA_AUTH@'
+    useTTY: true
+    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
+  - !CommandStep
     name: Build and Publish Deb Package (Plucky)
     runInContainer: true
     image: onedev.site.tesses.net/dependencies/debbuilder/plucky:latest

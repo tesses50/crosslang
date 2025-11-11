@@ -5152,7 +5152,7 @@ namespace Tesses::CrossLang {
                 {
                     
                     
-                    cse.back()->Push(gc,dict->CallMethod(ls, key, args));
+                    cse.back()->Push(gc,dynDict->CallMethod(ls, key, args));
 
                     return false;
                 }

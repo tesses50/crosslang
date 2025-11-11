@@ -947,7 +947,7 @@ namespace Tesses::CrossLang
             }
     };
    
-    static TObject Net_Http_MakeRequest(GCList& ls, std::vector<TObject> args)
+    static TObject Net_Http_MakeRequest(GCList& ls, std::vector<TObject> args,TRootEnvironment* env)
     {
         auto gc = ls.GetGC();
         std::string url;
@@ -976,6 +976,11 @@ namespace Tesses::CrossLang
                 GetObject(_obj,req.followRedirects);
                 _obj = options->GetValue("TrustedRootCertBundle");
                 GetObject(_obj,req.trusted_root_cert_bundle);
+                if(env->permissions.canRegisterLocalFS)
+                {
+                    _obj = options->GetValue("UnixSocket");
+                    GetObject(_obj,req.unixSocket);
+                }
                 
                 _obj = options->GetValue("RequestHeaders");
 
@@ -1486,7 +1491,7 @@ namespace Tesses::CrossLang
             }
             return nullptr;
         });
-        http->DeclareFunction(gc, "MakeRequest", "Create an http request", {"url","$extra"}, Net_Http_MakeRequest);
+        http->DeclareFunction(gc, "MakeRequest", "Create an http request", {"url","$extra"}, [env](GCList& ls, std::vector<TObject> args)->TObject {return Net_Http_MakeRequest(ls,args,env);});
         http->DeclareFunction(gc, "WebSocketClient", "Create a websocket connection",{"url","headers","conn","$successCB"},Net_Http_WebSocketClient);
         http->DeclareFunction(gc, "DownloadToString","Return the http file's contents as a string",{"url"},Net_Http_DownloadToString);
         http->DeclareFunction(gc, "DownloadToStream","Download file to stream",{"url","stream"},Net_Http_DownloadToStream);
