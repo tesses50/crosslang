@@ -48,7 +48,7 @@ jobs:
     image: git.tesseslanguage.com/tesses50/arch-builds:2025-11-11
     interpreter: !DefaultInterpreter
       commands: |
-        wget -O /root/repository.key wget https://git.tesseslanguage.com/api/packages/tesses50/arch/repository.key
+        wget -O /root/repository.key https://git.tesseslanguage.com/api/packages/tesses50/arch/repository.key
         pacman-key --add /root/repository.key
         pacman-key --config /opt/cross/ppc/pacman.conf --add /root/repository.key
         printf "[tesses50.git.tesseslanguage.com]\nSigLevel = Optional TrustAll\nServer = https://git.tesseslanguage.com/api/packages/tesses50/arch/core/\$arch\n" >> /etc/pacman.conf

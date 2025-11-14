@@ -1895,7 +1895,7 @@ class GC {
                 this->marked=true;
                 for(auto item : watch)
                     GC::Mark(item);
-                    GC::Mark(this->tag);
+                GC::Mark(this->tag);
             }
             
     };

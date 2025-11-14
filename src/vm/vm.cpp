@@ -3996,6 +3996,28 @@ namespace Tesses::CrossLang {
 
                 if(ttask != nullptr)
                 {
+                    if(key == "SetSucceeded")
+                    {
+                        if(args.size() > 0)
+                        {
+                            ttask->SetSucceeded(args[0]);
+                        }
+                        cse.back()->Push(gc, Undefined());
+                        return false;
+                    }
+                    if(key == "SetFailed")
+                    {
+                        if(args.size() > 0)
+                        {
+                            try {
+                                throw VMByteCodeException(gc,args[0]);
+                            } catch(...) {
+                                ttask->SetFailed(std::current_exception());
+                            }
+                        }
+                        cse.back()->Push(gc, Undefined());
+                        return false;
+                    }
                     if(key == "ContinueWith")
                     {
                         TCallable* callable2;
@@ -7002,7 +7024,7 @@ namespace Tesses::CrossLang {
                         }
                         cse.erase(cse.end()-1);
                     }
-                    gc->BarrierEnd();
+                    gc->BarrierEnd();   
 
                     for(auto item : callable) 
                     {

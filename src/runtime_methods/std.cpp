@@ -1230,6 +1230,10 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }
+    static TObject New_Task(GCList& ls, std::vector<TObject> args)
+    {
+        return TTask::Create(ls);
+    }
     void TStd::RegisterRoot(GC* gc, TRootEnvironment* env)
     {
         GCList ls(gc);      
@@ -1370,6 +1374,7 @@ namespace Tesses::CrossLang
         });
         newTypes->DeclareFunction(gc,"DocumentationParser","Parse documentation blocks",{"documentationString"},New_DocumentationParser);
         newTypes->DeclareFunction(gc,"ByteArray","Create bytearray, with optional either size (to size it) or string argument (to fill byte array)",{"$data"},ByteArray);
+        newTypes->DeclareFunction(gc,"Task","Create a task for async, to manually create an async object",{},New_Task);
         
         env->DeclareVariable("Version", TDictionary::Create(ls,{
             TDItem("Parse",TExternalMethod::Create(ls,"Parse version from string",{"versionStr"},[](GCList& ls, std::vector<TObject> args)->TObject{

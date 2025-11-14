@@ -314,6 +314,7 @@ namespace Tesses::CrossLang {
         if(this->permissions.customConsole != nullptr) this->permissions.customConsole->Mark();
         for(auto defer : this->defers) defer->Mark();
         if(this->error != nullptr) this->error->Mark();
+        for(auto cls : this->classes) cls.first->Mark();
     }
     TRootEnvironment* TRootEnvironment::Create(GCList* gc,TDictionary* dict)
     {
