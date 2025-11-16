@@ -459,6 +459,9 @@ namespace Tesses::CrossLang {
                     case DECLAREVARIABLE:
                         buffer.append("declarevariable");
                         break;
+                    case DECLARECONSTVARIABLE:
+                        buffer.append("declareconstvariable");
+                        break;
                     case SETFIELD:
                         buffer.append("setfield");
                         break;

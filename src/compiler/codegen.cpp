@@ -1257,6 +1257,29 @@ namespace Tesses::CrossLang
 
                     }
                 }
+                 else if(varNode.nodeName == ConstExpression && varNode.nodes.size() == 1 && std::holds_alternative<std::string>(varNode.nodes[0]))
+                {
+                    GenNode(instructions,varNode.nodes[0],scope,contscope,brkscope,contI,brkI);
+                    GenNode(instructions,adv.nodes[1],scope,contscope,brkscope,contI,brkI);
+                    instructions.push_back(new SimpleInstruction(DECLARECONSTVARIABLE));
+                }
+                else if(varNode.nodeName == ConstExpression && varNode.nodes.size() == 1 && std::holds_alternative<AdvancedSyntaxNode>(varNode.nodes[0]))
+                {
+                    auto adv2 = std::get<AdvancedSyntaxNode>(varNode.nodes[0]);
+
+                    if(adv2.nodeName == ArrayExpression && adv2.nodes.size() == 1)
+                    {
+
+                        auto vars= StringifyListOfVars(adv2.nodes[0]);
+
+                        auto nArray = AdvancedSyntaxNode::Create(ArrayExpression,true,{vars});
+
+                        this->GenNode(instructions,nArray ,scope ,contscope ,brkscope ,contI , brkI);
+                        GenNode(instructions,adv.nodes[1],scope,contscope,brkscope,contI,brkI);
+                        instructions.push_back(new SimpleInstruction(DECLARECONSTVARIABLE));
+
+                    }
+                }
                 else if(varNode.nodeName == GetFieldExpression && varNode.nodes.size() == 2)
                 {
                     GenNode(instructions,varNode.nodes[0],scope,contscope,brkscope,contI,brkI);

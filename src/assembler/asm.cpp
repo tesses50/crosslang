@@ -451,6 +451,10 @@ namespace Tesses::CrossLang {
                 {
                     instrs.push_back(std::make_shared<SimpleChunkInstruction>(DECLAREVARIABLE));
                 }
+                else if(name == "declareconstvariable")
+                {
+                    instrs.push_back(std::make_shared<SimpleChunkInstruction>(DECLARECONSTVARIABLE));
+                }
                 else if(name == "setfield")
                 {
                     instrs.push_back(std::make_shared<SimpleChunkInstruction>(SETFIELD));

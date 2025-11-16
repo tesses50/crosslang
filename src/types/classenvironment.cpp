@@ -1,6 +1,13 @@
 #include "CrossLang.hpp"
 namespace Tesses::CrossLang {
-
+    bool TClassEnvironment::HasConstForSet(std::string key)
+    {
+        if(this->env->HasVariableRecurse(key))
+        {
+            return this->env->HasConstForSet(key);
+        }
+        return false;
+    }
     TClassEnvironment* TClassEnvironment::Create(GCList* gc,TEnvironment* env,TClassObject* obj)
     {
         
@@ -95,6 +102,7 @@ namespace Tesses::CrossLang {
             if(GetObjectHeap(res,call)) return call->Call(ls,{v});
         }
         if(this->clsObj->HasValue(clsName,key)) { this->clsObj->SetValue(clsName,key,v); return v;}
+        
         return this->env->SetVariable(ls,key,v);
     }
             

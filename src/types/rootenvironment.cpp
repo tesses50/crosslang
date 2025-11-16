@@ -2,6 +2,27 @@
 #include <iostream>
 #include <sstream>
 namespace Tesses::CrossLang {
+    void ThrowConstError(std::string key)
+    {
+        throw std::runtime_error("Cannot set \"" + key + "\" because it is a const");
+    }
+
+    void TEnvironment::DeclareConstVariable(std::string key, TObject value)
+    {
+        this->DeclareVariable(key,value);
+        this->consts.push_back(key);
+    }
+    bool TEnvironment::HasConstForDeclare(std::string key)
+    {
+        for(auto item : this->consts)
+            if(item == key)
+                return true;
+        return false;
+    }
+    bool TEnvironment::HasConstForSet(std::string key)
+    {
+        return HasConstForDeclare(key);
+    }
     bool TRootEnvironment::TryFindClass(std::vector<std::string>& name, size_t& index)
     {
         for(size_t i = 0; i < this->classes.size(); i++)

@@ -50,6 +50,18 @@ namespace Tesses::CrossLang  {
         
         return Undefined();
     }
+    bool TSubEnvironment::HasConstForSet(std::string key)
+    {
+        if(this->dict->HasValue(key))
+        {
+            return this->HasConstForDeclare(key);
+        }
+        if(this->env->HasVariableRecurse(key))
+        {
+            return this->env->HasConstForSet(key);
+        }
+        return false;
+    }
     TObject TSubEnvironment::SetVariable(GCList& ls, std::string key, TObject value)
     {
         ls.GetGC()->BarrierBegin();

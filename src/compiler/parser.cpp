@@ -730,6 +730,33 @@ namespace Tesses::CrossLang
             node = AdvancedSyntaxNode::Create(DeclareExpression,true,{variable.text});
             }
         }
+        else if(IsIdentifier("const"))
+        {
+            if(i >= tokens.size()) throw std::out_of_range("End of file");
+            auto variable = tokens[i];
+
+                i++;
+            if(variable.type == LexTokenType::Symbol && variable.text == ".")
+            {
+                EnsureSymbol("[");
+                node = AdvancedSyntaxNode::Create(ConstExpression,true,{
+                    AdvancedSyntaxNode::Create(GetVariableExpression ,true,{ParseExpression()})
+                });
+                EnsureSymbol("]");
+            }
+            else if(variable.type == LexTokenType::Symbol && variable.text == "[")
+            {
+                node = AdvancedSyntaxNode::Create(ConstExpression,true,{
+                    AdvancedSyntaxNode::Create(ArrayExpression ,true,{ParseExpression()})
+                });
+                EnsureSymbol("]");
+            }
+            else if(variable.type != LexTokenType::Identifier) throw SyntaxException(variable.lineInfo, "Expected an identifier got a " + LexTokenType_ToString(variable.type) + " \"" + variable.text + "\"");
+            else
+            {
+                node = AdvancedSyntaxNode::Create(ConstExpression,true,{variable.text});
+            }
+        }
         else if(IsIdentifier("comptime"))
         {
             SyntaxNode n = nullptr;

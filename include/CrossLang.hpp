@@ -666,7 +666,8 @@ typedef enum {
     PUSHCONTINUE,
     JMPIFBREAK,
     JMPIFCONTINUE,
-    JMPIFDEFINED
+    JMPIFDEFINED,
+    DECLARECONSTVARIABLE
 } Instruction;
 /**
  * @brief Base type for bytecode instruction
@@ -991,6 +992,12 @@ constexpr std::string_view DictionaryExpression = "dictionaryExpression";
  * 
  */
 constexpr std::string_view DeclareExpression = "declareExpression";
+/**
+ * @brief const v = 59;
+ * 
+ */
+
+constexpr std::string_view ConstExpression = "constExpression";
 /**
  * @brief Closure expression (a,b)=> a * b
  * 
@@ -1666,10 +1673,10 @@ class GC {
             virtual void Mark();
     };
 
-    
+    void ThrowConstError(std::string key);
 
     class TEnvironment : public THeapObject {
-        
+        std::vector<std::string> consts;
         public:
             std::vector<TCallable*> defers;
             TObject LoadFile(GC* gc, TFile* f);
@@ -1687,6 +1694,9 @@ class GC {
             virtual void SetVariable(std::string key, TObject value)=0;
             TDictionary* EnsureDictionary(GC* gc, std::string key);
             virtual void DeclareVariable(std::string key, TObject value)=0;
+            void DeclareConstVariable(std::string key, TObject value);
+            bool HasConstForDeclare(std::string key);
+            virtual bool HasConstForSet(std::string key);
             void DeclareVariable(GC* gc,std::vector<std::string> key, TObject value);
             virtual TRootEnvironment* GetRootEnvironment()=0;
             virtual TEnvironment* GetParentEnvironment()=0;
@@ -1744,6 +1754,8 @@ class GC {
             TObject SetVariable(GCList& ls, std::string key, TObject v);
             
             void DeclareVariable(std::string key, TObject value);
+            bool HasConstForSet(std::string key);
+
             TRootEnvironment* GetRootEnvironment();
             TEnvironment* GetParentEnvironment();
             
@@ -1846,7 +1858,8 @@ class GC {
             bool HasVariable(std::string key);
             bool HasVariableRecurse(std::string key);
             bool HasVariableOrFieldRecurse(std::string key, bool setting=false);
-            
+            bool HasConstForSet(std::string key);
+
             TObject GetVariable(std::string key);
             void SetVariable(std::string key, TObject value);
             TObject GetVariable(GCList& ls, std::string key);
@@ -2226,6 +2239,7 @@ class GC {
             bool GetArray(GC* gc);
             bool SetArray(GC* gc);
             bool DeclareVariable(GC* gc);
+            bool DeclareConstVariable(GC* gc);
             bool PushLong(GC* gc);
             bool PushDouble(GC* gc);
             bool PushChar(GC* gc);

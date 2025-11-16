@@ -4390,19 +4390,53 @@ namespace Tesses::CrossLang {
                        
                         gc->BarrierBegin();
                         if(args.size() > 1 && GetArgument(args,0,key))
-                        env->SetVariable(key,args[1]);
+                        {
+                            if(env->HasConstForSet(key))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(key);
+                            }
+
+                            env->SetVariable(key,args[1]);
+                            
+                        }
                         gc->BarrierEnd();
                         cse.back()->Push(gc,nullptr);
                         return false;
                     }
-
                     if(key == "DeclareVariable")
                     {
                         std::string key;
                        
                         gc->BarrierBegin();
                         if(args.size() > 1 && GetArgument(args,0,key))
-                        env->DeclareVariable(key,args[1]);
+                        {
+                            if(env->HasConstForDeclare(key))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(key);
+                            }
+                            env->DeclareVariable(key,args[1]);
+                           
+                        }
+                        gc->BarrierEnd();
+                        cse.back()->Push(gc,nullptr);
+                        return false;
+                    }
+                    if(key == "DeclareConstVariable")
+                    {
+                        std::string key;
+                       
+                        gc->BarrierBegin();
+                        if(args.size() > 1 && GetArgument(args,0,key))
+                        {
+                            if(env->HasConstForDeclare(key))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(key);
+                            }
+                            env->DeclareConstVariable(key,args[1]);
+                        }
                         gc->BarrierEnd();
                         cse.back()->Push(gc,nullptr);
                         return false;
@@ -6048,6 +6082,12 @@ namespace Tesses::CrossLang {
             if(std::holds_alternative<std::string>(key))
             {
                 gc->BarrierBegin();
+
+                if(stk->env->HasConstForSet(std::get<std::string>(key)))
+                {
+                    gc->BarrierEnd();
+                    ThrowConstError(std::get<std::string>(key));
+                }    
                 stk->Push(gc,stk->env->SetVariable(ls,std::get<std::string>(key),value));
                  
                 gc->BarrierEnd();
@@ -6072,6 +6112,12 @@ namespace Tesses::CrossLang {
                         {
                             auto val = valueLs->Get(i);
                             result->SetValue(mkey, val);
+
+                            if(stk->env->HasConstForSet(mkey))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(mkey);
+                            }    
                             stk->env->SetVariable(ls,mkey,val);
                         }
                     }
@@ -6093,6 +6139,12 @@ namespace Tesses::CrossLang {
                             auto val = valueDynList->GetAt(ls,i);
                             gc->BarrierBegin();
                             result->SetValue(mkey, val);
+
+                            if(stk->env->HasConstForSet(mkey))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(mkey);
+                            }    
                             stk->env->SetVariable(ls,mkey,val);
                         }
                     }
@@ -6111,6 +6163,12 @@ namespace Tesses::CrossLang {
                         {
                             auto val = valueDict->GetValue(mkey);
                             result->SetValue(mkey, val);
+
+                            if(stk->env->HasConstForSet(mkey))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(mkey);
+                            }    
                             stk->env->SetVariable(ls,mkey,val);
                         }
                     }
@@ -6131,6 +6189,12 @@ namespace Tesses::CrossLang {
                             gc->BarrierBegin();
 
                             result->SetValue(mkey, val);
+                            
+                            if(stk->env->HasConstForSet(mkey))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(mkey);
+                            }    
                             stk->env->SetVariable(ls,mkey,val);
                         }
                     }
@@ -6144,6 +6208,12 @@ namespace Tesses::CrossLang {
                         auto item = mls->Get(i);
                         if(GetObject(item,mkey))
                         {
+                            if(stk->env->HasConstForSet(mkey))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(mkey);
+                            }    
+                            
                             stk->env->SetVariable(ls,mkey, value);
                         }
                     }
@@ -6174,6 +6244,11 @@ namespace Tesses::CrossLang {
             if(std::holds_alternative<std::string>(key))
             {
                 gc->BarrierBegin();
+                if(stk->env->HasConstForDeclare(std::get<std::string>(key)))
+                {
+                    gc->BarrierEnd();
+                    ThrowConstError(std::get<std::string>(key));
+                }
                 stk->env->DeclareVariable(std::get<std::string>(key),value);
                 stk->Push(gc, value);
                 gc->BarrierEnd();
@@ -6198,6 +6273,11 @@ namespace Tesses::CrossLang {
                         {
                             auto val = valueLs->Get(i);
                             result->SetValue(mkey, val);
+                            if(stk->env->HasConstForDeclare(mkey))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(mkey);
+                            }
                             stk->env->DeclareVariable(mkey,val);
                         }
                     }
@@ -6219,6 +6299,11 @@ namespace Tesses::CrossLang {
                             auto val = valueDynList->GetAt(ls,i);
                             gc->BarrierBegin();
                             result->SetValue(mkey, val);
+                            if(stk->env->HasConstForDeclare(mkey))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(mkey);
+                            }
                             stk->env->DeclareVariable(mkey,val);
                         }
                     }
@@ -6237,6 +6322,11 @@ namespace Tesses::CrossLang {
                         {
                             auto val = valueDict->GetValue(mkey);
                             result->SetValue(mkey, val);
+                            if(stk->env->HasConstForDeclare(mkey))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(mkey);
+                            }
                             stk->env->DeclareVariable(mkey,val);
                         }
                     }
@@ -6257,6 +6347,11 @@ namespace Tesses::CrossLang {
                             gc->BarrierBegin();
 
                             result->SetValue(mkey, val);
+                            if(stk->env->HasConstForDeclare(mkey))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(mkey);
+                            }
                             stk->env->DeclareVariable(mkey,val);
                         }
                     }
@@ -6270,6 +6365,11 @@ namespace Tesses::CrossLang {
                         auto item = mls->Get(i);
                         if(GetObject(item,mkey))
                         {
+                            if(stk->env->HasConstForDeclare(mkey))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(mkey);
+                            }
                             stk->env->DeclareVariable(mkey, value);
                         }
                     }
@@ -6281,6 +6381,165 @@ namespace Tesses::CrossLang {
             {
 
                 throw VMException("[DECLAREVARIABLE] Can't pop string, got type " + GetObjectTypeString(key) + " = " + ToString(gc,key) + ".");
+            }
+        }
+        return false;
+    }
+  
+
+    bool InterperterThread::DeclareConstVariable(GC* gc)
+    {
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        if(!cse.empty())
+        {            
+            auto stk = cse.back();
+            GCList ls(gc);
+            
+            auto value = stk->Pop(ls);
+            auto key = stk->Pop(ls);
+
+            TList* mls;
+        
+            if(std::holds_alternative<std::string>(key))
+            {
+                gc->BarrierBegin();
+                if(stk->env->HasConstForDeclare(std::get<std::string>(key)))
+                {
+                    gc->BarrierEnd();
+                    ThrowConstError(std::get<std::string>(key));
+                }
+                stk->env->DeclareConstVariable(std::get<std::string>(key),value);
+                stk->Push(gc, value);
+                gc->BarrierEnd();
+            }
+            else if(GetObjectHeap(key,mls))
+            {
+                gc->BarrierBegin();
+
+                TList* valueLs;
+                TDynamicList* valueDynList;
+                TDictionary* valueDict;
+                TDynamicDictionary* valueDynDict;
+                if(GetObjectHeap(value, valueLs))
+                {
+                    TDictionary* result = TDictionary::Create(ls);
+                    int64_t len = std::min(valueLs->Count(), mls->Count());
+                    for(int64_t i = 0; i < len; i++)
+                    {
+                        std::string mkey;
+                        auto item = mls->Get(i);
+                        if(GetObject(item,mkey))
+                        {
+                            auto val = valueLs->Get(i);
+                            result->SetValue(mkey, val);
+                            if(stk->env->HasConstForDeclare(mkey))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(mkey);
+                            }
+                            stk->env->DeclareConstVariable(mkey,val);
+                        }
+                    }
+                    stk->Push(gc,result);
+                }
+                else if(GetObjectHeap(value, valueDynList))
+                {
+                    TDictionary* result = TDictionary::Create(ls);
+                    gc->BarrierEnd();
+                    int64_t len = std::min(valueDynList->Count(ls), mls->Count());
+                    gc->BarrierBegin();
+                    for(int64_t i = 0; i < len; i++)
+                    {
+                        std::string mkey;
+                        auto item = mls->Get(i);
+                        if(GetObject(item,mkey))
+                        {
+                            gc->BarrierEnd();
+                            auto val = valueDynList->GetAt(ls,i);
+                            gc->BarrierBegin();
+                            result->SetValue(mkey, val);
+                            if(stk->env->HasConstForDeclare(mkey))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(mkey);
+                            }
+                            stk->env->DeclareConstVariable(mkey,val);
+                        }
+                    }
+                    stk->Push(gc,result);
+                }
+                else if(GetObjectHeap(value, valueDict))
+                {
+
+                    TDictionary* result = TDictionary::Create(ls);
+                    int64_t len = mls->Count();
+                    for(int64_t i = 0; i < len; i++)
+                    {
+                        std::string mkey;
+                        auto item = mls->Get(i);
+                        if(GetObject(item,mkey))
+                        {
+                            auto val = valueDict->GetValue(mkey);
+                            result->SetValue(mkey, val);
+                            if(stk->env->HasConstForDeclare(mkey))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(mkey);
+                            }
+                            stk->env->DeclareConstVariable(mkey,val);
+                        }
+                    }
+                    stk->Push(gc,result);
+                }
+                else if(GetObjectHeap(value, valueDynDict))
+                {
+                    TDictionary* result = TDictionary::Create(ls);
+                    int64_t len =mls->Count();
+                    for(int64_t i = 0; i < len; i++)
+                    {
+                        std::string mkey;
+                        auto item = mls->Get(i);
+                        if(GetObject(item,mkey))
+                        {
+                            gc->BarrierEnd();
+                            auto val = valueDynDict->GetField(ls,mkey);
+                            gc->BarrierBegin();
+
+                            result->SetValue(mkey, val);
+                            if(stk->env->HasConstForDeclare(mkey))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(mkey);
+                            }
+                            stk->env->DeclareConstVariable(mkey,val);
+                        }
+                    }
+                    stk->Push(gc,result);
+                }
+                else {
+                    int64_t len =mls->Count();
+                    for(int64_t i = 0; i < len; i++)
+                    {
+                        std::string mkey;
+                        auto item = mls->Get(i);
+                        if(GetObject(item,mkey))
+                        {
+                            if(stk->env->HasConstForDeclare(mkey))
+                            {
+                                gc->BarrierEnd();
+                                ThrowConstError(mkey);
+                            }
+                            stk->env->DeclareConstVariable(mkey, value);
+                        }
+                    }
+                    stk->Push(gc, value);
+                }
+                gc->BarrierEnd();
+            }
+            else
+            {
+
+                throw VMException("[DECLARECONSTVARIABLE] Can't pop string, got type " + GetObjectTypeString(key) + " = " + ToString(gc,key) + ".");
             }
         }
         return false;
