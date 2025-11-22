@@ -1440,6 +1440,9 @@ namespace Tesses::CrossLang
                            
                             }
                         }
+                        else {
+                            throw SyntaxException(tokens[i].lineInfo, "Need public, private, protected or static");
+                        }
                     }
                 }
                 EnsureSymbol("}");
