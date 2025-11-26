@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <memory>
 #include <cstring>
+#include <sstream>
 #include <TessesFramework/TessesFramework.hpp>
 #include <regex>
 #include <time.h>
