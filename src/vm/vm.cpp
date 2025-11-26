@@ -2930,6 +2930,35 @@ namespace Tesses::CrossLang {
                     }
                     else throw VMException("String.PadRight must have a long for width");
                 }
+                if(key == "Contains")
+                {
+                    std::string str2;
+                    char c;
+                    if(GetArgument(args,0,str2))
+                    {
+
+                        int64_t index = 0;
+                        GetArgument(args,1,index);
+                        
+                        auto res = str.find(str2,(std::size_t)index);
+                        
+                        cse.back()->Push(gc, res != std::string::npos);
+                        return false;
+                    }
+                    
+                    else if(GetArgument<char>(args,0,c))
+                    {
+                        int64_t index = 0;
+                        GetArgument(args,1,index);
+                        
+                        auto res = str.find_first_of(c,(std::size_t)index);
+                        
+                        cse.back()->Push(gc, res != std::string::npos);
+                        return false;
+                    }
+                    cse.back()->Push(gc,nullptr);
+                    return false;
+                }
                 if(key == "IndexOf")
                 {   
                     std::string str2;
@@ -2937,7 +2966,7 @@ namespace Tesses::CrossLang {
                     if(GetArgument(args,0,str2))
                     {
 
-                        int64_t index = str.size();
+                        int64_t index = 0;
                         GetArgument(args,1,index);
                         
                         auto res = str.find(str2,(std::size_t)index);
