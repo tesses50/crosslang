@@ -114,16 +114,59 @@ namespace Tesses::CrossLang
   
     bool Parser::IsAnySymbol(std::initializer_list<std::string> idents, bool pop)
     {
+        
         if(i < tokens.size())
         {
             if(tokens[i].type != LexTokenType::Symbol) return false;
             for(auto item : idents)
             {
-                if(item == tokens[i].text)
+                if(item == ">")
                 {
-                    tkn = tokens[i];
-                    if(pop) i++;
-                    return true;
+                    if(i+1<tokens.size())
+                    {
+                        if((tokens[i+1].text == ">" || tokens[i+1].text == ">=") && tokens[i+1].type == LexTokenType::Symbol) continue;
+                    }
+                    if(item == tokens[i].text)
+                    {
+                        tkn = tokens[i];
+                        if(pop) i++;
+                        return true;
+                    }
+                }
+                else if(item == ">>=")
+                {
+                    if(i+1 < tokens.size())
+                    {
+                        if(tokens[i].text == ">" && tokens[i+1].text == ">=" && tokens[i].type == LexTokenType::Symbol && tokens[i+1].type == LexTokenType::Symbol)
+                        {
+                            tkn = tokens[i];
+                            tkn.text = ">>=";
+                            if(pop) i+=2;
+                            return true;    
+                        }
+                    }
+                }
+                else if(item == ">>")
+                {
+                    if(i+1 < tokens.size())
+                    {
+                        if(tokens[i].text == ">" && tokens[i+1].text == ">" && tokens[i].type == LexTokenType::Symbol && tokens[i+1].type == LexTokenType::Symbol)
+                        {
+                            tkn = tokens[i];
+                            tkn.text = ">>";
+                            if(pop) i+=2;
+                            return true;    
+                        }
+                    }
+
+                }
+                else {
+                    if(item == tokens[i].text)
+                    {
+                        tkn = tokens[i];
+                        if(pop) i++;
+                        return true;
+                    }
                 }
             }
         }
@@ -134,7 +177,48 @@ namespace Tesses::CrossLang
         if(i < tokens.size())
         {
             if(tokens[i].type != LexTokenType::Symbol) return false;
-            if(tokens[i].text == txt)
+            if(txt == ">")
+                {
+                    if(i+1<tokens.size())
+                    {
+                        if((tokens[i+1].text == ">" || tokens[i+1].text == ">=") && tokens[i+1].type == LexTokenType::Symbol) return false;
+                    }
+                    if(txt == tokens[i].text)
+                    {
+                        tkn = tokens[i];
+                        if(pop) i++;
+                        return true;
+                    }
+            }
+            else if(txt == ">>=")
+            {
+                if(i+1 < tokens.size())
+                {
+
+                    if(tokens[i].text == ">" && tokens[i+1].text == ">=" && tokens[i].type == LexTokenType::Symbol && tokens[i+1].type == LexTokenType::Symbol)
+                    {
+                        tkn = tokens[i];
+                        tkn.text = ">>=";
+                        if(pop) i+=2;
+                        return true;    
+                    }
+                }
+            }
+            else if(txt == ">>")
+            {
+                if(i+1 < tokens.size())
+                {
+                    if(tokens[i].text == ">" && tokens[i+1].text == ">" && tokens[i].type == LexTokenType::Symbol && tokens[i+1].type == LexTokenType::Symbol)
+                    {
+                        tkn = tokens[i];
+                        tkn.text = ">>";
+                        if(pop) i+=2;
+                        return true;    
+                    }
+                }
+
+            }
+            else if(tokens[i].text == txt)
             {
                 tkn = tokens[i];
                 if(pop) i++;
@@ -147,11 +231,53 @@ namespace Tesses::CrossLang
     {
         if(i < tokens.size())
         {
+            
             if(tokens[i].type != LexTokenType::Symbol)
             {
                 throw SyntaxException(tokens[i].lineInfo, "expected the symbol \"" + txt + "\" but got the " + LexTokenType_ToString(tokens[i].type) + " \"" + tokens[i].text + "\" which is not a symbol at all.");
             }
-            if(tokens[i].text != txt)
+            if(txt == ">")
+                {
+                    if(i+1<tokens.size())
+                    {
+                        if((tokens[i+1].text == ">" || tokens[i+1].text == ">=") && tokens[i+1].type == LexTokenType::Symbol) 
+                            throw SyntaxException(tokens[i].lineInfo, "expected the symbol \"" + txt + "\" but got the symbol \"" + tokens[i].text + tokens[i+1].text + "\"");;
+                    }
+                    if(txt == tokens[i].text)
+                    {
+                        return;
+                    }
+            }
+            if(txt == ">>=")
+            {
+                if(i+1 < tokens.size())
+                {
+                    if(tokens[i].text == ">" && tokens[i+1].text == ">=" && tokens[i].type == LexTokenType::Symbol && tokens[i+1].type == LexTokenType::Symbol)
+                    {
+                        return; 
+                    }
+                
+                    throw SyntaxException(tokens[i].lineInfo, "expected the symbol \"" + txt + "\" but got the symbol \"" + tokens[i].text + tokens[i+1].text + "\"");
+                }
+
+                throw SyntaxException(tokens[i].lineInfo, "expected the symbol \"" + txt + "\" but got the symbol \"" + tokens[i].text + "\"");
+            }
+            else if(txt == ">>")
+            {
+                if(i+1 < tokens.size())
+                {
+                    if(tokens[i].text == ">" && tokens[i+1].text == ">" && tokens[i].type == LexTokenType::Symbol && tokens[i+1].type == LexTokenType::Symbol)
+                    {
+                        i+=2;
+                        return;    
+                    }
+
+                    throw SyntaxException(tokens[i].lineInfo, "expected the symbol \"" + txt + "\" but got the symbol \"" + tokens[i].text + tokens[i+1].text + "\"");
+                }
+
+                throw SyntaxException(tokens[i].lineInfo, "expected the symbol \"" + txt + "\" but got the symbol \"" + tokens[i].text + "\"");
+            }
+            else if(tokens[i].text != txt)
             {
               
                 throw SyntaxException(tokens[i].lineInfo, "expected the symbol \"" + txt + "\" but got the symbol \"" + tokens[i].text + "\"");

@@ -578,7 +578,6 @@ namespace Tesses::CrossLang
                     }
                     break;
                 case '<':
-                case '>':
                 case '?':
                     if(peek == read)
                     {
@@ -645,6 +644,7 @@ namespace Tesses::CrossLang
                 case '^':
                 case '~':
                 case '!':
+                case '>':
                 case '*':
                 case '%':
                     //*

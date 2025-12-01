@@ -157,7 +157,6 @@ src/runtime_methods/helpers.cpp
 src/types/async.cpp
 src/types/associativearray.cpp
 src/types/any.cpp
-src/types/datetime.cpp
 src/types/ittr.cpp
 src/types/closure.cpp
 src/types/dictionary.cpp
@@ -445,7 +444,11 @@ set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS
 
  set(CPACK_NSIS_MUI_ICON "${CMAKE_CURRENT_SOURCE_DIR}/winicon.ico")
 set(CPACK_NSIS_MODIFY_PATH ON)
+set(CPACK_PACKAGE_VENDOR "Tesses")
 set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$DESKTOP\\\\CrossLang Interperter.lnk' '$INSTDIR\\\\bin\\\\crossint.exe'")
+set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\CrossLang Interperter.lnk' '$INSTDIR\\\\bin\\\\crossint.exe'")
 
 
 include(CPack)
+
+add_subdirectory(pkgconfig)

@@ -45,11 +45,15 @@ namespace Tesses::CrossLang {
         {
             return std::get<char>(obj) != 0;
         }
-        else if(std::holds_alternative<TDateTime>(obj))
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(obj))
         {
-            auto& dt = std::get<TDateTime>(obj).GetDate();
-            return !(dt.Year() == 1970 && dt.Month() == 1 && dt.Day() == 1 && dt.Hour() == 0 && dt.Minute() == 0 && dt.Second() == 0 && !dt.IsLocal());
+            auto& dt = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(obj);
+            return !(dt->Year() == 1970 && dt->Month() == 1 && dt->Day() == 1 && dt->Hour() == 0 && dt->Minute() == 0 && dt->Second() == 0 && !dt->IsLocal());
            
+        }
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(obj))
+        {
+            return std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(obj)->TotalSeconds() != 0;
         }
         else if(std::holds_alternative<THeapObjectHolder>(obj))
         {
@@ -60,7 +64,6 @@ namespace Tesses::CrossLang {
             auto ba = dynamic_cast<TByteArray*>(o);
             auto nat = dynamic_cast<TNative*>(o);
             auto thrd = dynamic_cast<ThreadHandle*>(o);
-            auto dt = dynamic_cast<TDateTime*>(o);
             auto natObj = dynamic_cast<TNativeObject*>(o);
 
             auto any = dynamic_cast<TAny*>(o);
@@ -153,9 +156,13 @@ namespace Tesses::CrossLang {
         {
             return std::get<int64_t>(left) == std::get<char>(right);
         }
-        else if(std::holds_alternative<TDateTime>(left) && std::holds_alternative<TDateTime>(right))
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right))
         {
-            return std::get<TDateTime>(left).GetDate().ToEpoch() == std::get<TDateTime>(right).GetDate().ToEpoch();
+            return std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left)->ToEpoch() == std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right)->ToEpoch();
+        }
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right))
+        {
+            return std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left)->TotalSeconds() == std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right)->TotalSeconds();
         }
         else if(std::holds_alternative<TVMVersion>(left) && std::holds_alternative<TVMVersion>(right))
         {
@@ -456,6 +463,18 @@ namespace Tesses::CrossLang {
         else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<char>(right))
         {
             cse.back()->Push(gc, (int64_t)(std::get<int64_t>(left) - std::get<char>(right)));
+        }
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right))
+        {
+            auto& l = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left);
+            auto& r = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right);
+            cse.back()->Push(gc,std::make_shared<Tesses::Framework::Date::TimeSpan>((*l) - (*r)));
+        }
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right))
+        {
+            auto& l = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left);
+            auto& r = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right);
+            cse.back()->Push(gc,std::make_shared<Tesses::Framework::Date::DateTime>((*l) - (*r)));
         }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
@@ -1083,9 +1102,18 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc, std::get<std::string>(left) < std::get<std::string>(right));
         }
-        else if(std::holds_alternative<TDateTime>(left) && std::holds_alternative<TDateTime>(right))
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right))
         {
-            cse.back()->Push(gc, std::get<TDateTime>(left).GetDate().ToEpoch() < std::get<TDateTime>(right).GetDate().ToEpoch());
+
+            auto& l = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left);
+            auto& r = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right);
+            cse.back()->Push(gc,l->ToEpoch() < r->ToEpoch());
+        }
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right))
+        {
+            auto& l = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left);
+            auto& r = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right);
+            cse.back()->Push(gc,l->TotalSeconds() < r->TotalSeconds());
         }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
@@ -1194,9 +1222,18 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc, std::get<std::string>(left) > std::get<std::string>(right));
         }
-        else if(std::holds_alternative<TDateTime>(left) && std::holds_alternative<TDateTime>(right))
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right))
         {
-            cse.back()->Push(gc, std::get<TDateTime>(left).GetDate().ToEpoch() > std::get<TDateTime>(right).GetDate().ToEpoch());
+
+            auto& l = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left);
+            auto& r = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right);
+            cse.back()->Push(gc,l->ToEpoch() > r->ToEpoch());
+        }
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right))
+        {
+            auto& l = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left);
+            auto& r = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right);
+            cse.back()->Push(gc,l->TotalSeconds() > r->TotalSeconds());
         }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
@@ -1305,9 +1342,18 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc, std::get<std::string>(left) <= std::get<std::string>(right));
         }
-        else if(std::holds_alternative<TDateTime>(left) && std::holds_alternative<TDateTime>(right))
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right))
         {
-            cse.back()->Push(gc, std::get<TDateTime>(left).GetDate().ToEpoch() <= std::get<TDateTime>(right).GetDate().ToEpoch());
+
+            auto& l = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left);
+            auto& r = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right);
+            cse.back()->Push(gc,l->ToEpoch() <= r->ToEpoch());
+        }
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right))
+        {
+            auto& l = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left);
+            auto& r = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right);
+            cse.back()->Push(gc,l->TotalSeconds() <= r->TotalSeconds());
         }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
@@ -1418,9 +1464,18 @@ namespace Tesses::CrossLang {
         {
             cse.back()->Push(gc, std::get<std::string>(left) >= std::get<std::string>(right));
         }
-        else if(std::holds_alternative<TDateTime>(left) && std::holds_alternative<TDateTime>(right))
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right))
         {
-            cse.back()->Push(gc, std::get<TDateTime>(left).GetDate().ToEpoch() >= std::get<TDateTime>(right).GetDate().ToEpoch());
+
+            auto& l = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left);
+            auto& r = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right);
+            cse.back()->Push(gc,l->ToEpoch() >= r->ToEpoch());
+        }
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right))
+        {
+            auto& l = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left);
+            auto& r = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right);
+            cse.back()->Push(gc,l->TotalSeconds() >= r->TotalSeconds());
         }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
@@ -1549,9 +1604,18 @@ namespace Tesses::CrossLang {
             auto r = lver.CompareTo(rver);
             cse.back()->Push(gc, r == 0);
         }
-        else if(std::holds_alternative<TDateTime>(left) && std::holds_alternative<TDateTime>(right))
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right))
         {
-            cse.back()->Push(gc, std::get<TDateTime>(left).GetDate().ToEpoch() == std::get<TDateTime>(right).GetDate().ToEpoch());
+
+            auto& l = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left);
+            auto& r = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right);
+            cse.back()->Push(gc,(l->ToEpoch() == r->ToEpoch()) && (l->IsLocal() == r->IsLocal()));
+        }
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right))
+        {
+            auto& l = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left);
+            auto& r = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right);
+            cse.back()->Push(gc,l->TotalSeconds() == r->TotalSeconds());
         }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
@@ -1714,9 +1778,18 @@ namespace Tesses::CrossLang {
             auto r = lver.CompareTo(rver);
             cse.back()->Push(gc, r != 0);
         }
-        else if(std::holds_alternative<TDateTime>(left) && std::holds_alternative<TDateTime>(right))
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right))
         {
-            cse.back()->Push(gc, std::get<TDateTime>(left).GetDate().ToEpoch() != std::get<TDateTime>(right).GetDate().ToEpoch());
+
+            auto& l = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left);
+            auto& r = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right);
+            cse.back()->Push(gc,!((l->ToEpoch() == r->ToEpoch()) && (l->IsLocal() == r->IsLocal())));
+        }
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right))
+        {
+            auto& l = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left);
+            auto& r = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right);
+            cse.back()->Push(gc,l->TotalSeconds() != r->TotalSeconds());
         }
         else if(std::holds_alternative<THeapObjectHolder>(left))
         {
@@ -2261,6 +2334,24 @@ namespace Tesses::CrossLang {
         else if(std::holds_alternative<int64_t>(left) && std::holds_alternative<double>(right))
         {
             cse.back()->Push(gc,std::get<int64_t>(left) + std::get<double>(right));
+        }
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right))
+        {
+            auto& l = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left);
+            auto& r = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right);
+            cse.back()->Push(gc,std::make_shared<Tesses::Framework::Date::TimeSpan>((*l) + (*r)));
+        }
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right))
+        {
+            auto& l = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(left);
+            auto& r = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right);
+            cse.back()->Push(gc,std::make_shared<Tesses::Framework::Date::DateTime>((*l) + (*r)));
+        }
+        else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left) && std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right))
+        {
+            auto& l = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(left);
+            auto& r = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(right);
+            cse.back()->Push(gc,std::make_shared<Tesses::Framework::Date::DateTime>((*l) + (*r)));
         }
         else if(std::holds_alternative<std::string>(left) && std::holds_alternative<std::string>(right))
         {
@@ -3224,9 +3315,24 @@ namespace Tesses::CrossLang {
                 cse.back()->Push(gc, Undefined());
                 return false;
             }
-            else if(std::holds_alternative<TDateTime>(instance))
+            else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(instance))
             {
-                auto& date = std::get<TDateTime>(instance).GetDate();
+                auto& time = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(instance);
+                if(key == "ToString")
+                {
+                    bool slim = false;
+                    GetArgument(args,0,slim);
+                    
+                    cse.back()->Push(gc, time->ToString(slim));
+
+                    return false;
+                }
+                cse.back()->Push(gc, Undefined());
+                return false;
+            }
+            else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(instance))
+            {
+                auto& date = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(instance);
                 
                 
                 if(key == "ToString")
@@ -3234,37 +3340,128 @@ namespace Tesses::CrossLang {
                     std::string fmt;
                     if(GetArgument(args,0,fmt))
                     {
-                        cse.back()->Push(gc, date.ToString(fmt));
+                        cse.back()->Push(gc, date->ToString(fmt));
                     }
                     else
                     {
-                        cse.back()->Push(gc, date.ToString());
+                        cse.back()->Push(gc, date->ToString());
                     }
                     return false;
                 }
                 if(key == "ToHttpDate")
                 {
-                    cse.back()->Push(gc, date.ToHttpDate());
+                    cse.back()->Push(gc, date->ToHttpDate());
                     return false;
                 }
                 if(key == "ToEpoch")
                 {
-                    cse.back()->Push(gc, date.ToEpoch());
+                    cse.back()->Push(gc, date->ToEpoch());
                     return false;
                 }
                 if(key == "ToLocal")
                 {
-                    cse.back()->Push(gc, date.ToLocal());
+                    cse.back()->Push(gc, std::make_shared<Tesses::Framework::Date::DateTime>(date->ToLocal()));
                     return false;
                 }
                 if(key == "ToUTC")
                 {
-                    cse.back()->Push(gc, date.ToUTC());
+                    cse.back()->Push(gc, std::make_shared<Tesses::Framework::Date::DateTime>(date->ToUTC()));
                     return false;
                 }
                 cse.back()->Push(gc, nullptr);
                 return false;
                 
+            }
+            else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::TextStreams::TextReader>>(instance))
+            {
+                auto textReader = std::get<std::shared_ptr<Tesses::Framework::TextStreams::TextReader>>(instance);
+                if(key == "Rewind")
+                {
+                    cse.back()->Push(gc,textReader->Rewind());
+                    return false;
+                }
+                if(key == "ReadBlock")
+                {
+                    int64_t sz;
+                    if(GetArgument(args,0,sz))
+                    {
+                        std::string block;
+                        if(textReader->ReadBlock(block,(size_t)sz)) 
+                        {
+                            cse.back()->Push(gc, block);
+                            return false;
+                        }
+                    }
+                    cse.back()->Push(gc, nullptr);
+                    return false;
+                }
+                if(key == "ReadChar")
+                {
+                    cse.back()->Push(gc,(int64_t)textReader->ReadChar());
+                    return false;
+                }
+                if(key == "ReadLine")
+                {
+                    std::string line;
+                    if(textReader->ReadLine(line)) 
+                    {
+                        cse.back()->Push(gc, line);
+                        return false;
+                    }
+                    cse.back()->Push(gc, nullptr);
+                    return false;
+                }
+                if(key == "ReadAllLines")
+                {
+                    std::vector<std::string> lines;
+                    textReader->ReadAllLines(lines);
+                    gc->BarrierBegin();
+                    TList* list = TList::Create(ls);
+                    for(auto& item : lines) list->Add(item);
+                    gc->BarrierEnd();
+                    return list;
+                }
+                if(key == "ReadToEnd")
+                {
+                    std::string text;
+                    textReader->ReadToEnd(text);
+                    cse.back()->Push(gc,text);
+                    return false;
+                }
+                if(key == "CopyTo")
+                {
+                    std::shared_ptr<Tesses::Framework::TextStreams::TextWriter> writer;
+                    if(GetArgument(args,0,writer))
+                    {
+                        textReader->CopyTo(*writer);
+                    }
+                }
+                cse.back()->Push(gc, Undefined());
+                return false;
+            }
+            else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>(instance))
+            {
+                auto textWriter=std::get<std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>(instance);
+                if(key == "Write")
+                {
+                    if(args.size()>0)
+                    textWriter->Write(ToString(gc,args[0]));
+                }
+                if(key == "WriteLine")
+                {
+                    if(args.size()>0)
+                    textWriter->WriteLine(ToString(gc,args[0]));
+                }
+                if(key == "WriteData")
+                {
+                    if(args.size()>0)
+                    {
+                        auto s=ToString(gc,args[0]);
+                        textWriter->WriteData(s.c_str(),s.size());
+                    }
+                }
+                cse.back()->Push(gc, nullptr);
+                return false;
             }
             else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Streams::Stream>>(instance))
             {
@@ -3697,11 +3894,11 @@ namespace Tesses::CrossLang {
                     if(key == "SetDate")
                     {
                         Tesses::Framework::Filesystem::VFSPath path;
-                        TDateTime lastWrite;
-                        TDateTime lastAccess;
+                        std::shared_ptr<Tesses::Framework::Date::DateTime> lastWrite;
+                        std::shared_ptr<Tesses::Framework::Date::DateTime> lastAccess;
                         if(GetArgumentAsPath(args,0,path) && GetArgument(args,1,lastWrite) && GetArgument(args,2,lastAccess))
                         {
-                            vfs->SetDate(path,lastWrite.GetDate(), lastAccess.GetDate());
+                            vfs->SetDate(path,*lastWrite, *lastAccess);
                         }
                         cse.back()->Push(gc, nullptr);
                         return false;
@@ -3718,8 +3915,8 @@ namespace Tesses::CrossLang {
                             auto dict = TDictionary::Create(ls);
                     ls.GetGC()->BarrierBegin();
                     
-                    dict->SetValue("LastWrite", TDateTime(lastWrite));
-                    dict->SetValue("LastAccess", TDateTime(lastAccess));
+                    dict->SetValue("LastWrite", std::make_shared<Tesses::Framework::Date::DateTime>(lastWrite));
+                    dict->SetValue("LastAccess", std::make_shared<Tesses::Framework::Date::DateTime>(lastAccess));
                     ls.GetGC()->BarrierEnd();
 
                         cse.back()->Push(gc, dict);
@@ -5364,6 +5561,33 @@ namespace Tesses::CrossLang {
                 cse.back()->Push(gc, Undefined());
                 return false;
             }
+            if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Filesystem::VFS>>(instance))
+            {
+                auto vfs = std::get<std::shared_ptr<Tesses::Framework::Filesystem::VFS>>(instance);
+                auto tmpFS=std::dynamic_pointer_cast<Tesses::Framework::Filesystem::TempFS>(vfs);
+                if(tmpFS)
+                {
+                    if(key == "TempDirectoryName")
+                    {
+
+                        cse.back()->Push(gc,tmpFS->TempDirectoryName());
+                        return false;
+                    }
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+            }
+            if(std::holds_alternative<std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>(instance))
+            {
+                auto writer = std::get<std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>(instance);
+                if(key == "NewLine")
+                {
+                    cse.back()->Push(gc,writer->newline);
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+            }
             if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Streams::Stream>>(instance))
             {
                 auto strm = std::get<std::shared_ptr<Tesses::Framework::Streams::Stream>>(instance);
@@ -5373,7 +5597,7 @@ namespace Tesses::CrossLang {
                    
                         if(key == "CanRead")
                         {
-                             ;
+                             
                             
                             cse.back()->Push(gc, strm->CanRead());
                             return false;
@@ -5476,47 +5700,93 @@ namespace Tesses::CrossLang {
                 stk->Push(gc, Undefined());
                 return false;
             }
-            if(std::holds_alternative<TDateTime>(instance))
+            if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(instance))
             {
-                auto& date = std::get<TDateTime>(instance).GetDate();
+                auto time = std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(instance);
+                if(key == "Days")
+                {
+                    stk->Push(gc, (int64_t)time->Days());
+                    return false;
+                }
+                if(key == "Hours")
+                {
+                    stk->Push(gc, (int64_t)time->Hours());
+                    return false;
+                }
+
+                if(key == "Minutes")
+                {
+                    stk->Push(gc, (int64_t)time->Minutes());
+                    return false;
+                }
+                if(key == "Seconds")
+                {
+                    stk->Push(gc, (int64_t)time->Seconds());
+                    return false;
+                }
+
+                if(key == "TotalHours")
+                {
+                    stk->Push(gc, time->TotalHours());
+                    return false;
+                }
+
+                if(key == "TotalMinutes")
+                {
+                    stk->Push(gc, time->TotalMinutes());
+                    return false;
+                }
+
+                if(key == "TotalSeconds")
+                {
+                    stk->Push(gc, time->TotalSeconds());
+                    return false;
+                }
+                
+                stk->Push(gc, Undefined());
+                return false;
+            }
+            if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(instance))
+            {
+                auto& date = std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(instance);
                 if(key == "IsLocal")
                 {
-                    stk->Push(gc, date.IsLocal());
+                    stk->Push(gc, date->IsLocal());
                     return false;
                 }
                 if(key == "Year")
                 {
-                    stk->Push(gc, (int64_t)date.Year());
+                    stk->Push(gc, (int64_t)date->Year());
                     return false;
                 }
                 if(key == "Month")
                 {
-                    stk->Push(gc, (int64_t)date.Month());
+                    stk->Push(gc, (int64_t)date->Month());
                     return false;
                 }
                 if(key == "Day")
                 {
-                    stk->Push(gc, (int64_t)date.Day());
+                    stk->Push(gc, (int64_t)date->Day());
                     return false;
                 }
                 if(key == "Hour")
                 {
-                    stk->Push(gc, (int64_t)date.Hour());
+                    stk->Push(gc, (int64_t)date->Hour());
                     return false;
                 }
                 if(key == "Minute")
                 {
-                    stk->Push(gc, (int64_t)date.Minute());
+                    stk->Push(gc, (int64_t)date->Minute());
                     return false;
                 }
                 if(key == "Second")
                 {
-                    stk->Push(gc, (int64_t)date.Second());
+                    stk->Push(gc, (int64_t)date->Second());
                     return false;
                 }
                 if(key == "DayOfWeek")
                 {
-                    stk->Push(gc, (int64_t)date.DayOfWeek());
+                    stk->Push(gc, (int64_t)date->DayOfWeek());
                     return false;
                 }
                 
@@ -5971,6 +6241,21 @@ namespace Tesses::CrossLang {
             }
 
             std::string key = std::get<std::string>(_key);
+             if(std::holds_alternative<std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>(instance))
+            {
+                auto writer = std::get<std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>(instance);
+                if(key == "NewLine")
+                {
+                    if(std::holds_alternative<std::string>(value))
+                    {
+                        writer->newline = std::get<std::string>(value);
+                    }
+                    cse.back()->Push(gc,writer->newline);
+                    return false;
+                }
+                cse.back()->Push(gc,Undefined());
+                return false;
+            }
             if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Streams::Stream>>(instance))
             {
                 auto strm = std::get<std::shared_ptr<Tesses::Framework::Streams::Stream>>(instance);
@@ -7604,9 +7889,13 @@ namespace Tesses::CrossLang {
         {
             return std::get<bool>(o) ? "true" : "false";
         }
-        if(std::holds_alternative<TDateTime>(o))
+        if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(o))
         {
-            return std::get<TDateTime>(o).GetDate().ToString();
+            return std::get<std::shared_ptr<Tesses::Framework::Date::DateTime>>(o)->ToString();
+        }
+        if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(o))
+        {
+            return std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(o)->ToString(false);
         }
         if(std::holds_alternative<THeapObjectHolder>(o))
         {

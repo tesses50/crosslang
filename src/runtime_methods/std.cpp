@@ -29,8 +29,19 @@
 
 
 
+
 namespace Tesses::CrossLang
 {
+
+#if defined(_WIN32)
+    std::string SharedExtension = ".dll";
+#elif defined(__APPLE__)
+    std::string SharedExtension = ".dylib";
+#else
+    std::string SharedExtension = ".so";
+#endif
+
+
     class TMuxex : public TNativeObject
     {
         public:
@@ -60,329 +71,8 @@ namespace Tesses::CrossLang
             }
     };
 
-    class DocumentationParser : public TNativeObject
-    {
-        public:
-
-        std::vector<std::pair<std::string,TObject>> items;
-            DocumentationParser(std::string doc)
-            {
-                size_t i=0;
-                int state=-1;
-                std::string key={};
-                std::string value={};
-
-                auto add = [&]()->void{
-                    if(value == "true") {
-                        items.push_back(std::pair<std::string,TObject>(key,true));
-                    } else if(value == "false") {
-                        items.push_back(std::pair<std::string,TObject>(key,false));
-                    } else if(value == "null") {
-                        items.push_back(std::pair<std::string,TObject>(key,nullptr));
-                    } else {
-                        if(value[0] >= '0' && value[0] <= '9')
-                        {
-                            try {
-                                if(value.find('.') != std::string::npos)
-                                {
-                                
-                                    items.push_back(std::pair<std::string,TObject>(key,std::stod(value)));
-                                }
-                                else {
-                                    items.push_back(std::pair<std::string,TObject>(key,std::stoll(value)));
-                                }
-                            }catch(...) {}
-                        }
-                        else {
-                            items.push_back(std::pair<std::string,TObject>(key,value));
-                        }
-                    }
-                };
-                
-        auto ReadChr = [&]() -> std::pair<int,bool> {
-             int read=i < doc.size() ? (int)doc[i++] : -1;
-                
-            if(read == -1) 
-            {
-                
-                return std::pair<int,bool>(-1,false);
-            }
-            
-
-
-            if(read == '\\')
-            {
-                read = i < doc.size() ? (int)doc[i++] : -1;
-                
-                if(read == -1)
-                {
-                    return std::pair<int,bool>(-1,true);
-                }
-                else if(read == 'n')
-                {
-                    return std::pair<int,bool>('\n',true);
-                }
-                else if(read == 'r')
-                {
-                    return std::pair<int,bool>('\r',true);
-                }
-                else if(read == 'f')
-                {
-                    return std::pair<int,bool>('\f',true);
-                }
-                else if(read == 'b')
-                {
-                    return std::pair<int,bool>('\b',true);
-                }
-                else if(read == 'a')
-                {
-                    return std::pair<int,bool>('\a',true);
-                }
-                else if(read == '0')
-                {
-                    return std::pair<int,bool>('\0',true);
-                }
-                else if(read == 'v')
-                {
-                    return std::pair<int,bool>('\v',true);
-                }
-                else if(read == 'e')
-                {
-                    return std::pair<int,bool>('\x1B',true);
-                }
-                else if(read == 't')
-                {
-                    return std::pair<int,bool>('\t',true);
-                }
-                else if(read == 'x')
-                {
-                    int r1 = i < doc.size() ? (int)doc[i++] : -1;
-                    
-                    if(r1 == -1)
-                    {
-                        return std::pair<int,bool>(-1,true);
-                    }
-                    int r2 = i < doc.size() ? (int)doc[i++] : -1;
-                   
-                    if(r2 == -1)
-                    {
-                        return std::pair<int,bool>(-1,true);
-                    }
-                    
-                    uint8_t c = (uint8_t)std::stoi(std::string{(char)r1,(char)r2},nullptr,16);
-
-                    return std::pair<int,bool>(c,true);
-                }
-                else
-                {
-                    return std::pair<int,bool>(read,true);
-                }
-            }
-            else
-            {
-                return std::pair<int,bool>(read,false);
-            }
-        };
-
-
-
-
-                for(; i < doc.size(); i++)
-                {
-                    if(doc[i] == '@')
-                    {
-                         state = 0;
-                         key={};
-                         value={};
-                        if(i + 1 < doc.size())
-                        {
-                            if(doc[i+1] == '@') 
-                            {
-                                i++;
-                                continue;
-                            }
-                            else {
-                                i++;
-                                for(; i < doc.size(); i++)
-                                {
-                                    switch(doc[i])
-                                    {
-                                        case '\'':
-                                        {
-                                            i++;
-                                            auto c = ReadChr();
-                                            i++;
-                                            if(c.first != -1)
-                                            {
-                                                if(state == 0)
-                                                    key+={(char)c.first};
-                                                else {
-                                                    this->items.push_back(std::pair<std::string,TObject>(key,(char)c.first));
-                                                    state = -1;
-                                                    goto outer;
-                                                }
-                                            }
-                                        }
-                                        break;
-                                        case '\"':
-                                        {
-                                            if(state == 0)
-                                            {
-                                                i++;
-                                                auto rChr = ReadChr();
-                                                while(rChr.first != '\"' || rChr.second)
-                                                {
-                                                    if(rChr.first == -1) break;
-                                                    key += (char)rChr.first;
-                                                    rChr = ReadChr();
-                                                }
-                                                i--;
-                                            }
-                                            else {
-                                                i++;
-                                                auto rChr = ReadChr();
-                                                
-                                                while(rChr.first != '\"' || rChr.second)
-                                                {
-                                                    if(rChr.first == -1) break;
-                                                    value += (char)rChr.first;
-                                                    rChr = ReadChr();
-                                                }
-                                                this->items.push_back(std::pair<std::string,TObject>(key,value));
-                                                state = -1;
-                                                goto outer;
-                                            }
-                                        }
-                                            break;
-                                        case ' ':
-                                        case '\n':
-                                        case '\t':
-                                        case '\r':
-                                            if(state == 0 && !key.empty())
-                                                state=1;
-                                            else
-                                            if(state == 1 && !value.empty())
-                                            {
-                                                add();
-                                                state = -1;
-                                                goto outer;
-                                            }
-                                            break;
-                                        default:
-                                            if(state == 0) key += doc[i];
-                                            else value += doc[i];
-                                            break;
-                                    }
-                                }
-                            }
-                            outer:;
-                        }
-                        
-                    }
-                }
-                if(state == 1 && !value.empty())
-                {
-                    add();
-                }
-            }
-            TObject CallMethod(GCList& ls, std::string key, std::vector<TObject> args);
-            std::string TypeName()
-            {
-                return "DocumentationParser";
-            }
-    };
-    class DocumentationParserEnumerator : public TEnumerator
-    {
-        int index;
-        DocumentationParser* dict;
-        public:
-            static DocumentationParserEnumerator* Create(GCList& ls, DocumentationParser* dict)
-            {
-                auto dpe=new DocumentationParserEnumerator();
-                auto gc = ls.GetGC();
-                ls.Add(dpe);
-                gc->Watch(dpe);
-                dpe->dict = dict;
-                dpe->index=-1;
-                return dpe;
-            }
-
-            bool MoveNext(GC* ls)
-            {
-                ls->BarrierBegin();
-                bool r = ++index < this->dict->items.size();
-                   
-                ls->BarrierEnd();
-                return r;
-            }
-            TObject GetCurrent(GCList& ls)
-            {
-                std::pair<std::string,TObject> item;
-                ls.GetGC()->BarrierBegin();
-                if(this->index > -1 && this->index < this->dict->items.size())
-                {
-                    item = this->dict->items[(size_t)this->index];
-                }
-                ls.GetGC()->BarrierEnd();
-
-                return TDictionary::Create(ls,{
-                    TDItem("Key", item.first),
-                    TDItem("Value", item.second)
-                });
-            }
-            void Mark()
-            {
-                if(this->marked) return;
-                this->marked=true;
-                dict->Mark();
-            }
-    };
-
-
-    TObject DocumentationParser::CallMethod(GCList& ls, std::string key, std::vector<TObject> args)
-    {
-        std::string myKey;
-        if(key == "GetAt" && GetArgument(args,0,myKey))
-        {
-            for(auto item : this->items)
-                if(item.first == myKey) return item.second;
-        }
-        if(key == "ToString")
-        {
-            std::string n={};
-            for(auto item : this->items)
-            {
-                n.push_back('@');
-                n.append(item.first);
-                n.push_back(' ');
-                std::string str;
-                if(GetObject(item.second,str))
-                {
-                    n.append(EscapeString(str,true));
-                }
-                else n.append(ToString(ls.GetGC(), item.second));
-                n.push_back('\n');
-            }
-            return n;
-        }
-        if(key == "GetEnumerator")
-        {
-            return DocumentationParserEnumerator::Create(ls,this);
-        }
-        return Undefined();
-            
-    }
-    TObject New_DocumentationParser(GCList& ls, std::vector<TObject> args)
-    {
-        std::string doc;
-
-        if(GetArgument(args,0,doc))
-        {
-            return TNativeObject::Create<DocumentationParser>(ls, doc);
-        }
-
-        return Undefined();
-    }
+   
+    
 
 
     #if defined(CROSSLANG_ENABLE_SHARED)
@@ -771,10 +461,29 @@ namespace Tesses::CrossLang
     }
     #endif
     
+    Tesses::Framework::Filesystem::VFSPath GetPluginPath(Tesses::Framework::Filesystem::VFSPath path)
+    {
+        using namespace Tesses::Framework::Filesystem;
+        if(!path.relative) return path;
+        
+        auto pluginConfigDir = GetCrossLangConfigDir() / "Plugins";
+        if(LocalFS->DirectoryExists(pluginConfigDir))
+        {
+            if(LocalFS->FileExists(pluginConfigDir / path + SharedExtension))
+                return pluginConfigDir / path + SharedExtension;
+            auto path2 = pluginConfigDir / path.GetParent() / "lib" + path.GetFileName() + SharedExtension;
+            if(LocalFS->FileExists(path2)) return path2;
+        }
+
+        return path;
+    }
+
+
     void LoadPlugin(GC* gc, TRootEnvironment* env, Tesses::Framework::Filesystem::VFSPath sharedObjectPath)
     {
+        
         #if defined(CROSSLANG_ENABLE_SHARED)
-        auto ptr = std::make_shared<DL>(sharedObjectPath);
+        auto ptr = std::make_shared<DL>(GetPluginPath(sharedObjectPath));
         auto cb = ptr->Resolve<PluginFunction>("CrossLangPluginInit");
         if(cb == nullptr) return;
         gc->RegisterEverythingCallback([ptr,cb](GC* gc, TRootEnvironment* env)-> void{
@@ -857,8 +566,14 @@ namespace Tesses::CrossLang
     static TObject TypeIsDateTime(GCList& ls, std::vector<TObject> args)
     {
         if(args.empty()) return nullptr;
-        TDateTime* dt;
-        return GetArgumentHeap(args,0,dt);
+        std::shared_ptr<Tesses::Framework::Date::DateTime> dt;
+        return GetArgument(args,0,dt);
+    }
+    static TObject TypeIsTimeSpan(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        std::shared_ptr<Tesses::Framework::Date::TimeSpan> dt;
+        return GetArgument(args,0,dt);
     }
     static TObject New_SubdirFilesystem(GCList& ls, std::vector<TObject> args)
     {
@@ -905,6 +620,25 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }
+    static TObject New_TempFS(GCList& ls, std::vector<TObject> args)
+    {
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+        if(GetArgument(args,0,vfs))
+        {
+            bool deleteOnDispose=true;
+            GetArgument(args,1,deleteOnDispose);
+            return std::make_shared<Tesses::Framework::Filesystem::TempFS>(vfs,deleteOnDispose);
+        }
+        else {
+            bool deleteOnDispose;
+            if(GetArgument(args,0,deleteOnDispose))
+            {
+                return std::make_shared<Tesses::Framework::Filesystem::TempFS>(deleteOnDispose);
+            }
+
+        }
+        return std::make_shared<Tesses::Framework::Filesystem::TempFS>();
+    }
     static TObject New_Stream(GCList& ls, std::vector<TObject> args)
     {
         TDictionary* dict;
@@ -921,8 +655,8 @@ namespace Tesses::CrossLang
         {
             if(args.size()==1)
             {
-               Tesses::Framework::Date::DateTime dt(year);
-               return dt;
+               return std::make_shared<Tesses::Framework::Date::DateTime>(year);
+               
             }
             else
             {
@@ -940,12 +674,45 @@ namespace Tesses::CrossLang
                 GetArgument(args,6,isLocal);
 
                 
-                Tesses::Framework::Date::DateTime dt((int)year,(int)month,(int)day,(int)hour,(int)minute,(int)second,isLocal);
-                return dt;
+                return std::make_shared<Tesses::Framework::Date::DateTime>((int)year,(int)month,(int)day,(int)hour,(int)minute,(int)second,isLocal);
             }
         }
         return nullptr;
     }
+    static TObject New_TimeSpan(GCList& ls, std::vector<TObject> args)
+    {
+
+        int64_t arg1;
+        if(GetArgument(args,0,arg1))
+        {
+            if(args.size()==1)
+            {
+               return std::make_shared<Tesses::Framework::Date::TimeSpan>(arg1);
+            }
+            else if(args.size() >= 3)
+            {
+                int64_t arg2;
+                int64_t arg3;
+                if(GetArgument(args,1,arg2) && GetArgument(args,2,arg3))
+                {
+                    int64_t arg4;
+                    if(GetArgument(args,3,arg4))
+                    {
+                        return std::make_shared<Tesses::Framework::Date::TimeSpan>((int)arg1,(int)arg2,(int)arg3,(int)arg4);
+                        
+                    }
+                    else 
+                    {
+                        return std::make_shared<Tesses::Framework::Date::TimeSpan>((int)arg1,(int)arg2,(int)arg3);;
+                        
+                    }
+                }
+            }
+            
+        }
+        return nullptr;
+    }
+   
     std::string GetObjectTypeString(TObject _obj)
     {
         if(std::holds_alternative<std::regex>(_obj)) return "Regex";
@@ -960,7 +727,8 @@ namespace Tesses::CrossLang
         
         if(std::holds_alternative<Tesses::Framework::Filesystem::VFSPath>(_obj)) return "Path";
         if(std::holds_alternative<TVMVersion>(_obj)) return "Version";
-        if(std::holds_alternative<TDateTime>(_obj)) return "DateTime";
+        if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(_obj)) return "DateTime";
+        if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(_obj)) return "TimeSpan";
         if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Streams::Stream>>(_obj))
         {
             auto strm = std::get<std::shared_ptr<Tesses::Framework::Streams::Stream>>(_obj);
@@ -1003,15 +771,14 @@ namespace Tesses::CrossLang
             if(vfs != nullptr)
             {
                 auto localVFS = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::LocalFilesystem>(vfs);
-
                 auto mountableVFS = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::MountableFilesystem>(vfs);
-
-
                 auto subFS = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::SubdirFilesystem>(vfs);
+                auto tempFS = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::TempFS>(vfs);
 
                 if(localVFS != nullptr) return "LocalFilesystem";
                 if(subFS != nullptr) return "SubdirFilesystem";
                 if(mountableVFS != nullptr) return "MountableFilesystem";
+                if(tempFS != nullptr) return "TempFS";
                 
                 
             }
@@ -1209,11 +976,11 @@ namespace Tesses::CrossLang
     static TObject DateTime_getNow(GCList& ls, std::vector<TObject> args)
     {
         
-        return Tesses::Framework::Date::DateTime::Now();
+        return std::make_shared<Tesses::Framework::Date::DateTime>(Tesses::Framework::Date::DateTime::Now());
     }
     static TObject DateTime_getNowUTC(GCList& ls, std::vector<TObject> args)
     {
-        return Tesses::Framework::Date::DateTime::NowUTC();
+        return std::make_shared<Tesses::Framework::Date::DateTime>(Tesses::Framework::Date::DateTime::NowUTC());
     }
     static TObject DateTime_getNowEpoch(GCList& ls, std::vector<TObject> args)
     {
@@ -1226,13 +993,63 @@ namespace Tesses::CrossLang
         Tesses::Framework::Date::DateTime dt;
         if(GetArgument(args,0,d) && Tesses::Framework::Date::DateTime::TryParseHttpDate(d,dt))
         {
-            return dt;
+            return std::make_shared<Tesses::Framework::Date::DateTime>(dt);
         }
         return nullptr;
     }
     static TObject New_Task(GCList& ls, std::vector<TObject> args)
     {
         return TTask::Create(ls);
+    }
+    static TObject TimeSpan_Parse(GCList& ls, std::vector<TObject> args)
+    {
+        std::string t;
+        Tesses::Framework::Date::TimeSpan ts;
+        if(GetArgument(args,0,t) && Tesses::Framework::Date::TimeSpan::TryParse(t,ts))
+        {
+            return std::make_shared<Tesses::Framework::Date::TimeSpan>(ts);
+        }
+        return nullptr;
+    }
+    static TObject TimeSpan_FromSeconds(GCList& ls, std::vector<TObject> args)
+    {
+        int64_t n;
+
+        if(GetArgument(args,0,n))
+        {
+            return std::make_shared<Tesses::Framework::Date::TimeSpan>(n);
+        }
+        return nullptr;
+    }
+    static TObject TimeSpan_FromMinutes(GCList& ls, std::vector<TObject> args)
+    {
+        int64_t n;
+
+        if(GetArgument(args,0,n))
+        {
+            return std::make_shared<Tesses::Framework::Date::TimeSpan>(n*60);
+        }
+        return nullptr;
+    }
+    static TObject TimeSpan_FromHours(GCList& ls, std::vector<TObject> args)
+    {
+        int64_t n;
+
+        if(GetArgument(args,0,n))
+        {
+            return std::make_shared<Tesses::Framework::Date::TimeSpan>(n*3600);
+        }
+        return nullptr;
+    }
+    static TObject TimeSpan_FromDays(GCList& ls, std::vector<TObject> args)
+    {
+        int64_t n;
+
+        if(GetArgument(args,0,n))
+        {
+            return std::make_shared<Tesses::Framework::Date::TimeSpan>(n*86400);
+        }
+        return nullptr;
     }
     void TStd::RegisterRoot(GC* gc, TRootEnvironment* env)
     {
@@ -1250,10 +1067,18 @@ namespace Tesses::CrossLang
         date->DeclareFunction(gc, "getNowEpoch","Get the time_t time now",{},DateTime_getNowEpoch);
         date->DeclareFunction(gc, "TryParseHttpDate","Parse the http date",{},DateTime_TryParseHttpDate);
         
-        
 	
         date->SetValue("Zone", (int64_t)Tesses::Framework::Date::GetTimeZone());
         date->SetValue("SupportsDaylightSavings",Tesses::Framework::Date::TimeZoneSupportDST());
+
+
+        auto ts = env->EnsureDictionary(gc, "TimeSpan");
+        ts->DeclareFunction(gc, "Parse", "Parse timespan",{"tsStr"}, TimeSpan_Parse);
+        ts->DeclareFunction(gc,"FromSeconds","Create timespan from seconds", {"seconds"}, TimeSpan_FromSeconds);
+        ts->DeclareFunction(gc,"FromMinutes","Create timespan from minutes", {"minutes"}, TimeSpan_FromMinutes);
+        ts->DeclareFunction(gc,"FromHours","Create timespan from hours", {"hours"}, TimeSpan_FromHours);
+        ts->DeclareFunction(gc,"FromDays","Create timespan from days", {"days"}, TimeSpan_FromDays);
+
 	
         auto task = env->EnsureDictionary(gc,"Task");
 
@@ -1275,11 +1100,13 @@ namespace Tesses::CrossLang
         TDictionary* newTypes = env->EnsureDictionary(gc, "New");
        
         newTypes->DeclareFunction(gc, "DateTime","Create a DateTime object, if only one arg is provided year is epoch, isLocal defaults to true unless epoch",{"year","$month","$day","$hour","$minute","$second","$isLocal"},New_DateTime);
+        newTypes->DeclareFunction(gc, "TimeSpan","Create a DateTime object, if only one arg is provided days is totalSeconds, if there are only three arguments days will be hours, hours will be minutes, minutes will be seconds (according to the argument documentation)",{"days","$hours","$minutes","$seconds"},New_TimeSpan);
 
         newTypes->DeclareFunction(gc, "MountableFilesystem","Create a mountable filesystem",{"root"}, New_MountableFilesystem);
         newTypes->DeclareFunction(gc, "SubdirFilesystem","Create a subdir filesystem",{"fs","subdir"}, New_SubdirFilesystem);
         newTypes->DeclareFunction(gc, "MemoryStream","Create a memory stream",{"writable"}, New_MemoryStream);
         newTypes->DeclareFunction(gc, "Filesystem","Create filesystem", {"fs"},New_Filesystem);
+        newTypes->DeclareFunction(gc, "TempFS","Create a temp directory",{"",""}, New_TempFS);
         newTypes->DeclareFunction(gc, "Stream","Create stream", {"strm"},New_Stream);
 
         newTypes->DeclareFunction(gc, "MemoryFilesystem","Create in memory filesystem", {},New_MemoryFilesystem);
@@ -1326,7 +1153,7 @@ namespace Tesses::CrossLang
         env->DeclareFunction(gc, "TypeIsStream","Get whether object is a stream",{"object"},TypeIsStream);
         env->DeclareFunction(gc, "TypeIsVFS","Get whether object is a virtual filesystem",{"object"},TypeIsVFS);
         env->DeclareFunction(gc, "TypeIsDateTime","Get whether object is a DateTime",{"object"},TypeIsDateTime);
-        
+        env->DeclareFunction(gc, "TypeIsTimeSpan","Get whether object is a TimeSpan",{"object"},TypeIsTimeSpan);
         
         
         newTypes->DeclareFunction(gc, "Regex", "Create regex object",{"regex"},[](GCList& ls,std::vector<TObject> args)->TObject {
@@ -1372,7 +1199,6 @@ namespace Tesses::CrossLang
         newTypes->DeclareFunction(gc,"AArray","alias for new AssociativeArray",{},[](GCList& ls, std::vector<TObject> args)->TObject {
             return TAssociativeArray::Create(ls);
         });
-        newTypes->DeclareFunction(gc,"DocumentationParser","Parse documentation blocks",{"documentationString"},New_DocumentationParser);
         newTypes->DeclareFunction(gc,"ByteArray","Create bytearray, with optional either size (to size it) or string argument (to fill byte array)",{"$data"},ByteArray);
         newTypes->DeclareFunction(gc,"Task","Create a task for async, to manually create an async object",{},New_Task);
         

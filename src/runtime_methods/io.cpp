@@ -70,13 +70,32 @@ namespace Tesses::CrossLang
         
         if(GetArgument(args,0,vfs) && GetArgumentAsPath(args,1,path))
         {
-            auto txtFile = vfs->OpenFile(path,"rb");
-            if(txtFile == nullptr) return "";
-            Tesses::Framework::TextStreams::StreamReader reader(txtFile);
-            return reader.ReadToEnd();
+            return Tesses::Framework::Filesystem::Helpers::ReadAllText(vfs,path);
         }
         return "";
     }
+
+    static TObject FS_ReadAllLines(GCList& ls, std::vector<TObject> args)
+    {
+        Tesses::Framework::Filesystem::VFSPath path;
+
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+        
+        if(GetArgument(args,0,vfs) && GetArgumentAsPath(args,1,path))
+        {
+            std::vector<std::string> lines;
+
+            Tesses::Framework::Filesystem::Helpers::ReadAllLines(vfs,path,lines);
+
+            ls.GetGC()->BarrierBegin();
+            auto items = TList::Create(ls);
+            for(auto& l : lines) { items->Add(l);}
+            ls.GetGC()->BarrierEnd();
+            return items;
+        }
+        return nullptr;
+    }
+
     static TObject FS_ReadAllBytes(GCList& ls, std::vector<TObject> args)
     {
         Tesses::Framework::Filesystem::VFSPath path;
@@ -84,15 +103,8 @@ namespace Tesses::CrossLang
         
         if(GetArgument(args,0,vfs) && GetArgumentAsPath(args,1,path))
         {
-            auto txtFile = vfs->OpenFile(path,"rb");
-            if(txtFile == nullptr) return nullptr;
             auto res = TByteArray::Create(ls);
-            std::array<uint8_t,1024> data;
-            size_t read;
-            do {
-                read = txtFile->ReadBlock(data.data(),data.size());
-                res->data.insert(res->data.end(),data.begin(),data.begin()+read);
-            } while(read != 0);
+            Tesses::Framework::Filesystem::Helpers::ReadAllBytes(vfs,path,res->data);
             
             return res;
         }
@@ -100,6 +112,27 @@ namespace Tesses::CrossLang
     }
 
 
+    static TObject FS_WriteAllLines(GCList& ls, std::vector<TObject> args)
+    {
+        Tesses::Framework::Filesystem::VFSPath path;
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+        
+
+        TList* lines;
+        if(GetArgument(args,0,vfs) && GetArgumentAsPath(args,1,path) && GetArgumentHeap(args,2,lines))
+        {
+            std::vector<std::string> content;
+            ls.GetGC()->BarrierBegin();
+            for(auto& item : lines->items) 
+            {
+                if(std::holds_alternative<std::string>(item))
+                content.push_back(std::get<std::string>(item));
+            }
+            ls.GetGC()->BarrierEnd();
+            Tesses::Framework::Filesystem::Helpers::WriteAllLines(vfs,path,content);
+        }
+        return nullptr;
+    }
     static TObject FS_WriteAllText(GCList& ls, std::vector<TObject> args)
     {
         Tesses::Framework::Filesystem::VFSPath path;
@@ -109,10 +142,7 @@ namespace Tesses::CrossLang
         std::string content;
         if(GetArgument(args,0,vfs) && GetArgumentAsPath(args,1,path) && GetArgument(args,2,content))
         {
-            auto txtFile = vfs->OpenFile(path,"wb");
-            if(txtFile == nullptr) return nullptr;
-            Tesses::Framework::TextStreams::StreamWriter writer(txtFile);
-            writer.Write(content);
+            Tesses::Framework::Filesystem::Helpers::WriteAllText(vfs,path,content);
         }
         return nullptr;
     }
@@ -125,10 +155,7 @@ namespace Tesses::CrossLang
         TByteArray* bArray;
         if(GetArgument(args,0,vfs) && GetArgumentAsPath(args,1,path) && GetArgumentHeap(args,2,bArray))
         {
-            auto txtFile = vfs->OpenFile(path,"wb");
-            if(txtFile == nullptr) return nullptr;
-            txtFile->WriteBlock(bArray->data.data(),bArray->data.size());
-            
+            Tesses::Framework::Filesystem::Helpers::WriteAllBytes(vfs,path,bArray->data);
         }
         return nullptr;
     }
@@ -166,6 +193,9 @@ namespace Tesses::CrossLang
 
         dict->DeclareFunction(gc, "ReadAllText","Read all text from file", {"fs","filename"},FS_ReadAllText);
         dict->DeclareFunction(gc, "WriteAllText","Write all text to file", {"fs","filename","content"},FS_WriteAllText);
+
+        dict->DeclareFunction(gc, "ReadAllLines","Read all lines from file", {"fs","filename"},FS_ReadAllLines);
+        dict->DeclareFunction(gc, "WriteAllLines","Write all lines to file", {"fs","filename","lines"},FS_WriteAllLines);
     
         dict->DeclareFunction(gc, "ReadAllBytes","Read all bytes from file", {"fs","filename"},FS_ReadAllBytes);
         dict->DeclareFunction(gc, "WriteAllBytes","Write all bytes to file", {"fs","filename","content"},FS_WriteAllBytes);

@@ -591,14 +591,7 @@ typedef enum {
      */
     int Lex(std::string filename, std::istream& strm, std::vector<LexToken>& tokens);
 
-/**
- * @brief Undefined type
- * 
- */
-class Undefined
-{
-
-};
+using Undefined = std::monostate;
 class AdvancedSyntaxNode;
 /**
  * @brief Bytecode instruction enumeration
@@ -802,7 +795,7 @@ class CharInstruction : public ByteCodeInstruction {
         void Write(std::vector<uint8_t>& data);
 };
 
-using SyntaxNode = std::variant<int64_t, double, std::string, char, bool, std::nullptr_t, Undefined,std::vector<uint8_t>, AdvancedSyntaxNode,std::shared_ptr<Tesses::Framework::Streams::Stream>,std::shared_ptr<Tesses::Framework::Filesystem::VFSPath>>;
+using SyntaxNode = std::variant<Undefined,int64_t, double, std::string, char, bool, std::nullptr_t,std::vector<uint8_t>, AdvancedSyntaxNode,std::shared_ptr<Tesses::Framework::Streams::Stream>,std::shared_ptr<Tesses::Framework::Filesystem::VFSPath>>;
 
 
 
@@ -1383,15 +1376,6 @@ class Parser {
     };
     
 
-    class TDateTime {
-        Tesses::Framework::Date::DateTime* dt;
-        public:
-            TDateTime();
-            TDateTime(Tesses::Framework::Date::DateTime t);
-            TDateTime(const TDateTime& dt);
-            Tesses::Framework::Date::DateTime& GetDate();
-            ~TDateTime();
-    };
 class TBreak {
 
 };
@@ -1403,7 +1387,7 @@ class TContinue {
      * 
      */
 
-using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder,TVMVersion,TDateTime,TBreak,TContinue,std::shared_ptr<Tesses::Framework::Streams::Stream>,std::shared_ptr<Tesses::Framework::Filesystem::VFS>,std::shared_ptr<Tesses::Framework::Http::IHttpServer>,std::shared_ptr<Tesses::Framework::Http::HttpRequestBody>,std::shared_ptr<Tesses::Framework::TextStreams::TextReader>,std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>;
+using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder,TVMVersion,std::shared_ptr<Tesses::Framework::Date::DateTime>,std::shared_ptr<Tesses::Framework::Date::TimeSpan>,TBreak,TContinue,std::shared_ptr<Tesses::Framework::Streams::Stream>,std::shared_ptr<Tesses::Framework::Filesystem::VFS>,std::shared_ptr<Tesses::Framework::Http::IHttpServer>,std::shared_ptr<Tesses::Framework::Http::HttpRequestBody>,std::shared_ptr<Tesses::Framework::TextStreams::TextReader>,std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>;
 
 class TRootEnvironment;
 class GC;

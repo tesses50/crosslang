@@ -99,7 +99,7 @@ namespace Tesses::CrossLang
                     std::string value;
                     int64_t i64;
                     double d64;
-                    TDateTime da;
+                    std::shared_ptr<Tesses::Framework::Date::DateTime> da;
                     if(GetArgument(args,0,key) )
                     {
                         if(GetArgument(args,1,value))
@@ -109,7 +109,7 @@ namespace Tesses::CrossLang
                         else if(GetArgument(args,1,d64))
                             this->dict->AddValue(key, d64);
                         else if(GetArgument(args,1,da))
-                            this->dict->AddValue(key, da.GetDate());
+                            this->dict->AddValue(key, *da);
                     }
                 }
                 else if(key == "SetValue")
@@ -118,7 +118,7 @@ namespace Tesses::CrossLang
                     std::string value;
                     int64_t i64;
                     double d64;
-                    TDateTime da;
+                    std::shared_ptr<Tesses::Framework::Date::DateTime> da;
                     if(GetArgument(args,0,key) )
                     {
                         if(GetArgument(args,1,value))
@@ -128,7 +128,7 @@ namespace Tesses::CrossLang
                         else if(GetArgument(args,1,d64))
                             this->dict->SetValue(key, d64);
                         else if(GetArgument(args,1,da))
-                            this->dict->SetValue(key, da.GetDate());
+                            this->dict->SetValue(key, *da);
                     }
                 }
                 else if(key == "Clear")
@@ -185,7 +185,7 @@ namespace Tesses::CrossLang
                     Tesses::Framework::Date::DateTime value;
                     if(GetArgument(args,0,key) && dict->TryGetFirstDate(key,value))
                     {
-                        return value;
+                        return std::make_shared<Tesses::Framework::Date::DateTime>(value);
                     }
                     return nullptr;
                 }
@@ -373,9 +373,9 @@ namespace Tesses::CrossLang
                 }
                 else if(key == "WithLastModified")
                 {
-                    TDateTime da;
+                    std::shared_ptr<Tesses::Framework::Date::DateTime> da;
                     if(GetArgument(args,0,da))
-                        ctx->WithLastModified(da.GetDate());
+                        ctx->WithLastModified(*da);
                     return this;
                 }
                 else if(key == "WithContentDisposition")

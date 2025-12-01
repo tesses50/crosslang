@@ -476,14 +476,14 @@ namespace Tesses::CrossLang {
             {
                 this->ls->GetGC()->BarrierBegin();
                 res = dict->GetValue("LastWrite");
-                TDateTime d;
+                std::shared_ptr<Tesses::Framework::Date::DateTime> d;
                 if(GetObject(res,d))
-                lastWrite =d.GetDate();
+                    lastWrite =*d;
 
                 res = dict->GetValue("LastAccess");
                 
                 if(GetObject(res,d))
-                lastWrite =d.GetDate();
+                lastWrite = *d;
 
                 this->ls->GetGC()->BarrierEnd();
             }
@@ -497,7 +497,7 @@ namespace Tesses::CrossLang {
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
-            dict->CallMethod(ls, "SetDate",{path,lastWrite,lastAccess});
+            dict->CallMethod(ls, "SetDate",{path,std::make_shared<Tesses::Framework::Date::DateTime>(lastWrite),std::make_shared<Tesses::Framework::Date::DateTime>(lastAccess)});
             
         }
     }
