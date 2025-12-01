@@ -245,6 +245,9 @@ namespace Tesses::CrossLang
                     }
                     if(txt == tokens[i].text)
                     {
+
+                        tkn = tokens[i];
+                        i++;
                         return;
                     }
             }
@@ -254,6 +257,9 @@ namespace Tesses::CrossLang
                 {
                     if(tokens[i].text == ">" && tokens[i+1].text == ">=" && tokens[i].type == LexTokenType::Symbol && tokens[i+1].type == LexTokenType::Symbol)
                     {
+
+                        tkn = tokens[i];
+                        i+=2;
                         return; 
                     }
                 
@@ -268,6 +274,8 @@ namespace Tesses::CrossLang
                 {
                     if(tokens[i].text == ">" && tokens[i+1].text == ">" && tokens[i].type == LexTokenType::Symbol && tokens[i+1].type == LexTokenType::Symbol)
                     {
+
+                        tkn = tokens[i];
                         i+=2;
                         return;    
                     }
