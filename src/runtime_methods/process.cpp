@@ -291,6 +291,14 @@ namespace Tesses::CrossLang
         env->SetVariable("Process",dict);
         auto process = env->EnsureDictionary(gc,"New");
         process->DeclareFunction(gc, "Process", "Create process",{},New_Process);
+        process->DeclareFunction(gc, "CGIServer", "Create a CGI Server",{"path"},[](GCList& ls, std::vector<TObject> args)->TObject{
+            Tesses::Framework::Filesystem::VFSPath path;
+            if(GetArgumentAsPath(args,0,path))
+            {
+                return std::make_shared<Tesses::Framework::Http::CGIServer>(path);
+            }
+            return Undefined();
+        });
         gc->BarrierEnd();
     }
 }

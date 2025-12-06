@@ -728,7 +728,7 @@ namespace Tesses::CrossLang
         }
         return Undefined();
     }
-    static TObject Net_NetworkStream(GCList& ls, std::vector<TObject> args)
+    static TObject New_NetworkStream(GCList& ls, std::vector<TObject> args)
     {
         bool ipv6;
         bool datagram;
@@ -770,7 +770,7 @@ namespace Tesses::CrossLang
             }
     };
 
-    static TObject Net_Http_HttpServer(GCList& ls, std::vector<TObject> args,TRootEnvironment* env)
+    static TObject New_HttpServer(GCList& ls, std::vector<TObject> args,TRootEnvironment* env)
     {
         int64_t port;
         std::string pathStr;
@@ -1440,14 +1440,103 @@ namespace Tesses::CrossLang
         }
         return "";
     }
+    static TObject New_FileServer(GCList& ls, std::vector<TObject> args)
+    {
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+        bool allowlisting;
+        bool spa;
+        if(GetArgument(args,0,vfs) && GetArgument(args,1,allowlisting) && GetArgument(args,2,spa))
+        {
+            return std::make_shared<FileServer>(vfs,allowlisting,spa);
+                
+        }
+        return nullptr;
+    }
+    static TObject New_BasicAuthServer(GCList& ls, std::vector<TObject> args)
+    {
+         auto bAuth = std::make_shared<BasicAuthServer>();
+           
+            TCallable* cb;
+            if(!args.empty())
+                bAuth->server = ToHttpServer(ls.GetGC(),args[0]);
+                
+            if(GetArgumentHeap(args,1,cb))
+            {
+                auto marked= CreateMarkedTObject(ls, cb);
+                bAuth->authorization = [marked](std::string user,std::string password)->bool {
+                    GCList ls(marked->GetGC());
+                    TCallable* callable;
+                    if(GetObjectHeap(marked->GetObject(), callable))
+                    {
+                        return ToBool(callable->Call(ls,{user,password}));
+                    }   
+                    return false;
+                };
+            }
+            GetArgument(args,2,bAuth->realm);
+            return bAuth;
+    }
+    static TObject New_MountableServer(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return Undefined();
+        return std::make_shared<MountableServer>(ToHttpServer(ls.GetGC(),args[0]));
+    }
+    static TObject New_StreamHttpRequestBody(GCList& ls, std::vector<TObject> args)
+    {
+        std::shared_ptr<Stream> strm;
+        std::string mimeType;
+
+        if(GetArgument(args,0,strm) && GetArgument(args, 1, mimeType))
+        {
+            return TNativeObject::Create<THttpRequestBody>(ls, new StreamHttpRequestBody(strm, mimeType));
+        }
+        return nullptr;
+    }
+    static TObject New_TextHttpRequestBody(GCList& ls, std::vector<TObject> args)
+    {
+        std::string text;
+        std::string mimeType;
+        if(GetArgument(args, 0, text) && GetArgument(args, 1, mimeType))
+        {
+            return TNativeObject::Create<THttpRequestBody>(ls,new TextHttpRequestBody(text, mimeType));
+            
+        }
+        return nullptr;
+    }
+    static TObject New_JsonHttpRequestBody(GCList& ls, std::vector<TObject> args)
+    {
+            
+        if(!args.empty())
+        {
+            return TNativeObject::Create<THttpRequestBody>(ls,new TextHttpRequestBody(Json_Encode(args[0]), "application/json"));
+                
+        }
+        return nullptr;
+        
+    }
     
     void TStd::RegisterNet(GC* gc, TRootEnvironment* env)
     {
 
         env->permissions.canRegisterNet=true;
         GCList ls(gc);
-        TDictionary* dict = TDictionary::Create(ls);
+
+        gc->BarrierBegin();
+        TDictionary* dict = env->EnsureDictionary(gc,"Net");
+        TDictionary* _new = env->EnsureDictionary(gc,"New");
+        _new->DeclareFunction(gc, "StreamHttpRequestBody","Create a stream request body",{"stream","mimeType"},New_StreamHttpRequestBody);
+        _new->DeclareFunction(gc, "TextHttpRequestBody","Create a text request body",{"text","mimeType"},New_TextHttpRequestBody);
+        _new->DeclareFunction(gc, "JsonHttpRequestBody","Create a text request body",{"json"},New_JsonHttpRequestBody);
+        _new->DeclareFunction(gc, "HttpServer", "Create a http server (allows multiple)",{"server","portOrUnixPath","$printIPs"},[env](GCList& ls, std::vector<TObject> args)->TObject{
+            return New_HttpServer(ls,args,env);
+        });
+        _new->DeclareFunction(gc, "FileServer","Create a file server",{"vfs","allowlisting","spa"}, New_FileServer);
+        _new->DeclareFunction(gc, "BasicAuthServer", "Create a basic auth server", {"$server","$auth","$realm"},New_BasicAuthServer);
+        _new->DeclareFunction(gc, "MountableServer","Create a server you can mount to, must mount parents before child",{"root"}, New_MountableServer);
+        _new->DeclareFunction(gc, "NetworkStream","Create a network stream",{"ipv6","datagram"},New_NetworkStream);
         
+        
+
         TDictionary* http = TDictionary::Create(ls);
         TDictionary* smtp = TDictionary::Create(ls);
         http->DeclareFunction(gc, "StatusCodeString", "Get the status code string",{"statusCode"},Net_Http_StatusCodeString);
@@ -1461,88 +1550,40 @@ namespace Tesses::CrossLang
         http->DeclareFunction(gc, "MimeType","Get mimetype from extension",{"ext"},Net_Http_MimeType);
 
        
-        //http->DeclareFunction(gc, "ProcessServer","Process HTTP server connection",{"networkstream","server","ip","port","encrypted"},, Net_ProcessServer);
-        http->DeclareFunction(gc, "StreamHttpRequestBody","Create a stream request body",{"stream","mimeType"},[](GCList& ls, std::vector<TObject> args)->TObject {
-            std::shared_ptr<Stream> strm;
-            std::string mimeType;
-
-            if(GetArgument(args,0,strm) && GetArgument(args, 1, mimeType))
-            {
-                return TNativeObject::Create<THttpRequestBody>(ls, new StreamHttpRequestBody(strm, mimeType));
-            }
-            return nullptr;
-        });
-        http->DeclareFunction(gc, "TextHttpRequestBody","Create a text request body",{"text","mimeType"},[](GCList& ls, std::vector<TObject> args)->TObject {
-            std::string text;
-            std::string mimeType;
-            if(GetArgument(args, 0, text) && GetArgument(args, 1, mimeType))
-            {
-                return TNativeObject::Create<THttpRequestBody>(ls,new TextHttpRequestBody(text, mimeType));
-                
-            }
-            return nullptr;
-        });
-        http->DeclareFunction(gc, "JsonHttpRequestBody","Create a text request body",{"json"},[](GCList& ls, std::vector<TObject> args)->TObject {
-            
-            if(!args.empty())
-            {
-                return TNativeObject::Create<THttpRequestBody>(ls,new TextHttpRequestBody(Json_Encode(args[0]), "application/json"));
-                
-            }
-            return nullptr;
-        });
+        http->DeclareFunction(gc, "StreamHttpRequestBody","Create a stream request body",{"stream","mimeType"},New_StreamHttpRequestBody);
+        http->DeclareFunction(gc, "TextHttpRequestBody","Create a text request body",{"text","mimeType"},New_TextHttpRequestBody);
+        http->DeclareFunction(gc, "JsonHttpRequestBody","Create a text request body",{"json"},New_JsonHttpRequestBody);
         http->DeclareFunction(gc, "MakeRequest", "Create an http request", {"url","$extra"}, [env](GCList& ls, std::vector<TObject> args)->TObject {return Net_Http_MakeRequest(ls,args,env);});
         http->DeclareFunction(gc, "WebSocketClient", "Create a websocket connection",{"url","headers","conn","$successCB"},Net_Http_WebSocketClient);
         http->DeclareFunction(gc, "DownloadToString","Return the http file's contents as a string",{"url"},Net_Http_DownloadToString);
         http->DeclareFunction(gc, "DownloadToStream","Download file to stream",{"url","stream"},Net_Http_DownloadToStream);
         http->DeclareFunction(gc, "DownloadToFile","Download file to file in vfs",{"url","vfs","path"},Net_Http_DownloadToFile);
         http->DeclareFunction(gc, "HttpServer", "Create a http server (allows multiple)",{"server","portOrUnixPath","$printIPs"},[env](GCList& ls, std::vector<TObject> args)->TObject{
-            return Net_Http_HttpServer(ls,args,env);
+            return New_HttpServer(ls,args,env);
         });
         http->DeclareFunction(gc, "ListenSimpleWithLoop", "Listen (creates application loop)", {"server","port"},Net_Http_ListenSimpleWithLoop);
         http->DeclareFunction(gc, "ListenOnUnusedPort","Listen on unused localhost port and print Port: theport",{"server"},Net_Http_ListenOnUnusedPort);
         //FileServer svr()
-        http->DeclareFunction(gc, "FileServer","Create a file server",{"vfs","allowlisting","spa"}, [](GCList& ls, std::vector<TObject> args)->TObject{
-            
-            std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
-            bool allowlisting;
-            bool spa;
-            if(GetArgument(args,0,vfs) && GetArgument(args,1,allowlisting) && GetArgument(args,2,spa))
+        http->DeclareFunction(gc, "FileServer","Create a file server",{"vfs","allowlisting","spa"}, New_FileServer);
+        http->DeclareFunction(gc, "BasicAuthServer", "Create a basic auth server", {"$server","$auth","$realm"},New_BasicAuthServer);
+        http->DeclareFunction(gc, "BasicAuthGetCreds","Get creds from str",{"ctx"},[](GCList& ls, std::vector<TObject> args)->TObject {
+            TServerContext* sc;
+            if(GetArgumentHeap(args,0,sc))
             {
-                return std::make_shared<FileServer>(vfs,allowlisting,spa);
-                
+                std::string user;
+                std::string pass;
+                if(sc->IsAvailable() && BasicAuthServer::GetCreds(*sc->GetContext(),user,pass))
+                {
+                    return TDictionary::Create(ls,{
+                        TDItem("Username",user),
+                        TDItem("Password",pass)
+                    });
+                }
             }
             return nullptr;
         });
-        http->DeclareFunction(gc, "MountableServer","Create a server you can mount to, must mount parents before child",{"root"}, [](GCList& ls, std::vector<TObject> args)->TObject{
-            TCallable* call;
-            TDictionary* dict;
-            TClassObject* cls;
-            std::shared_ptr<Tesses::Framework::Http::IHttpServer> mySvr;
-            if(GetArgumentHeap(args,0,call))
-            {
-                auto svr = std::make_shared<TObjectHttpServer>(ls.GetGC(), call);
-                return std::make_shared<MountableServer>(svr);
-                
-            }
-            else if(GetArgumentHeap(args,0,dict))
-            {
-                auto svr = std::make_shared<TObjectHttpServer>(ls.GetGC(), dict);
-                return std::make_shared<MountableServer>(svr);
-                
-            }
-            else if(GetArgumentHeap(args,0,cls))
-            {
-                auto svr = std::make_shared<TObjectHttpServer>(ls.GetGC(), cls);
-                return std::make_shared<MountableServer>(svr);
-            }
-            else if(GetArgument(args,0,mySvr))
-            {
-                return std::make_shared<MountableServer>(mySvr);
-            }
-            return nullptr;
-        });
-        dict->DeclareFunction(gc, "NetworkStream","Create a network stream",{"ipv6","datagram"},Net_NetworkStream);
+        http->DeclareFunction(gc, "MountableServer","Create a server you can mount to, must mount parents before child",{"root"}, New_MountableServer);
+        dict->DeclareFunction(gc, "NetworkStream","Create a network stream",{"ipv6","datagram"},New_NetworkStream);
         smtp->DeclareFunction(gc, "Send","Send email via smtp server",{"messageStruct"},Net_Smtp_Send);
         dict->DeclareFunction(gc, "getIPAddresses","Get the ip addresses of this machine",{"$ipv6"},[](GCList& ls, std::vector<TObject> args)->TObject{
             TList* a = TList::Create(ls);
@@ -1559,10 +1600,8 @@ namespace Tesses::CrossLang
             ls.GetGC()->BarrierEnd();;
             return a;
         });
-        gc->BarrierBegin();
         dict->SetValue("Http", http);
         dict->SetValue("Smtp", smtp);
-        env->DeclareVariable("Net", dict);
         gc->BarrierEnd();
     }
 }

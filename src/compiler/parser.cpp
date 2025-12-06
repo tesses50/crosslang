@@ -227,6 +227,14 @@ namespace Tesses::CrossLang
         }
         return false;
     }
+    static std::string EnsureSafeVariable(LexToken token)
+    {
+        if(token.text.find("__compGen") == 0)
+        {
+            throw SyntaxException(token.lineInfo,"__compGen* is reserved for compilers (this error is enforced by the compiler)");
+        }
+        return token.text;
+    }
     void Parser::EnsureSymbol(std::string txt)
     {
         if(i < tokens.size())
@@ -841,6 +849,7 @@ namespace Tesses::CrossLang
         {
             if(i >= tokens.size()) throw std::out_of_range("End of file");
             auto variable = tokens[i];
+            
 
                 i++;
             if(variable.type == LexTokenType::Symbol && variable.text == ".")
@@ -861,7 +870,7 @@ namespace Tesses::CrossLang
             else if(variable.type != LexTokenType::Identifier) throw SyntaxException(variable.lineInfo, "Expected an identifier got a " + LexTokenType_ToString(variable.type) + " \"" + variable.text + "\"");
             else
             {
-            node = AdvancedSyntaxNode::Create(DeclareExpression,true,{variable.text});
+                node = AdvancedSyntaxNode::Create(DeclareExpression,true,{EnsureSafeVariable(variable)});
             }
         }
         else if(IsIdentifier("const"))
@@ -888,7 +897,7 @@ namespace Tesses::CrossLang
             else if(variable.type != LexTokenType::Identifier) throw SyntaxException(variable.lineInfo, "Expected an identifier got a " + LexTokenType_ToString(variable.type) + " \"" + variable.text + "\"");
             else
             {
-                node = AdvancedSyntaxNode::Create(ConstExpression,true,{variable.text});
+                node = AdvancedSyntaxNode::Create(ConstExpression,true,{EnsureSafeVariable(variable)});
             }
         }
         else if(IsIdentifier("comptime"))
@@ -956,37 +965,37 @@ namespace Tesses::CrossLang
         }   
         else if(tokens[i].type == LexTokenType::Identifier)
         {
-            std::string token = tokens[i].text;
+            auto token=tokens[i];
             
             i++;
         
             bool hasNumber=true;    
             int64_t lngNum = 0;
             
-            if(token.size() == 1 && token[0] == '0')
+            if(token.text.size() == 1 && token.text[0] == '0')
             {
                 lngNum = 0;
             }
             else
-            if(token.size() > 0 && token[0] == '0')
+            if(token.text.size() > 0 && token.text[0] == '0')
             {
-                if(token.size() > 1 && token[1] == 'x')
+                if(token.text.size() > 1 && token.text[1] == 'x')
                 {
-                    lngNum = std::stoll(token.substr(2),nullptr,16);
+                    lngNum = std::stoll(token.text.substr(2),nullptr,16);
                 }
-                else if(token.size() > 1 && token[1] == 'b')
+                else if(token.text.size() > 1 && token.text[1] == 'b')
                 {
-                    lngNum = std::stoll(token.substr(2),nullptr,2);
+                    lngNum = std::stoll(token.text.substr(2),nullptr,2);
                 }
                 else
                 {
-                    lngNum = std::stoll(token.substr(1),nullptr,8);
+                    lngNum = std::stoll(token.text.substr(1),nullptr,8);
                 }
 
             }
-            else if(token.size() > 0 && token[0] >= '0' && token[0] <= '9')
+            else if(token.text.size() > 0 && token.text[0] >= '0' && token.text[0] <= '9')
             {
-                lngNum=std::stoll(token,nullptr,10);
+                lngNum=std::stoll(token.text,nullptr,10);
             }
             else
             {
@@ -1018,16 +1027,16 @@ namespace Tesses::CrossLang
         
             if(!hasNumber)
             {
-                if(token == "true")
+                if(token.text == "true")
                     node = true;
-                else if(token == "false")
+                else if(token.text == "false")
                     node = false;
-                else if(token == "null")
+                else if(token.text == "null")
                     node = nullptr;
-                else if(token == "undefined")
+                else if(token.text == "undefined")
                     node = Undefined();
                 else {
-                    node = AdvancedSyntaxNode::Create(GetVariableExpression,true,{token});
+                    node = AdvancedSyntaxNode::Create(GetVariableExpression,true,{EnsureSafeVariable(token)});
                 }
             }
         }

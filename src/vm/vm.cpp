@@ -3763,6 +3763,7 @@ namespace Tesses::CrossLang {
                 if(svr != nullptr)
                 {
                     auto mountable = std::dynamic_pointer_cast<Tesses::Framework::Http::MountableServer>(svr);
+                    
                     if(mountable != nullptr)
                     {
                         if(key == "Mount")
@@ -6254,6 +6255,118 @@ namespace Tesses::CrossLang {
                     return false;
                 }
                 cse.back()->Push(gc,Undefined());
+                return false;
+            }
+            if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Http::IHttpServer>>(instance))
+            {
+                auto svr = std::get<std::shared_ptr<Tesses::Framework::Http::IHttpServer>>(instance);
+                auto bas = std::dynamic_pointer_cast<Tesses::Framework::Http::BasicAuthServer>(svr);
+                auto cgi = std::dynamic_pointer_cast<Tesses::Framework::Http::CGIServer>(svr);
+                auto changable = std::dynamic_pointer_cast<Tesses::Framework::Http::ChangeableServer>(svr);
+                if(changable != nullptr)
+                {
+                    if(key == "Server")
+                    {
+                        bas->server = ToHttpServer(gc,value);
+                        stk->Push(gc,value);
+                        return false;
+                    }
+                }
+
+                if(bas != nullptr)
+                {
+                    if(key == "Realm")
+                    {
+                        bool val;
+                        if(GetObject(value,val))
+                        {
+                            bas->realm = val;
+                            stk->Push(gc,val );
+
+                            return false;
+                        }
+                    }
+                    if(key == "Server")
+                    {
+                        bas->server = ToHttpServer(gc,value);
+                        stk->Push(gc,value);
+                        return false;
+                    }
+                    if(key == "Authorization")
+                    {
+                        TCallable* val;
+                        if(GetObjectHeap(value,val))
+                        {
+                            auto marked= CreateMarkedTObject(ls, val);
+                            bas->authorization = [marked](std::string user,std::string password)->bool {
+                                GCList ls(marked->GetGC());
+                                TCallable* callable;
+                                if(GetObjectHeap(marked->GetObject(), callable))
+                                {
+                                    return ToBool(callable->Call(ls,{user,password}));
+                                }   
+                                return false;
+                            };
+                            stk->Push(gc,val);
+
+                            return false;
+                        }
+                    }
+                }
+                
+                if(cgi != nullptr)
+                {
+                    if(key == "WorkingDirectory")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath path;
+                        if(GetObjectAsPath(value,path))
+                        {
+                            cgi->workingDirectory = path;
+                            stk->Push(gc,path);
+                            return false;
+                        }
+                        else {
+                            cgi->workingDirectory = std::nullopt;
+                            stk->Push(gc,nullptr);
+                            return false;
+                        }
+
+                    }
+                    if(key == "DocumentRoot")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath path;
+                        if(GetObjectAsPath(value,path))
+                        {
+                            cgi->document_root= path;
+                            stk->Push(gc,path);
+                            return false;
+                        }
+                        else {
+                            cgi->document_root= std::nullopt;
+                            stk->Push(gc,nullptr);
+                            return false;
+                        }
+
+                    }
+                    if(key == "AdminEmail")
+                    {
+                        std::string str;
+                        if(GetObject(value,str))
+                        {
+                            cgi->adminEmail = str;
+                            stk->Push(gc,str);
+                            return false;
+                        }
+                        else {
+                            cgi->adminEmail= std::nullopt;
+                            stk->Push(gc,nullptr);
+                            return false;
+                        }
+
+                    }
+                }
+
+                stk->Push(gc, Undefined());
                 return false;
             }
             if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Streams::Stream>>(instance))
