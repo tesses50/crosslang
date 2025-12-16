@@ -522,7 +522,14 @@ namespace Tesses::CrossLang
             TWO_EXPR(NotEqualsExpression, NEQ)
             TWO_EXPR(EqualsExpression, EQ)
             TWO_EXPR(XOrExpression, XOR)
-            if(adv.nodeName == NullCoalescingExpression && adv.nodes.size() == 2)
+            if(adv.nodeName == LineNode && adv.nodes.size() == 2)
+            {
+
+                GenNode(instructions,adv.nodes[0],scope,contscope,brkscope,contI,brkI);
+                GenNode(instructions,adv.nodes[1],scope,contscope,brkscope,contI,brkI);
+                instructions.push_back(new SimpleInstruction(LINEINFO));
+            }
+            else if(adv.nodeName == NullCoalescingExpression && adv.nodes.size() == 2)
             {
                 uint32_t ifId = NewId();
                 std::string ifIdTrue = "__compGenTrue";

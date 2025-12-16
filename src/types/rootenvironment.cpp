@@ -118,6 +118,7 @@ namespace Tesses::CrossLang {
                 throw VMException("Lex error at line: " + std::to_string(res));
             }
             Parser parser(tokens);
+            
             SyntaxNode n = parser.ParseRoot();
             CodeGen gen;
             gen.GenRoot(n);
@@ -230,6 +231,9 @@ namespace Tesses::CrossLang {
                     std::vector<std::string> method=file->classes[i].name;
                     method.push_back(meth.name);
                     auto clo = TClosure::Create(ls,this,file,meth.chunkId);
+                    clo->closure->name = JoinPeriod(method);
+
+
                     clo->documentation = meth.documentation;
                     this->DeclareVariable(gc, method, clo);
                 }
@@ -239,7 +243,6 @@ namespace Tesses::CrossLang {
         for(auto fn : file->functions)
         {
             
-            std::string name;
             
             
             if(fn.first.size() < 2) throw VMException("No function name.");
@@ -248,6 +251,7 @@ namespace Tesses::CrossLang {
 
             if(fn.second >= file->chunks.size()) throw VMException("ChunkId out of bounds.");
             TFileChunk* chunk = file->chunks[fn.second];
+            chunk->name = JoinPeriod(items);
             GCList ls(gc);
             TClosure* closure=TClosure::Create(ls,this,file,fn.second);
             closure->documentation = fn.first[0];

@@ -163,6 +163,19 @@ namespace Tesses::CrossLang  {
         }
         return Undefined();
     }
+    TObject TEnvironment::CallFunctionWithFatalError(GCList& ls, std::string key, std::vector<TObject> args)
+    {
+        ls.GetGC()->BarrierBegin();
+        auto res = this->GetVariable(key);
+        ls.GetGC()->BarrierEnd();
+        TCallable* callable;
+
+        if(GetObjectHeap(res,callable))
+        {
+            return callable->CallWithFatalError(ls,args);
+        }
+        return Undefined();
+    }
     TSubEnvironment* TEnvironment::GetSubEnvironment(GCList* gc)
     {
         auto dict=TDictionary::Create(gc);

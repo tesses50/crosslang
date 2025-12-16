@@ -4237,7 +4237,7 @@ namespace Tesses::CrossLang {
                         if(args.size() > 0)
                         {
                             try {
-                                throw VMByteCodeException(gc,args[0]);
+                                throw VMByteCodeException(gc,args[0],cse.back());
                             } catch(...) {
                                 ttask->SetFailed(std::current_exception());
                             }
@@ -7012,7 +7012,7 @@ namespace Tesses::CrossLang {
         {
             auto env = cse.back()->env;
             if(!env->GetRootEnvironment()->HandleException(gc,env, _res2))
-            throw VMByteCodeException(gc,_res2);
+            throw VMByteCodeException(gc,_res2,cse.back());
         }
         return false;
     }
@@ -7167,6 +7167,24 @@ namespace Tesses::CrossLang {
         auto stk = cse.back();
        
         stk->Push(gc,Undefined());
+        return false;
+    }
+    bool InterperterThread::LineInfo(GC* gc)
+    {
+        GCList ls(gc);
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        auto stk = cse.back();
+        auto file = stk->Pop(ls);
+        auto line = stk->Pop(ls);      
+        
+        //Set the fields in this cse
+        GetObject(file,stk->srcfile);
+        GetObject(line,stk->srcline);  
+
+        //TODO: implement lines (this will make the language work until we get it rigged up)
+
+
+
         return false;
     }
       bool InterperterThread::PushFalse(GC* gc)
@@ -7867,6 +7885,9 @@ namespace Tesses::CrossLang {
     {
         CallStackEntry* cse = new CallStackEntry();
         cse->mustReturn=false;
+        cse->srcline = -1;
+        cse->srcfile = "";
+        cse->thread=nullptr;
         GC* _gc = ls.GetGC();
         ls.Add(cse);
         _gc->Watch(cse);
@@ -7877,6 +7898,9 @@ namespace Tesses::CrossLang {
     {
         CallStackEntry* cse = new CallStackEntry();
         cse->mustReturn=false;
+        cse->srcline = -1;
+        cse->srcfile = "";
+        cse->thread=nullptr;
         GC* _gc = ls->GetGC();
         ls->Add(cse);
         _gc->Watch(cse);
@@ -7886,6 +7910,7 @@ namespace Tesses::CrossLang {
     {
         ls.GetGC()->BarrierBegin();
         CallStackEntry* cse = CallStackEntry::Create(ls);
+        cse->thread = this;
         cse->callable = closure;
         cse->env = closure->chunkId == 0 ? closure->env : closure->ownScope ? closure->env->GetSubEnvironment(ls) : closure->env;
         cse->ip = 0;

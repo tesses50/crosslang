@@ -571,6 +571,9 @@ namespace Tesses::CrossLang {
                     case BREAKPOINT:
                         buffer.append("breakpoint");
                         break;
+                    case LINEINFO:
+                        buffer.append("lineinfo");
+                        break;
                     case PUSHBREAK:
                         buffer.append("push break");
                         break;

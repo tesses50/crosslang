@@ -13,6 +13,7 @@ void Help(const char* filename)
     printf("  -I:  Set icon resource name (in the resource folder), should be a 128x128 png\n");
     printf("  -v:  Set version (1.0.0.0-prod defaults to 1.0.0.0-dev)\n");
     printf("  -d:  Add dependency (DependencyName-1.0.0.0-prod)\n");
+    printf("  -D: enable debug)\n");
     printf("  -t:  Declare a tool (ToolName-1.0.0.0-prod)\n");
     printf("  -n:  Set name (MyAppOrLibName defaults to out)\n");
     printf("  -r:  Set resource directory (RESDIR defaults to res)\n");
@@ -46,7 +47,7 @@ int main(int argc, char** argv)
    std::string icon="";
    std::string comptime="none";
    TVMVersion version;
-
+   bool debug=false;
 
    
 
@@ -56,6 +57,7 @@ int main(int argc, char** argv)
         {
             Help(argv[0]);
         }
+        
         else if(strcmp(argv[i], "-o") == 0)
         {
             i++;
@@ -187,6 +189,10 @@ int main(int argc, char** argv)
                 }
             }
         }
+        else if(strcmp(argv[i],"-D") == 0)
+        {
+            debug = true;
+        }
         else {
             source.push_back(argv[i]);
         }
@@ -202,7 +208,7 @@ int main(int argc, char** argv)
     for(auto src : source)
     {
         std::ifstream strm(src,std::ios_base::in|std::ios_base::binary);
-        int res = Lex(argv[1],strm,tokens);
+        int res = Lex(std::filesystem::absolute(src).string(),strm,tokens);
         
     }
 
@@ -248,7 +254,7 @@ int main(int argc, char** argv)
     }
     
     Parser parser(tokens,gc,env);
-
+    parser.debug = debug;
     CodeGen gen;
     gen.GenRoot(parser.ParseRoot());
     gen.name = name;

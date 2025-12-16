@@ -1304,6 +1304,15 @@ namespace Tesses::CrossLang
         }
         return node;
     }
+    bool Parser::CanEmit(LexTokenLineInfo& ifo)
+    {
+        if(!this->debug) return false;
+        bool same = ifo.line == this->lastLine && ifo.filename == this->lastFile;
+        this->lastFile = ifo.filename;
+        this->lastLine = ifo.line;
+
+        return !same;
+    }
     SyntaxNode Parser::ParseNode(bool isRoot)
     {
         std::string documentation="";
@@ -1324,6 +1333,8 @@ namespace Tesses::CrossLang
             
             while(i < tokens.size() && (isRoot || !IsSymbol("}",false)))
             {
+                auto token = tokens[i];
+                if(CanEmit(token.lineInfo)) aSN.nodes.push_back(AdvancedSyntaxNode::Create(LineNode,false, {(int64_t)tokens[i].lineInfo.line,tokens[i].lineInfo.filename}));
                 aSN.nodes.push_back(ParseNode());
                 IsSymbol(";");
             }

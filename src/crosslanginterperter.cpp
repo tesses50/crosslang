@@ -49,7 +49,7 @@ int main(int argc, char** argv)
     for(int arg=1;arg<argc;arg++)
         args->Add(std::string(argv[arg]));
    
-    auto res = env->CallFunction(ls,"main",{args});
+    auto res = env->CallFunctionWithFatalError(ls,"main",{args});
     int64_t iresult;
     if(GetObject(res,iresult))
         return (int)iresult;

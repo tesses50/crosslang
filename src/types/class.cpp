@@ -154,6 +154,7 @@ namespace Tesses::CrossLang
                     else
                     {
                         auto clos = TClosure::Create(ls,obj->env,file,entry.chunkId);
+                        clos->closure->name = obj->name + "::" + ent.name;
                         clos->className = ownerNow;
                         clos->documentation = entry.documentation;
                         ent.value = clos;
@@ -163,6 +164,7 @@ namespace Tesses::CrossLang
                     if(entry.isAbstract) ent.value = Undefined();
                     else {
                         auto clos = TClosure::Create(ls,obj->env,file,entry.chunkId);
+                        clos->closure->name = obj->name + "::" + ent.name;
                         clos->className = ownerNow;
                         ent.value = clos->Call(*ls,{});
                     }

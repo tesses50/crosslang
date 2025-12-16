@@ -281,6 +281,10 @@ namespace Tesses::CrossLang {
                 {
                     instrs.push_back(std::make_shared<SimpleChunkInstruction>(NOP));
                 }
+                else if(name == "lineinfo")
+                {
+                    instrs.push_back(std::make_shared<SimpleChunkInstruction>(LINEINFO));
+                }
                 else if(name == "pushclosure")
                 {
                     auto closure = std::make_shared<ClosureChunkInstruction>(true);

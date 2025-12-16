@@ -138,6 +138,7 @@ namespace Tesses::CrossLang
         std::vector<std::pair<std::string,TVMVersion>> tools;
         std::string info;
         std::string icon;
+        bool debug=false;
         std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
 
         ls.GetGC()->BarrierBegin();
@@ -152,6 +153,7 @@ namespace Tesses::CrossLang
         TObject _resourceFileSystem = dict->GetValue("ResourceFileSystem");
         
         TObject _out = dict->GetValue("Output");
+        TObject _dbg = dict->GetValue("Debug");
         TList* _toolList;
         TList* _depList; TList* srcLst;
         TRootEnvironment* comptimeEnv=nullptr;
@@ -160,6 +162,7 @@ namespace Tesses::CrossLang
         GetObject<std::string>(_icon,icon);
         GetObject(_resourceFileSystem, vfs);
         GetObjectHeap(_comptime,comptimeEnv);
+        GetObject(_dbg,debug);
         std::string v2;
         if(GetObject<std::string>(_version,v2))
             TVMVersion::TryParse(v2, version);
@@ -258,6 +261,7 @@ namespace Tesses::CrossLang
             }
         }
         Parser parser(tokens,ls.GetGC(),comptimeEnv);
+        parser.debug = debug;
         SyntaxNode n = parser.ParseRoot();
         CodeGen gen;
         gen.GenRoot(n);
@@ -282,11 +286,43 @@ namespace Tesses::CrossLang
             return Failure(ls, ex.what());
         }
     }
+    static TObject VM_GetStacktrace(GCList& ls, std::vector<TObject> args)
+    {
+        if(current_function != nullptr)
+        {
+            if(current_function->thread != nullptr)
+            {
+                TList* list = TList::Create(ls);
+                ls.GetGC()->BarrierBegin();
+                for(auto item : current_function->thread->call_stack_entries)
+                {
+                    auto dict = TDictionary::Create(ls);
+                    if(item->callable->closure->name)
+                        dict->SetValue("Name", *item->callable->closure->name);
+                    
+                    dict->SetValue("Closure", item->callable->closure);
+                    dict->SetValue("FileName", item->callable->file->name + "-" + item->callable->file->version.ToString() + ".crvm");
+                    dict->SetValue("IP",(int64_t)item->ip);
+                    if(item->srcline >= 1)
+                    {
+                        dict->SetValue("SourceFile", item->srcfile);
+                        dict->SetValue("SourceLine",item->srcline);
+                    }
+                    list->Add(dict);
+                }
+                ls.GetGC()->BarrierEnd();
+                return list;
+            }
+        }
+        return nullptr;
+    }
     void TStd::RegisterVM(GC* gc,TRootEnvironment* env)
     {
         env->permissions.canRegisterVM=true;
         GCList ls(gc);
+
         TDictionary* dict = TDictionary::Create(ls);
+        dict->DeclareFunction(gc, "GetStacktrace","Get the current stack trace", {}, VM_GetStacktrace);
         dict->DeclareFunction(gc, "getRootEnvironmentAsDictionary","Get root environment as a dictionary",{},[env](GCList& ls, std::vector<TObject> args)-> TObject{
             return env->GetDictionary();
         });

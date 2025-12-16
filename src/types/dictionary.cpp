@@ -126,6 +126,33 @@ namespace Tesses::CrossLang  {
             }
         return Undefined();
     }
+    TObject TDictionary::CallMethodWithFatalError(GCList& ls, std::string key, std::vector<TObject> args)
+    {
+        ls.GetGC()->BarrierBegin();
+        auto res = this->GetValue(key);
+        ls.GetGC()->BarrierEnd();
+        TCallable* callable;
+
+            if(GetObjectHeap(res,callable))
+            {
+                 auto closure = dynamic_cast<TClosure*>(callable);
+                if(closure != nullptr && !closure->closure->args.empty() && closure->closure->args.front() == "this") 
+                {
+                   std::vector<TObject> args2;
+                        args2.push_back(this);
+                        args2.insert(args2.end(), args.begin(),args.end());
+                    return closure->CallWithFatalError(ls,args2);
+                    
+                }
+                else
+                {
+                    return callable->CallWithFatalError(ls,args);
+                    
+                }
+            }
+        return Undefined();
+    }
+    
     void TDictionary::DeclareFunction(GC* gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb)
     {
         gc->BarrierBegin();
@@ -204,4 +231,5 @@ namespace Tesses::CrossLang  {
         _gc->Watch(dict);
         return dict;
     }
+    
 };

@@ -64,7 +64,7 @@ static opcode opcodes[256]={
     &InterperterThread::JumpIfContinue,
     &InterperterThread::JumpIfDefined,
     &InterperterThread::DeclareConstVariable,
-    &InterperterThread::Illegal,
+    &InterperterThread::LineInfo,
     &InterperterThread::Illegal,
     &InterperterThread::Illegal,
     &InterperterThread::Illegal,

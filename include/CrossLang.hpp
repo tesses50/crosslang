@@ -661,7 +661,8 @@ typedef enum {
     JMPIFBREAK,
     JMPIFCONTINUE,
     JMPIFDEFINED,
-    DECLARECONSTVARIABLE
+    DECLARECONSTVARIABLE,
+    LINEINFO
 } Instruction;
 /**
  * @brief Base type for bytecode instruction
@@ -1240,6 +1241,10 @@ constexpr std::string_view AwaitExpression = "awaitExpression";
  */
 constexpr std::string_view NullCoalescingExpression = "nullCoalescingExpression";
 /**
+ * @brief For debugging (store line info and filename)
+ */
+constexpr std::string_view LineNode="lineNode";
+/**
  * @brief Advanced AST node
  * 
  */
@@ -1315,8 +1320,11 @@ class Parser {
     void ParseHtml(std::vector<SyntaxNode>& nodes,std::string var);
     GC* gc;
     TRootEnvironment* env;
+    int lastLine=-1;
+    std::string lastFile="";
+    bool CanEmit(LexTokenLineInfo& token);
     public:
-        
+        bool debug=true;
         /**
          * @brief Construct a new Parser object
          * 
@@ -1455,6 +1463,7 @@ class GC {
             TFile* file;
             std::vector<uint8_t> code;
             std::vector<std::string> args;
+            std::optional<std::string> name;
             void Mark();
     };
     
@@ -1642,6 +1651,7 @@ class GC {
             void DeclareFunction(GC* gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb,std::function<void()> destroy);
             void DeclareFunction(GC& gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb,std::function<void()> destroy);
             TObject CallMethod(GCList& ls, std::string key, std::vector<TObject> args);
+            TObject CallMethodWithFatalError(GCList& ls, std::string key, std::vector<TObject> args);
     };
 
    
@@ -1655,8 +1665,11 @@ class GC {
             TObject tag;
             std::string documentation;
             virtual TObject Call(GCList& ls,std::vector<TObject> args)=0;
+            TObject CallWithFatalError(GCList& ls, std::vector<TObject> args);
             virtual void Mark();
     };
+
+    void ThrowFatalError(std::exception& ex);
 
     void ThrowConstError(std::string key);
 
@@ -1694,7 +1707,7 @@ class GC {
             void DeclareFunction(GC* gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb,std::function<void()> destroy);
             void DeclareFunction(GC& gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb,std::function<void()> destroy);
             TObject CallFunction(GCList& ls, std::string key, std::vector<TObject> args);
-    
+            TObject CallFunctionWithFatalError(GCList& ls, std::string key, std::vector<TObject> args);
     };
     class TClassEnvironment;
     class TClassObject : public THeapObject 
@@ -2134,18 +2147,21 @@ class GC {
 
             ~TDynamicDictionary();
     };
-
+    class InterperterThread;
     
     class CallStackEntry : public THeapObject
     {
         public:
             static CallStackEntry* Create(GCList* ls);
             static CallStackEntry* Create(GCList& ls);
+            InterperterThread* thread;
             std::vector<TObject> stack;
             TEnvironment* env;
             TClosure* callable;
             uint32_t ip;
             uint32_t scopes; 
+            int64_t srcline;
+            std::string srcfile;
             bool mustReturn;
             
             void Mark();
@@ -2262,6 +2278,7 @@ class GC {
             bool PushContinue(GC* gc);
             bool JumpIfBreak(GC* gc);
             bool JumpIfContinue(GC* gc);
+            bool LineInfo(GC* gc);
         public:
             static InterperterThread* Create(GCList* ls);
             static InterperterThread* Create(GCList& ls);
@@ -2387,22 +2404,30 @@ class GC {
         public:
 
             TObject exception;
+            std::vector<CallStackEntry*> stack_trace;
+
             
             VMByteCodeException()
             {
             }
 
-            VMByteCodeException(GC* gc,TObject obj)
+            VMByteCodeException(GC* gc,TObject obj, CallStackEntry* ent)
             {
                 gcList = std::make_shared<GCList>(gc);
-                gcList.get()->Add(obj);
+                gcList->Add(obj);
+                if(ent != nullptr && ent->thread != nullptr)
+                {
+                    this->stack_trace = ent->thread->call_stack_entries;
+                    for(auto item : this->stack_trace)
+                        gcList->Add(item);
+                }
                 this->exception = obj;   
                 UpdateError();
             }
 
             void UpdateError()
             {
-                lastErrorText = ToString(gcList.get()->GetGC(),exception);
+                lastErrorText = ToString(gcList->GetGC(),exception);
 
             }
 
@@ -2410,14 +2435,19 @@ class GC {
             {
                 return lastErrorText.c_str();
             }
+            std::shared_ptr<GCList> GetGCList() {
+                return this->gcList;
+            }
 
     };
 
     class SyntaxException : public std::exception
     {
         std::string msg={};
+        LexTokenLineInfo line;
+        std::string message;
         public:
-            SyntaxException(LexTokenLineInfo lineInfo, std::string message)
+            SyntaxException(LexTokenLineInfo lineInfo, std::string message) : line(lineInfo), message(message)
             {
                 msg.append("in file: ");
                 msg.append(lineInfo.filename);
@@ -2434,6 +2464,9 @@ class GC {
             {
                 return msg.c_str();
             }
+
+            std::string Message() { return message;}
+            LexTokenLineInfo LineInfo() { return line;}
     };
 
     

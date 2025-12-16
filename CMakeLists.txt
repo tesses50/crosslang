@@ -173,6 +173,7 @@ src/vm/filereader.cpp
 src/vm/gc.cpp
 src/vm/gclist.cpp
 src/vm/vm.cpp
+src/vm/exception.cpp
 src/archive.cpp
 src/markedtobject.cpp
 )
