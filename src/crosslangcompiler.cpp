@@ -256,6 +256,10 @@ int main(int argc, char** argv)
     Parser parser(tokens,gc,env);
     parser.debug = debug;
     CodeGen gen;
+
+    auto sfs = std::make_shared<SubdirFilesystem>(LocalFS,LocalFS->SystemToVFSPath(resourceDir.string()));
+    gen.embedFS = sfs;
+
     gen.GenRoot(parser.ParseRoot());
     gen.name = name;
     gen.version = version;
@@ -275,9 +279,7 @@ int main(int argc, char** argv)
     {
         auto strm = std::make_shared<Tesses::Framework::Streams::FileStream>(outputDir / (name + "-" + version.ToString() + ".crvm"),"wb");
     
-        auto sfs = std::make_shared<SubdirFilesystem>(LocalFS,LocalFS->SystemToVFSPath(resourceDir.string()));
-
-        gen.Save(sfs,strm);
+        gen.Save(strm);
     }
     if(gc != nullptr)
     {

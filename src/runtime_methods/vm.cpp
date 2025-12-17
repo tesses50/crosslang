@@ -264,6 +264,7 @@ namespace Tesses::CrossLang
         parser.debug = debug;
         SyntaxNode n = parser.ParseRoot();
         CodeGen gen;
+        gen.embedFS = vfs;
         gen.GenRoot(n);
         gen.dependencies = dependencies;
         gen.tools = tools;
@@ -275,7 +276,7 @@ namespace Tesses::CrossLang
         std::shared_ptr<Tesses::Framework::Streams::Stream> stream;
         if(GetObject(_out, stream))
         {
-            gen.Save(vfs, stream);
+            gen.Save(stream);
         }
 
         

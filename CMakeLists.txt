@@ -154,6 +154,7 @@ src/runtime_methods/path.cpp
 src/runtime_methods/env.cpp
 src/runtime_methods/process.cpp
 src/runtime_methods/helpers.cpp
+src/types/embed.cpp
 src/types/async.cpp
 src/types/associativearray.cpp
 src/types/any.cpp

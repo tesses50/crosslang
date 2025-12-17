@@ -662,7 +662,9 @@ typedef enum {
     JMPIFCONTINUE,
     JMPIFDEFINED,
     DECLARECONSTVARIABLE,
-    LINEINFO
+    LINEINFO,
+    PUSHRESOURCESTREAM,
+    PUSHRESOUURCEDIR
 } Instruction;
 /**
  * @brief Base type for bytecode instruction
@@ -759,6 +761,13 @@ class EmbedInstruction : public ByteCodeInstruction {
     public:
         uint32_t n;
         EmbedInstruction(uint32_t n);
+        size_t Size();
+        void Write(std::vector<uint8_t>& data);
+};
+class EmbedStreamInstruction : public ByteCodeInstruction {
+    public:
+        uint32_t n;
+        EmbedStreamInstruction(uint32_t n);
         size_t Size();
         void Write(std::vector<uint8_t>& data);
 };
@@ -867,6 +876,7 @@ class CodeGen {
     void GenNode(std::vector<ByteCodeInstruction*>& instructions, SyntaxNode n,int32_t scope, int32_t contscope, int32_t brkscope, int32_t contI, int32_t brkI);
     void GenPop(std::vector<ByteCodeInstruction*>& instrs,SyntaxNode n);
     public:
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> embedFS;
         std::vector<std::pair<std::string, TVMVersion>> dependencies;
         std::vector<std::pair<std::string, TVMVersion>> tools;
         TVMVersion version;
@@ -874,7 +884,7 @@ class CodeGen {
         std::string info;
         std::string icon;
         void GenRoot(SyntaxNode n);
-        void Save(std::shared_ptr<Tesses::Framework::Filesystem::VFS> embedFS,std::shared_ptr<Tesses::Framework::Streams::Stream> output);
+        void Save(std::shared_ptr<Tesses::Framework::Streams::Stream> output);
         ~CodeGen();
 };
 /**
@@ -883,10 +893,20 @@ class CodeGen {
  */
 constexpr std::string_view HtmlRootExpression = "htmlRootExpression";
 /**
- * @brief an intrinsic function that embeads a resource from the filename based on the constant string argument
+ * @brief an intrinsic function that embeds a resource from the filename based on the constant string argument
  * 
  */
 constexpr std::string_view EmbedExpression = "embedExpression";
+/**
+ * @brief an intrinsic function that embeds a resource as a stream from the filename based on the constant string argument
+ * 
+ */
+constexpr std::string_view EmbedStreamExpression = "embedStreamExpression";
+/**
+ * @brief an intrinsic function that embeds a resource directory from the directory name based on the constant string argument
+ * 
+ */
+constexpr std::string_view EmbedDirectoryExpression = "embedDirectoryExpression";
 /**
  * @brief Negative operator -EXPR
  * 
@@ -2061,6 +2081,8 @@ class GC {
             ~TObjectStream();
     };
 
+    
+
     class TObjectHttpServer : public Tesses::Framework::Http::IHttpServer
     {
         public:
@@ -2279,6 +2301,8 @@ class GC {
             bool JumpIfBreak(GC* gc);
             bool JumpIfContinue(GC* gc);
             bool LineInfo(GC* gc);
+            bool PushResourceStream(GC* gc);
+            bool PushResourceDirectory(GC* gc);
         public:
             static InterperterThread* Create(GCList* ls);
             static InterperterThread* Create(GCList& ls);
@@ -2543,4 +2567,39 @@ class GC {
 
 
     std::shared_ptr<Tesses::Framework::Http::IHttpServer> ToHttpServer(GC* gc,TObject obj);
+
+    class EmbedStream : public Tesses::Framework::Streams::Stream
+    {
+        size_t offset;
+        MarkedTObject file;
+        uint32_t resource;
+     
+        public:
+            EmbedStream(GC* gc, TFile* file, uint32_t resource);
+            bool CanRead();
+            bool CanSeek();
+            bool EndOfStream();
+            size_t Read(uint8_t* buff, size_t len);
+            int64_t GetPosition();
+            int64_t GetLength();
+            void Seek(int64_t pos, Tesses::Framework::Streams::SeekOrigin whence);
+    };
+
+    class EmbedDirectory : public Tesses::Framework::Filesystem::VFS
+    {
+        MarkedTObject dir;
+        TObject getEntry(Tesses::Framework::Filesystem::VFSPath path);
+        public:
+            EmbedDirectory(GC* gc, TDictionary* dict);
+            std::shared_ptr<Tesses::Framework::Streams::Stream> OpenFile(Tesses::Framework::Filesystem::VFSPath path, std::string mode);
+            void CreateDirectory(Tesses::Framework::Filesystem::VFSPath path);
+            void DeleteDirectory(Tesses::Framework::Filesystem::VFSPath path);
+            bool RegularFileExists(Tesses::Framework::Filesystem::VFSPath path);
+            bool DirectoryExists(Tesses::Framework::Filesystem::VFSPath path);
+            void DeleteFile(Tesses::Framework::Filesystem::VFSPath path);
+            Tesses::Framework::Filesystem::VFSPathEnumerator EnumeratePaths(Tesses::Framework::Filesystem::VFSPath path);
+            void MoveFile(Tesses::Framework::Filesystem::VFSPath src, Tesses::Framework::Filesystem::VFSPath dest);
+            std::string VFSPathToSystem(Tesses::Framework::Filesystem::VFSPath path);
+            Tesses::Framework::Filesystem::VFSPath SystemToVFSPath(std::string path);
+    };
 };

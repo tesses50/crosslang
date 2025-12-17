@@ -34,7 +34,7 @@ namespace Tesses::CrossLang
     }
 
 
-    void CodeGen::Save(std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, std::shared_ptr<Tesses::Framework::Streams::Stream> stream)
+    void CodeGen::Save(std::shared_ptr<Tesses::Framework::Streams::Stream> stream)
     {
         TVMVersion runtime_version(TVM_MAJOR,TVM_MINOR,TVM_PATCH,TVM_BUILD,TVM_VERSIONSTAGE);
         uint8_t buffer[18];
@@ -235,7 +235,7 @@ namespace Tesses::CrossLang
         {
             memcpy(buffer,"RESO",4);
             Write(stream,buffer,4);
-            WriteInt(stream,reso->GetLength(vfs));
+            WriteInt(stream,reso->GetLength(embedFS));
             reso->Write(stream);
         }
         if(!this->icon.empty())
@@ -350,6 +350,21 @@ namespace Tesses::CrossLang
     void EmbedInstruction::Write(std::vector<uint8_t>& instr)
     {
         instr.push_back(PUSHRESOURCE);
+        std::array<uint8_t,4> buff;
+        BitConverter::FromUint32BE(buff[0],this->n);
+        instr.insert(instr.end(),buff.begin(),buff.end());
+    }
+    EmbedStreamInstruction::EmbedStreamInstruction(uint32_t s)
+    {
+        this->n = s;
+    }
+    size_t EmbedStreamInstruction::Size()
+    {
+        return 5;
+    }
+    void EmbedStreamInstruction::Write(std::vector<uint8_t>& instr)
+    {
+        instr.push_back(PUSHRESOURCESTREAM);
         std::array<uint8_t,4> buff;
         BitConverter::FromUint32BE(buff[0],this->n);
         instr.insert(instr.end(),buff.begin(),buff.end());
@@ -1364,6 +1379,49 @@ namespace Tesses::CrossLang
                 std::string filename = std::get<std::string>(adv.nodes[0]);
                 instructions.push_back(new EmbedInstruction(GetResource(std::make_shared<ResourceFile>(filename))));
 
+            }
+            else if(adv.nodeName == EmbedStreamExpression && adv.nodes.size() == 1 && std::holds_alternative<std::string>(adv.nodes[0]))
+            {
+                std::string filename = std::get<std::string>(adv.nodes[0]);
+                instructions.push_back(new EmbedStreamInstruction(GetResource(std::make_shared<ResourceFile>(filename))));
+
+            }
+            else if(adv.nodeName == EmbedDirectoryExpression && adv.nodes.size() == 1 && std::holds_alternative<std::string>(adv.nodes[0]))
+            {
+                std::string filename = std::get<std::string>(adv.nodes[0]);
+                std::function<void(Tesses::Framework::Filesystem::VFSPath path)> embedDir;
+                embedDir = [&](Tesses::Framework::Filesystem::VFSPath path)-> void {
+                    instructions.push_back(new SimpleInstruction(CREATEDICTIONARY));
+
+                    if(embedFS != nullptr && embedFS->DirectoryExists(path))
+                    for(auto& item : embedFS->EnumeratePaths(path))
+                    {
+                        GenNode(instructions,item.GetFileName(),scope,contscope,brkscope,contI,brkI);
+                        if(embedFS->DirectoryExists(item))
+                        {
+                            embedDir(item);
+                        }
+                        else if(embedFS->RegularFileExists(item))
+                        {
+                            auto ce = AdvancedSyntaxNode::Create(ClosureExpression,true,{
+                                AdvancedSyntaxNode::Create(ParenthesesExpression,true,{}),
+                                AdvancedSyntaxNode::Create(ReturnStatement,false,{
+                                    AdvancedSyntaxNode::Create(EmbedStreamExpression,true,{item.ToString()})
+                                })
+                            });
+                            GenNode(instructions,ce,scope,contscope,brkscope,contI,brkI);
+                        }
+                        else {
+                            instructions.push_back(new SimpleInstruction(PUSHUNDEFINED));
+                        }
+
+                        instructions.push_back(new SimpleInstruction(APPENDDICT));
+                    }
+                };
+                embedDir(filename);
+                //
+                //instructions.push_back(new EmbedStreamInstruction(GetResource(std::make_shared<ResourceFile>(filename))));
+                instructions.push_back(new SimpleInstruction(PUSHRESOUURCEDIR));
             }
             else if(adv.nodeName == HtmlRootExpression)
             {

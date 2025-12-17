@@ -123,7 +123,7 @@ namespace Tesses::CrossLang {
             CodeGen gen;
             gen.GenRoot(n);
             auto ms = std::make_shared<Tesses::Framework::Streams::MemoryStream>(true);
-            gen.Save(nullptr, ms);
+            gen.Save(ms);
             ms->Seek(0,Tesses::Framework::Streams::SeekOrigin::Begin);
             TFile* f = TFile::Create(ls);
             f->Load(ls.GetGC(),ms);

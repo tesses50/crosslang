@@ -922,7 +922,7 @@ namespace Tesses::CrossLang
 
                 auto ms = std::make_shared<Tesses::Framework::Streams::MemoryStream>(true);
                 
-                gen.Save(nullptr,ms);
+                gen.Save(ms);
 
                 ms->Seek(0, Tesses::Framework::Streams::SeekOrigin::Begin);
 
@@ -962,7 +962,27 @@ namespace Tesses::CrossLang
             if(embed.type != LexTokenType::String) throw SyntaxException(embed.lineInfo, "Expected an string for embed got a " + LexTokenType_ToString(embed.type) + " \"" + embed.text + "\"");
             EnsureSymbol(")");
             node = AdvancedSyntaxNode::Create(EmbedExpression, true,{embed.text});
-        }   
+        }
+        else if(IsIdentifier("embedstrm"))
+        {
+            EnsureSymbol("(");
+            if(i >= tokens.size()) throw std::out_of_range("End of file");
+            auto embed = tokens[i];
+            i++;
+            if(embed.type != LexTokenType::String) throw SyntaxException(embed.lineInfo, "Expected an string for embed got a " + LexTokenType_ToString(embed.type) + " \"" + embed.text + "\"");
+            EnsureSymbol(")");
+            node = AdvancedSyntaxNode::Create(EmbedStreamExpression, true,{embed.text});
+        }
+        else if(IsIdentifier("embeddir"))
+        {
+            EnsureSymbol("(");
+            if(i >= tokens.size()) throw std::out_of_range("End of file");
+            auto embed = tokens[i];
+            i++;
+            if(embed.type != LexTokenType::String) throw SyntaxException(embed.lineInfo, "Expected an string for embed got a " + LexTokenType_ToString(embed.type) + " \"" + embed.text + "\"");
+            EnsureSymbol(")");
+            node = AdvancedSyntaxNode::Create(EmbedDirectoryExpression, true,{embed.text});
+        }
         else if(tokens[i].type == LexTokenType::Identifier)
         {
             auto token=tokens[i];

@@ -6971,7 +6971,35 @@ namespace Tesses::CrossLang {
         }
         return false;
     }
-  
+    bool InterperterThread::PushResourceStream(GC* gc)
+    {
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        if(!cse.empty())
+        {
+            auto stk = cse.back();
+            std::vector<uint8_t>& code = stk->callable->closure->code;
+            if(stk->ip + 4 <= code.size())
+            {
+                uint32_t n=BitConverter::ToUint32BE(code[stk->ip]);
+                if(n >= stk->callable->file->resources.size())
+                    throw VMException("Can't read resource.");
+                stk->ip = stk->ip + 4;
+
+                gc->BarrierBegin();
+                GCList ls(gc);
+  //              TByteArray* arr = TByteArray::Create(ls);
+//                arr->data = stk->callable->file->resources[n];
+                stk->Push(gc, std::make_shared<EmbedStream>(gc,stk->callable->file,n));
+                
+                gc->BarrierEnd();
+            }
+            else
+            {
+                throw VMException("Can't read chunk.");
+            }
+        }
+        return false;
+    }
 
     bool InterperterThread::PushResource(GC* gc)
     {
@@ -7013,6 +7041,21 @@ namespace Tesses::CrossLang {
             auto env = cse.back()->env;
             if(!env->GetRootEnvironment()->HandleException(gc,env, _res2))
             throw VMByteCodeException(gc,_res2,cse.back());
+        }
+        return false;
+    }
+    bool InterperterThread::PushResourceDirectory(GC* gc)
+    {
+        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
+        GCList ls(gc);
+        auto _res2 = cse.back()->Pop(ls);
+        TDictionary* dict;
+        if(GetObjectHeap(_res2, dict))
+        {
+            cse.back()->Push(gc, std::make_shared<EmbedDirectory>(gc,dict));
+        }
+        else {
+            cse.back()->Push(gc, Undefined());
         }
         return false;
     }

@@ -83,6 +83,18 @@ namespace Tesses::CrossLang {
             }
     };
 
+
+    class PushResourceStreamChunkInstruction : public ChunkInstruction {
+        public:
+            PushResourceStreamChunkInstruction(std::string v) : value(v)
+            {}
+            std::string value;
+            size_t Size()
+            {
+                return 5;
+            }
+    };
+
     class LabelChunkInstruction : public ChunkInstruction {
         public:
             LabelChunkInstruction(std::string lbl) : lbl(lbl)
@@ -285,6 +297,10 @@ namespace Tesses::CrossLang {
                 {
                     instrs.push_back(std::make_shared<SimpleChunkInstruction>(LINEINFO));
                 }
+                else if(name == "embeddir")
+                {
+                    instrs.push_back(std::make_shared<SimpleChunkInstruction>(PUSHRESOUURCEDIR));
+                }
                 else if(name == "pushclosure")
                 {
                     auto closure = std::make_shared<ClosureChunkInstruction>(true);
@@ -323,6 +339,14 @@ namespace Tesses::CrossLang {
                     {
                         std::string str = tokens[i++].text;
                         instrs.push_back(std::make_shared<PushResourceChunkInstruction>(str));
+                    }
+                }
+                else if(name == "embedstrm")
+                {
+                    if(i < tokens.size() && tokens[i].type == LexTokenType::String)
+                    {
+                        std::string str = tokens[i++].text;
+                        instrs.push_back(std::make_shared<PushResourceStreamChunkInstruction>(str));
                     }
                 }
                 else if(name == "push")
@@ -1031,6 +1055,7 @@ namespace Tesses::CrossLang {
                     auto chr = std::dynamic_pointer_cast<PushCharChunkInstruction>(item);
                     auto chk = std::dynamic_pointer_cast<ClosureChunkInstruction>(item);
                     auto reso = std::dynamic_pointer_cast<PushResourceChunkInstruction>(item);
+                    auto resos = std::dynamic_pointer_cast<PushResourceStreamChunkInstruction>(item);
                     auto jmp = std::dynamic_pointer_cast<JumpStyleChunkInstruction>(item);
                     auto scopeend = std::dynamic_pointer_cast<ScopeEndTimesChunkInstruction>(item);
                     if(lbl)
@@ -1065,6 +1090,10 @@ namespace Tesses::CrossLang {
                     if(reso)
                     {
                         chunks[chunkId].second.push_back(std::make_shared<EmbedInstruction>(GetResource(reso->value)));
+                    }
+                    if(resos)
+                    {
+                        chunks[chunkId].second.push_back(std::make_shared<EmbedStreamInstruction>(GetResource(reso->value)));
                     }
                     if(jmp)
                     {

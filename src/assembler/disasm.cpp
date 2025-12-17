@@ -223,6 +223,7 @@ namespace Tesses::CrossLang {
             {
                 switch(code[i++])
                 {
+                    case PUSHRESOURCESTREAM:
                     case PUSHRESOURCE:
                     case PUSHSTRING:
                     case SCOPEENDTIMES:
@@ -381,6 +382,9 @@ namespace Tesses::CrossLang {
                     case APPENDDICT:
                         buffer.append("appenddict");
                         break;
+                    case PUSHRESOUURCEDIR:
+                        buffer.append("embeddir");
+                        break;
                     case PUSHRESOURCE:
                     {
                         uint32_t clId = (uint32_t)code[i++] << 24;
@@ -388,6 +392,16 @@ namespace Tesses::CrossLang {
                         clId |= (uint32_t)code[i++] << 8;
                         clId |= (uint32_t)code[i++];
                         buffer.append("embed ");
+                        buffer.append(EscapeString(name + "-" + version.ToString()+"_"+ std::to_string(clId) + ".bin",true));
+                    }
+                        break;
+                    case PUSHRESOURCESTREAM:
+                    {
+                        uint32_t clId = (uint32_t)code[i++] << 24;
+                        clId |= (uint32_t)code[i++] << 16;
+                        clId |= (uint32_t)code[i++] << 8;
+                        clId |= (uint32_t)code[i++];
+                        buffer.append("embedstrm ");
                         buffer.append(EscapeString(name + "-" + version.ToString()+"_"+ std::to_string(clId) + ".bin",true));
                     }
                         break;

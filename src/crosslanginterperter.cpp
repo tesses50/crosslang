@@ -24,13 +24,14 @@ int main(int argc, char** argv)
         Parser parser(tokens);
 
         CodeGen gen;
+
+        auto sfs = std::make_shared<SubdirFilesystem>(LocalFS,VFSPath("."));
+        gen.embedFS = sfs;
         gen.GenRoot(parser.ParseRoot());
         std::vector<uint8_t> data;
         {
-        auto sfs = std::make_shared<SubdirFilesystem>(LocalFS,VFSPath("."));
-        
         auto strm2 = std::make_shared<Tesses::Framework::Streams::MemoryStream>(true);
-        gen.Save(sfs,strm2);
+        gen.Save(strm2);
 
         
         {
@@ -78,11 +79,12 @@ int main(int argc, char** argv)
                 Parser parser(tokens);
 
                 CodeGen gen;
+
+                auto sfs = std::make_shared<SubdirFilesystem>(LocalFS,VFSPath("."));
+                gen.embedFS = sfs;
                 gen.GenRoot(parser.ParseRoot());
                 
-                auto sfs = std::make_shared<SubdirFilesystem>(LocalFS,VFSPath("."));
-
-                gen.Save(sfs, strm2);
+                gen.Save(strm2);
 
             }
             else if(source == "exit")
@@ -98,11 +100,13 @@ int main(int argc, char** argv)
                 Parser parser(tokens);
 
                 CodeGen gen;
+
+                auto sfs = std::make_shared<SubdirFilesystem>(LocalFS,VFSPath("."));
+                gen.embedFS = sfs;
+
                 gen.GenRoot(parser.ParseRoot());
                 
-                auto sfs = std::make_shared<SubdirFilesystem>(LocalFS,VFSPath("."));
-
-                gen.Save(sfs,strm2);
+                gen.Save(strm2);
             }
 
             {
