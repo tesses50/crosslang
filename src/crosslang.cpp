@@ -58,7 +58,11 @@ int main(int argc, char** argv)
     
 
     auto p = Tesses::Framework::Platform::Environment::GetRealExecutablePath(Tesses::Framework::Filesystem::LocalFS->SystemToVFSPath(argv[0])).GetParent().GetParent() / "share" / "Tesses" / "CrossLang" / "Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm";
-
+    if(argc == 2 && strcmp(argv[1],"configdir") == 0)
+    {
+        std::cout << dir.ToString() << std::endl;
+        return 0;
+    }
     if(argc > 1 && strcmp(argv[1],"update-shell") == 0)
     {
 

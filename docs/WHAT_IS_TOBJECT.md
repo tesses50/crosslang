@@ -3,7 +3,7 @@ What is TObject
 
 It is a std::variant that can be (not in that order)
 
-- Undefined (Tesses::CrossLang::Undefined)
+- Undefined (std::monostate)
 - Null (std::nullptr_t)
 - Long (int64_t)
 - Double (double)

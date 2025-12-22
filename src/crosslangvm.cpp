@@ -29,6 +29,8 @@ int main(int argc, char** argv)
                 port = std::stoi(item.second);
             }
         }
+
+        env->EnsureDictionary(&gc,"Net")->SetValue("WebServerPort", (int64_t)port);
         TList* args2 = TList::Create(ls);
         for(auto& item : args.positional)
         {

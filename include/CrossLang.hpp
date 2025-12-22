@@ -2540,6 +2540,8 @@ class GC {
     void LoadPlugin(GC* gc, TRootEnvironment* env, Tesses::Framework::Filesystem::VFSPath sharedObjectPath);
     std::string Json_Encode(TObject o,bool indent=false);
     TObject Json_Decode(GCList ls,std::string str);
+    std::string Json_DocEncode(TObject o,bool indent);
+    TObject Json_DocDecode(GCList ls,std::string str);
     //DO NOT USE DIRECTLY
     class SharedPtrTObject {
         GCList* ls;

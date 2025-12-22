@@ -39,6 +39,8 @@ int main(int argc, char** argv)
                 port = std::stoi(item.second);
             }
         }
+        
+        env->EnsureDictionary(&gc,"Net")->SetValue("WebServerPort", (int64_t)port);
         TList* args2 = TList::Create(ls);
         args2->Add(exePath.ToString());
         for(auto& item : args.positional)
@@ -46,7 +48,7 @@ int main(int argc, char** argv)
             args2->Add(item);
         }
 
-        auto res = env->CallFunction(ls, "WebAppMain", {args2});
+        auto res = env->CallFunctionWithFatalError(ls, "WebAppMain", {args2});
         auto svr2 = Tesses::CrossLang::ToHttpServer(&gc,res);
         if(svr2 == nullptr) return 1;
         Tesses::Framework::Http::HttpServer svr(port,svr2);
@@ -69,7 +71,7 @@ int main(int argc, char** argv)
          args->Add(exePath.ToString());
         for(int arg=0;arg<argc;arg++)
             args->Add(argv[arg]);
-        auto res = env->CallFunction(ls,"main",{args});
+        auto res = env->CallFunctionWithFatalError(ls,"main",{args});
         int64_t iresult;
         if(GetObject(res,iresult))
             return (int)iresult;

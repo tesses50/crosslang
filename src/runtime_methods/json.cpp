@@ -81,6 +81,21 @@ namespace Tesses::CrossLang
         }
         return "null";
     }
+    static TObject JsonDocEncode(GCList& ls2, std::vector<TObject> args)
+    {
+        if(args.size() >= 1)
+        {
+            bool indent = (args.size() == 2 && std::holds_alternative<bool>(args[1]) && std::get<bool>(args[1]));
+            
+            auto json = JsonSerialize(args[0]);
+            JArray ar;
+            if(TryGetJToken(json,ar))
+            return Json::DocEncode(ar,indent);
+
+            
+        }
+        return "";
+    }
     static TObject JsonDeserialize(GCList& ls2,JToken json)
     {
         if(std::holds_alternative<JUndefined>(json)) return nullptr;
@@ -138,6 +153,19 @@ namespace Tesses::CrossLang
         }
         return Undefined();
     }
+    static TObject JsonDocDecode(GCList& ls2,std::vector<TObject> args)
+    {
+        if(args.size() > 0 && std::holds_alternative<std::string>(args[0]))
+        {
+            
+            
+           return JsonDeserialize(ls2, Json::DocDecode(std::get<std::string>(args[0])));
+            
+            
+        }
+
+        return Undefined();
+    }
     std::string Json_Encode(TObject o,bool indent)
     {
         return Json::Encode(JsonSerialize(o),indent);
@@ -146,14 +174,29 @@ namespace Tesses::CrossLang
     {
         return JsonDeserialize(ls,Json::Decode(str));
     }
+    std::string Json_DocEncode(TObject o,bool indent)
+    {
+        auto obj = JsonSerialize(o);
+        JArray ls;
+        if(TryGetJToken(obj,ls))
+            return Json::DocEncode(ls,indent);
+        return "";
+    }
+    TObject Json_DocDecode(GCList ls,std::string str)
+    {
+        return JsonDeserialize(ls,Json::DocDecode(str));
+    }
     void TStd::RegisterJson(GC* gc,TRootEnvironment* env)
     {
 
         env->permissions.canRegisterJSON=true;
         GCList ls(gc);
         TDictionary* dict = TDictionary::Create(ls);
-        dict->DeclareFunction(gc, "Decode","Deserialize Json",{"Json string"},JsonDecode);   
-        dict->DeclareFunction(gc, "Encode","Serialize Json",{"any","$indent"},JsonEncode);   
+        dict->DeclareFunction(gc, "Decode","Deserialize Json",{"jsonString"},JsonDecode);   
+        dict->DeclareFunction(gc, "Encode","Serialize Json",{"any","$indent"},JsonEncode);  
+        dict->DeclareFunction(gc, "DocDecode", "Deserialize JsonDoc", {"jsonDocString"},JsonDocDecode);
+        dict->DeclareFunction(gc, "DocEncode", "Serialize JsonDoc", {"ls","$indent"},JsonDocEncode);
+        
         
         
         gc->BarrierBegin();
