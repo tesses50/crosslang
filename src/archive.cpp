@@ -151,6 +151,12 @@ namespace Tesses::CrossLang
         strm->WriteBlock((const uint8_t*)"INFO",4);
         writeInt(strm,4);
         writeInt(strm,1);
+        if(!icon.empty())
+        {
+            strm->WriteBlock((const uint8_t*)"ICON",4);
+            writeInt(strm,4);
+            writeInt(strm,ensureResource(icon));
+        }
         strm->WriteBlock((const uint8_t*)"CHKS",4);
         writeInt(strm,(uint32_t)(12+error_message_byte_code.size()));
         writeInt(strm,1);
