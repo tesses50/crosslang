@@ -49,6 +49,8 @@ bool Download(Tesses::Framework::Filesystem::VFSPath filename,std::shared_ptr<Te
 int main(int argc, char** argv)
 {
     TF_InitWithConsole();
+    if(argc > 0)
+        TF_AllowPortable(argv[0]);
 
     
     

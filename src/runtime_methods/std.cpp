@@ -556,6 +556,18 @@ namespace Tesses::CrossLang
         std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
         return GetArgument(args,0,strm);
     }
+    static TObject TypeIsTextReader(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        std::shared_ptr<Tesses::Framework::TextStreams::TextReader> strm;
+        return GetArgument(args,0,strm);
+    }
+    static TObject TypeIsTextWriter(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        std::shared_ptr<Tesses::Framework::TextStreams::TextWriter> strm;
+        return GetArgument(args,0,strm);
+    }
     static TObject TypeIsVFS(GCList& ls, std::vector<TObject> args)
     {
         if(args.empty()) return nullptr;
@@ -752,6 +764,7 @@ namespace Tesses::CrossLang
             {
                 auto fileServer = std::dynamic_pointer_cast<Tesses::Framework::Http::FileServer>(svr);
                 auto mountableServer = std::dynamic_pointer_cast<Tesses::Framework::Http::MountableServer>(svr);
+                auto routableServer = std::dynamic_pointer_cast<Tesses::Framework::Http::RouteServer>(svr);
                 if(fileServer != nullptr)
                 {
                     return "FileServer";
@@ -760,9 +773,62 @@ namespace Tesses::CrossLang
                 {
                     return "MountableServer";
                 }
-                
+                if(routableServer != nullptr)
+                {
+                    return "RoutableServer";
+                }
             }
             return "HttpServer";
+            
+        }
+        if(std::holds_alternative<std::shared_ptr<Tesses::Framework::TextStreams::TextReader>>(_obj))
+        {
+            auto textReader = std::get<std::shared_ptr<Tesses::Framework::TextStreams::TextReader>>(_obj);
+            if(textReader != nullptr)
+            {
+                auto stringReader = std::dynamic_pointer_cast<Tesses::Framework::TextStreams::StringReader>(textReader);
+                auto streamReader = std::dynamic_pointer_cast<Tesses::Framework::TextStreams::StreamReader>(textReader);
+                auto consoleReader = std::dynamic_pointer_cast<Tesses::Framework::TextStreams::ConsoleReader>(textReader);
+                if(stringReader != nullptr)
+                {
+                    return "StringReader";
+                }
+                if(streamReader != nullptr)
+                {
+                    return "StreamReader";
+                }
+                if(consoleReader != nullptr)
+                {
+                    return "ConsoleReader";
+                }
+            }
+            
+            return "TextReader";
+            
+        }
+        if(std::holds_alternative<std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>(_obj))
+        {
+            auto textWriter = std::get<std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>(_obj);
+            if(textWriter != nullptr)
+            {
+                auto stringWriter = std::dynamic_pointer_cast<Tesses::Framework::TextStreams::StringWriter>(textWriter);
+                auto streamWriter = std::dynamic_pointer_cast<Tesses::Framework::TextStreams::StreamWriter>(textWriter);
+                auto consoleWriter = std::dynamic_pointer_cast<Tesses::Framework::TextStreams::ConsoleReader>(textWriter);
+                if(stringWriter != nullptr)
+                {
+                    return "StringWriter";
+                }
+                if(streamWriter != nullptr)
+                {
+                    return "StreamWriter";
+                }
+                if(consoleWriter != nullptr)
+                {
+                    return "ConsoleWriter";
+                }
+            }
+            
+            return "TextReader";
             
         }
         if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Filesystem::VFS>>(_obj))
@@ -997,9 +1063,48 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }
-    static TObject New_Task(GCList& ls, std::vector<TObject> args)
+    static TObject New_Promise(GCList& ls, std::vector<TObject> args)
     {
-        return TTask::Create(ls);
+        TCallable* call;
+
+        if(GetArgumentHeap(args,0,call))
+        {
+            
+            TTask* task = TTask::Create(ls);
+
+            TExternalMethod* resolve = TExternalMethod::Create(ls, "fulfill the promise",{"arg"},[task](GCList& ls,std::vector<TObject> args)->TObject {
+                if(!args.empty())
+                {
+                    task->SetSucceeded(args[0]);
+                }
+                return Undefined();
+            });
+            resolve->watch.push_back(task);
+            TExternalMethod* reject = TExternalMethod::Create(ls, "reject the promise",{"arg"},[task](GCList& ls,std::vector<TObject> args)->TObject {
+                if(!args.empty())
+                {
+                    auto item = args[0];
+                    if(!std::holds_alternative<Undefined>(item))
+                    {
+                        try {
+                            VMByteCodeException ex(ls.GetGC(),item,nullptr);
+                            throw ex;
+                        } 
+                        catch(...)
+                        {
+                            task->SetFailed(std::current_exception());
+                        }
+                    }
+                }
+                return Undefined();
+            });
+            reject->watch.push_back(task);
+
+            call->Call(ls,{resolve,reject});
+
+            return task;
+        }
+        return nullptr;
     }
     static TObject TimeSpan_Parse(GCList& ls, std::vector<TObject> args)
     {
@@ -1051,6 +1156,72 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }
+    static TObject New_StreamReader(GCList& ls, std::vector<TObject> args)
+    {
+        std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+        Tesses::Framework::Filesystem::VFSPath path;
+
+        if(GetArgument(args,0,strm))
+        {
+            return std::make_shared<Tesses::Framework::TextStreams::StreamReader>(strm);
+        }
+        else if(GetArgument(args,0,vfs) && GetArgumentAsPath(args,1,path))
+        {   
+            strm = vfs->OpenFile(path,"rb");
+            return std::make_shared<Tesses::Framework::TextStreams::StreamReader>(strm);
+        }
+        return nullptr;
+    }
+
+    static TObject New_StreamWriter(GCList& ls, std::vector<TObject> args)
+    {
+        
+        std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+        Tesses::Framework::Filesystem::VFSPath path;
+
+        if(GetArgument(args,0,strm))
+        {
+            return std::make_shared<Tesses::Framework::TextStreams::StreamWriter>(strm);
+        }
+        else if(GetArgument(args,0,vfs) && GetArgumentAsPath(args,1,path))
+        {   
+            bool append=false;
+            GetArgument(args,2,append);
+
+            strm = vfs->OpenFile(path,append ? "ab" : "wb");
+            return std::make_shared<Tesses::Framework::TextStreams::StreamWriter>(strm);
+        }
+        return nullptr;
+    }
+    static TObject New_StringReader(GCList& ls, std::vector<TObject> args)
+    {
+        std::string str;
+        if(GetArgument(args,0,str))
+        {
+            return std::make_shared<Tesses::Framework::TextStreams::StringReader>(str);
+        }
+        return nullptr;
+    }
+    static TObject New_StringWriter(GCList& ls, std::vector<TObject> args)
+    {
+        std::string str;
+        if(GetArgument(args,0,str))
+        {
+            return std::make_shared<Tesses::Framework::TextStreams::StringWriter>(str);
+        }
+
+        return std::make_shared<Tesses::Framework::TextStreams::StringWriter>();
+    }
+    static TObject Task_FromResult(GCList& ls, std::vector<TObject> args)
+    {
+        if(!args.empty())
+        {
+            return TTask::FromResult(ls,args[0]);
+        }
+        return nullptr;
+    }
     void TStd::RegisterRoot(GC* gc, TRootEnvironment* env)
     {
         GCList ls(gc);      
@@ -1095,10 +1266,11 @@ namespace Tesses::CrossLang
             return TTask::Run(ls,closure);
             return nullptr;
         });
-
+        task->DeclareFunction(gc, "FromResult", "async from result", {"result"}, Task_FromResult);
 
         TDictionary* newTypes = env->EnsureDictionary(gc, "New");
-       
+        //newTypes->DeclareFunction(gc,)
+        newTypes->DeclareFunction(gc, "Promise", "Create an async object",{"resolve","reject"},New_Promise);
         newTypes->DeclareFunction(gc, "DateTime","Create a DateTime object, if only one arg is provided year is epoch, isLocal defaults to true unless epoch",{"year","$month","$day","$hour","$minute","$second","$isLocal"},New_DateTime);
         newTypes->DeclareFunction(gc, "TimeSpan","Create a DateTime object, if only one arg is provided days is totalSeconds, if there are only three arguments days will be hours, hours will be minutes, minutes will be seconds (according to the argument documentation)",{"days","$hours","$minutes","$seconds"},New_TimeSpan);
 
@@ -1133,7 +1305,18 @@ namespace Tesses::CrossLang
 
             return TVMVersion((uint8_t)major,(uint8_t)minor,(uint8_t)patch,(uint16_t)build,stage);
         });
-        
+        newTypes->DeclareFunction(gc,"Random","Create random number generator",{"$seed"}, [](GCList& ls,std::vector<TObject> args)->TObject{
+            int64_t seed;
+            if(GetArgument(args,0,seed))
+            {
+                return TNativeObject::Create<TRandom>(ls, (uint64_t)seed);
+            }
+            return TNativeObject::Create<TRandom>(ls);
+        });
+        newTypes->DeclareFunction(gc, "StreamReader","Create a StreamReader", {"strmOrVFS","$pathIfVFS"},New_StreamReader);
+        newTypes->DeclareFunction(gc, "StreamWriter","Create a StreamWriter", {"strmOrVFS","$pathIfVFS","$appendIfVFS"},New_StreamWriter);
+        newTypes->DeclareFunction(gc, "StringReader","Create a StringReader", {"str"},New_StringReader);
+        newTypes->DeclareFunction(gc, "StringWriter","Create a StringWriter", {"$str"},New_StringWriter);  
        
         env->DeclareFunction(gc, "ParseLong","Parse Long from String",{"arg","$base"},ParseLong);
         env->DeclareFunction(gc, "ParseDouble","Parse Double from String",{"arg"},ParseDouble);
@@ -1154,6 +1337,8 @@ namespace Tesses::CrossLang
         env->DeclareFunction(gc, "TypeIsVFS","Get whether object is a virtual filesystem",{"object"},TypeIsVFS);
         env->DeclareFunction(gc, "TypeIsDateTime","Get whether object is a DateTime",{"object"},TypeIsDateTime);
         env->DeclareFunction(gc, "TypeIsTimeSpan","Get whether object is a TimeSpan",{"object"},TypeIsTimeSpan);
+        env->DeclareFunction(gc, "TypeIsTextReader","Get whether object is a TextReader",{"object"},TypeIsTextReader);
+        env->DeclareFunction(gc, "TypeIsTextWriter","Get whether object is a TextWriter",{"object"},TypeIsTextWriter);
         
         
         newTypes->DeclareFunction(gc, "Regex", "Create regex object",{"regex"},[](GCList& ls,std::vector<TObject> args)->TObject {
@@ -1200,7 +1385,6 @@ namespace Tesses::CrossLang
             return TAssociativeArray::Create(ls);
         });
         newTypes->DeclareFunction(gc,"ByteArray","Create bytearray, with optional either size (to size it) or string argument (to fill byte array)",{"$data"},ByteArray);
-        newTypes->DeclareFunction(gc,"Task","Create a task for async, to manually create an async object",{},New_Task);
         
         env->DeclareVariable("Version", TDictionary::Create(ls,{
             TDItem("Parse",TExternalMethod::Create(ls,"Parse version from string",{"versionStr"},[](GCList& ls, std::vector<TObject> args)->TObject{

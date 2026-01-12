@@ -3411,6 +3411,17 @@ namespace Tesses::CrossLang {
                     cse.back()->Push(gc, nullptr);
                     return false;
                 }
+                if(key == "ReadLineHttp")
+                {
+                    std::string line;
+                    if(textReader->ReadLineHttp(line)) 
+                    {
+                        cse.back()->Push(gc, line);
+                        return false;
+                    }
+                    cse.back()->Push(gc, nullptr);
+                    return false;
+                }
                 if(key == "ReadAllLines")
                 {
                     std::vector<std::string> lines;
@@ -3763,6 +3774,7 @@ namespace Tesses::CrossLang {
                 if(svr != nullptr)
                 {
                     auto mountable = std::dynamic_pointer_cast<Tesses::Framework::Http::MountableServer>(svr);
+                    auto routable = std::dynamic_pointer_cast<Tesses::Framework::Http::RouteServer>(svr);
                     
                     if(mountable != nullptr)
                     {
@@ -3790,6 +3802,82 @@ namespace Tesses::CrossLang {
                                 mountable->Unmount(p.ToString());
                                 cse.back()->Push(gc,nullptr);
                                 return false;
+                            }
+                        }
+                    }
+                    if(routable != nullptr)
+                    {
+                        if(key == "Add")
+                        {
+                            std::string method;
+                            std::string pattern;
+                            TCallable* callable;
+                            if(GetArgument(args,0,method) && GetArgument(args,1,pattern) && GetArgumentHeap(args,2,callable))
+                            {
+                                routable->Add(method,pattern, callable->ToRouteServerRequestHandler(gc));
+                            }
+                        }
+                        else if(key == "Delete")
+                        {
+                            std::string pattern;
+                            TCallable* callable;
+                            if(GetArgument(args,0,pattern) && GetArgumentHeap(args,1,callable))
+                            {
+                                routable->Delete(pattern, callable->ToRouteServerRequestHandler(gc));
+                            }
+                        }
+                        else if(key == "Get")
+                        {
+                            std::string pattern;
+                            TCallable* callable;
+                            if(GetArgument(args,0,pattern) && GetArgumentHeap(args,1,callable))
+                            {
+                                routable->Get(pattern, callable->ToRouteServerRequestHandler(gc));
+                            }
+                        }
+                        else if(key == "Options")
+                        {
+                            std::string pattern;
+                            TCallable* callable;
+                            if(GetArgument(args,0,pattern) && GetArgumentHeap(args,1,callable))
+                            {
+                                routable->Options(pattern, callable->ToRouteServerRequestHandler(gc));
+                            }
+                        }
+                        else if(key == "Patch")
+                        {
+                            std::string pattern;
+                            TCallable* callable;
+                            if(GetArgument(args,0,pattern) && GetArgumentHeap(args,1,callable))
+                            {
+                                routable->Patch(pattern, callable->ToRouteServerRequestHandler(gc));
+                            }
+                        }
+                        else if(key == "Post")
+                        {
+                            std::string pattern;
+                            TCallable* callable;
+                            if(GetArgument(args,0,pattern) && GetArgumentHeap(args,1,callable))
+                            {
+                                routable->Post(pattern, callable->ToRouteServerRequestHandler(gc));
+                            }
+                        }
+                        else if(key == "Put")
+                        {
+                            std::string pattern;
+                            TCallable* callable;
+                            if(GetArgument(args,0,pattern) && GetArgumentHeap(args,1,callable))
+                            {
+                                routable->Put(pattern, callable->ToRouteServerRequestHandler(gc));
+                            }
+                        }
+                        else if(key == "Trace")
+                        {
+                            std::string pattern;
+                            TCallable* callable;
+                            if(GetArgument(args,0,pattern) && GetArgumentHeap(args,1,callable))
+                            {
+                                routable->Trace(pattern, callable->ToRouteServerRequestHandler(gc));
                             }
                         }
                     }
@@ -4107,6 +4195,26 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc, nullptr);
                         return false;
                     }
+                    if(key == "Lock")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath filename;
+                        if(GetArgumentAsPath(args,0,filename))
+                        {
+                            vfs->Lock(filename);
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    if(key == "Unlock")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath filename;
+                        if(GetArgumentAsPath(args,0,filename))
+                        {
+                            vfs->Unlock(filename);
+                        }
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
                     if(key == "DeleteDirectoryRecurse")
                     {
                         Tesses::Framework::Filesystem::VFSPath dirname;
@@ -4223,28 +4331,6 @@ namespace Tesses::CrossLang {
 
                 if(ttask != nullptr)
                 {
-                    if(key == "SetSucceeded")
-                    {
-                        if(args.size() > 0)
-                        {
-                            ttask->SetSucceeded(args[0]);
-                        }
-                        cse.back()->Push(gc, Undefined());
-                        return false;
-                    }
-                    if(key == "SetFailed")
-                    {
-                        if(args.size() > 0)
-                        {
-                            try {
-                                throw VMByteCodeException(gc,args[0],cse.back());
-                            } catch(...) {
-                                ttask->SetFailed(std::current_exception());
-                            }
-                        }
-                        cse.back()->Push(gc, Undefined());
-                        return false;
-                    }
                     if(key == "ContinueWith")
                     {
                         TCallable* callable2;
@@ -5581,6 +5667,15 @@ namespace Tesses::CrossLang {
             if(std::holds_alternative<std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>(instance))
             {
                 auto writer = std::get<std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>(instance);
+                auto stringWriter = std::dynamic_pointer_cast<Tesses::Framework::TextStreams::StringWriter>(writer);
+                if(stringWriter != nullptr)
+                {
+                    if(key == "Text")
+                    {
+                        cse.back()->Push(gc, stringWriter->GetString());
+                        return false;
+                    }
+                }
                 if(key == "NewLine")
                 {
                     cse.back()->Push(gc,writer->newline);
@@ -6245,6 +6340,19 @@ namespace Tesses::CrossLang {
              if(std::holds_alternative<std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>(instance))
             {
                 auto writer = std::get<std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>(instance);
+                auto stringWriter = std::dynamic_pointer_cast<Tesses::Framework::TextStreams::StringWriter>(writer);
+                if(stringWriter != nullptr)
+                {
+                    if(key == "Text")
+                    {
+                        if(std::holds_alternative<std::string>(value))
+                        {
+                            stringWriter->GetString() = std::get<std::string>(value);
+                        }
+                        cse.back()->Push(gc, stringWriter->GetString());
+                        return false;
+                    }
+                }
                 if(key == "NewLine")
                 {
                     if(std::holds_alternative<std::string>(value))

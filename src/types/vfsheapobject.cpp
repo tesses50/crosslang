@@ -169,6 +169,26 @@ namespace Tesses::CrossLang {
             
         }
     }
+    void TObjectVFS::Lock(Tesses::Framework::Filesystem::VFSPath path)
+    {
+        TDictionary* dict;
+        if(GetObjectHeap(this->obj, dict))
+        {
+            GCList ls(this->ls->GetGC());
+            dict->CallMethod(ls, "Lock",{path});
+            
+        }
+    }
+    void TObjectVFS::Unlock(Tesses::Framework::Filesystem::VFSPath path)
+    {
+        TDictionary* dict;
+        if(GetObjectHeap(this->obj, dict))
+        {
+            GCList ls(this->ls->GetGC());
+            dict->CallMethod(ls, "Unlock",{path});
+            
+        }
+    }
     bool TObjectVFS::RegularFileExists(Tesses::Framework::Filesystem::VFSPath path)
     {
 
@@ -573,8 +593,12 @@ namespace Tesses::CrossLang {
     }
     TObjectVFS::~TObjectVFS()
     {
-
-        Close();
+        TDictionary* dict;
+        if(GetObjectHeap(this->obj, dict))
+        {
+            GCList ls(this->ls->GetGC());
+            dict->CallMethod(ls,"Close",{});
+        }
         delete this->ls;
     }
     

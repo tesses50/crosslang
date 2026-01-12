@@ -9,6 +9,8 @@ using namespace Tesses::Framework::Filesystem;
 int main(int argc, char** argv)
 {
     TF_InitWithConsole();
+    if(argc > 0)
+        TF_AllowPortable(argv[0]);
     GC gc;
     gc.Start();
     GCList ls(gc);

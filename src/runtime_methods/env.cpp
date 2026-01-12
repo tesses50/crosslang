@@ -118,6 +118,19 @@ namespace Tesses::CrossLang
         }
         return Tesses::Framework::Filesystem::VFSPath();
     }
+    static TObject Env_GetAll(GCList& ls, std::vector<TObject> args)
+    {
+        ls.GetGC()->BarrierBegin();
+        TList* list = TList::Create(ls);
+        std::vector<std::pair<std::string, std::string>> env;
+        Tesses::Framework::Platform::Environment::GetEnvironmentVariables(env);
+        for(auto& item : env)
+        {
+            list->Add(TDictionary::Create(ls,{TDItem("Key",item.first),TDItem("Value",item.second)}));
+        }
+        ls.GetGC()->BarrierEnd();
+        return list;
+    }
     void TStd::RegisterEnv(GC* gc, TRootEnvironment* env)
     {
 
@@ -126,8 +139,9 @@ namespace Tesses::CrossLang
         TDictionary* dict = TDictionary::Create(ls);
         dict->DeclareFunction(gc,"GetAt","Get environment variable", {"key"}, Env_GetAt);
         dict->DeclareFunction(gc,"SetAt","Set environment variable", {"key","value"}, Env_SetAt);
+        dict->DeclareFunction(gc,"GetAll","Get all of the environment variables",{},Env_GetAll);
 
-        dict->DeclareFunction(gc,"getDesktop","Get downloads folder",{},Env_getDownloads);
+        dict->DeclareFunction(gc,"getDesktop","Get desktop folder",{},Env_getDesktop);
         dict->DeclareFunction(gc,"getDownloads","Get downloads folder",{},Env_getDownloads);
         dict->DeclareFunction(gc,"getDocuments","Get documents folder",{},Env_getDocuments);
         dict->DeclareFunction(gc,"getMusic","Get music folder",{},Env_getMusic);

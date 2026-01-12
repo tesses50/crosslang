@@ -4,6 +4,8 @@ using namespace Tesses::CrossLang;
 int main(int argc, char** argv)
 {
     TF_InitWithConsole();
+    if(argc > 0)
+        TF_AllowPortable(argv[0]);
     std::string name = argv[0];
     Tesses::Framework::Filesystem::VFSPath exePath=Tesses::Framework::Filesystem::LocalFS->SystemToVFSPath(name);
     exePath.MakeAbsolute();

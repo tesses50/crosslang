@@ -210,7 +210,11 @@ namespace Tesses::CrossLang
     }
     TObjectStream::~TObjectStream()
     {
-        Close();
+        TDictionary* dict;
+        if(GetObjectHeap(this->obj, dict))
+        {
+            dict->CallMethod(*ls,"Close",{});
+        }
         delete this->ls;
     }
 

@@ -170,6 +170,7 @@ src/types/vfsheapobject.cpp
 src/types/streamheapobject.cpp
 src/types/class.cpp
 src/types/classenvironment.cpp
+src/types/random.cpp
 src/vm/filereader.cpp
 src/vm/gc.cpp
 src/vm/gclist.cpp

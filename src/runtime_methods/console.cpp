@@ -320,6 +320,15 @@ namespace Tesses::CrossLang {
         dict->DeclareFunction(gc, "getSize", "Get console size",{},Console_getSize);
         gc->BarrierBegin();
         env->DeclareVariable("Console", dict);
+        auto _new = env->EnsureDictionary(gc,"New");
+        _new->DeclareFunction(gc,"ConsoleReader","Read from console",{},[](GCList& ls,std::vector<TObject> args)->TObject {
+            return std::make_shared<Tesses::Framework::TextStreams::ConsoleReader>();
+        });
+        _new->DeclareFunction(gc,"ConsoleWriter","Write to console",{"$isStderr"},[](GCList& ls,std::vector<TObject> args)->TObject {
+            bool err;
+            if(GetArgument(args,0,err)) return std::make_shared<Tesses::Framework::TextStreams::ConsoleWriter>(err);
+            return std::make_shared<Tesses::Framework::TextStreams::ConsoleWriter>();
+        });
         gc->BarrierEnd();
     }
 }

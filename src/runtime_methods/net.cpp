@@ -578,6 +578,7 @@ namespace Tesses::CrossLang
             }
            
                 }
+            
                 return Undefined();
             }
 
@@ -897,7 +898,8 @@ namespace Tesses::CrossLang
 
             ~THttpResponse()
             {
-                Close();
+                delete this->response;
+                this->response = nullptr;
             }
             std::string TypeName()
             {
@@ -1478,8 +1480,13 @@ namespace Tesses::CrossLang
     }
     static TObject New_MountableServer(GCList& ls, std::vector<TObject> args)
     {
-        if(args.empty()) return Undefined();
+        if(args.empty()) return std::make_shared<MountableServer>();
         return std::make_shared<MountableServer>(ToHttpServer(ls.GetGC(),args[0]));
+    }
+    static TObject New_RouteServer(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return std::make_shared<RouteServer>();
+        return std::make_shared<RouteServer>(ToHttpServer(ls.GetGC(),args[0]));
     }
     static TObject New_StreamHttpRequestBody(GCList& ls, std::vector<TObject> args)
     {
@@ -1530,6 +1537,8 @@ namespace Tesses::CrossLang
         _new->DeclareFunction(gc, "HttpServer", "Create a http server (allows multiple)",{"server","portOrUnixPath","$printIPs"},[env](GCList& ls, std::vector<TObject> args)->TObject{
             return New_HttpServer(ls,args,env);
         });
+
+        _new->DeclareFunction(gc, "RouteServer","Create a routeserver",{"$root"}, New_RouteServer);
         _new->DeclareFunction(gc, "FileServer","Create a file server",{"vfs","allowlisting","spa"}, New_FileServer);
         _new->DeclareFunction(gc, "BasicAuthServer", "Create a basic auth server", {"$server","$auth","$realm"},New_BasicAuthServer);
         _new->DeclareFunction(gc, "MountableServer","Create a server you can mount to, must mount parents before child",{"root"}, New_MountableServer);
@@ -1564,6 +1573,8 @@ namespace Tesses::CrossLang
         http->DeclareFunction(gc, "ListenSimpleWithLoop", "Listen (creates application loop)", {"server","port"},Net_Http_ListenSimpleWithLoop);
         http->DeclareFunction(gc, "ListenOnUnusedPort","Listen on unused localhost port and print Port: theport",{"server"},Net_Http_ListenOnUnusedPort);
         //FileServer svr()
+
+        http->DeclareFunction(gc, "RouteServer","Create a routeserver",{"$root"}, New_RouteServer);
         http->DeclareFunction(gc, "FileServer","Create a file server",{"vfs","allowlisting","spa"}, New_FileServer);
         http->DeclareFunction(gc, "BasicAuthServer", "Create a basic auth server", {"$server","$auth","$realm"},New_BasicAuthServer);
         http->DeclareFunction(gc, "BasicAuthGetCreds","Get creds from str",{"ctx"},[](GCList& ls, std::vector<TObject> args)->TObject {
@@ -1603,5 +1614,26 @@ namespace Tesses::CrossLang
         dict->SetValue("Http", http);
         dict->SetValue("Smtp", smtp);
         gc->BarrierEnd();
+    }
+
+    Tesses::Framework::Http::ServerRequestHandler TCallable::ToRouteServerRequestHandler(GC* gc)
+    {
+        auto value = CreateMarkedTObject(gc,this);
+        return [value,this](ServerContext& ctx)->bool {
+            auto v=value;
+            auto gc = v->GetGC();
+            GCList ls(gc);
+            auto res = TNativeObject::Create<TServerContext>(ls, &ctx);
+            bool result;
+            auto out = this->Call(ls,{res});
+            if(GetObject(out,result))
+            {
+                res->Finish();
+                return result;
+            }
+            res->Finish();
+
+            return false;
+        };
     }
 }

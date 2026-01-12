@@ -1687,6 +1687,8 @@ class GC {
             virtual TObject Call(GCList& ls,std::vector<TObject> args)=0;
             TObject CallWithFatalError(GCList& ls, std::vector<TObject> args);
             virtual void Mark();
+
+            Tesses::Framework::Http::ServerRequestHandler ToRouteServerRequestHandler(GC* gc);
     };
 
     void ThrowFatalError(std::exception& ex);
@@ -2045,6 +2047,9 @@ class GC {
             void CreateHardlink(Tesses::Framework::Filesystem::VFSPath existingFile, Tesses::Framework::Filesystem::VFSPath newName);
             bool DirectoryExists(Tesses::Framework::Filesystem::VFSPath path);
             void DeleteFile(Tesses::Framework::Filesystem::VFSPath path);
+            void Lock(Tesses::Framework::Filesystem::VFSPath path);
+            void Unlock(Tesses::Framework::Filesystem::VFSPath path);
+            
             void DeleteDirectoryRecurse(Tesses::Framework::Filesystem::VFSPath path);
             Tesses::Framework::Filesystem::VFSPathEnumerator EnumeratePaths(Tesses::Framework::Filesystem::VFSPath path);
             void MoveFile(Tesses::Framework::Filesystem::VFSPath src, Tesses::Framework::Filesystem::VFSPath dest);
@@ -2370,6 +2375,16 @@ class GC {
         virtual bool Equals(GC* gc, TObject right);
         virtual ~TNativeObject();
     };
+    class TRandom : public TNativeObject
+    {
+        public:
+            Tesses::Framework::Random random;
+            TRandom();
+            TRandom(uint64_t seed);
+            std::string TypeName();
+            TObject CallMethod(GCList& ls,std::string name, std::vector<TObject> args);
+
+    };
     class TNative : public THeapObject
     {
         std::atomic<bool> destroyed;
@@ -2387,7 +2402,7 @@ class GC {
             ~TNative();
     };
 
-   
+    
 
     class ThreadHandle : public THeapObject {
         public:
@@ -2604,4 +2619,6 @@ class GC {
             std::string VFSPathToSystem(Tesses::Framework::Filesystem::VFSPath path);
             Tesses::Framework::Filesystem::VFSPath SystemToVFSPath(std::string path);
     };
+
+    
 };
