@@ -295,6 +295,7 @@ namespace Tesses::CrossLang
                 else if(key == "getQueryParams") return TNativeObject::Create<THttpDictionary>(ls, &ctx->queryParams,this);
                 else if(key == "getRequestHeaders") return TNativeObject::Create<THttpDictionary>(ls, &ctx->requestHeaders,this);
                 else if(key == "getResponseHeaders") return TNativeObject::Create<THttpDictionary>(ls, &ctx->responseHeaders,this);
+                else if(key == "getPathArguments") return TNativeObject::Create<THttpDictionary>(ls,&ctx->pathArguments, this);
                 else if(key == "GetStream") return ctx->GetStream();
                 else if(key == "OpenRequestStream") return ctx->OpenRequestStream();
                 else if(key == "OpenResponseStream") return ctx->OpenResponseStream();
