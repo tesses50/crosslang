@@ -4337,7 +4337,7 @@ namespace Tesses::CrossLang {
                         int64_t index;
                         if(GetArgument(args,0, index) && (size_t)index < file->metadata.size())
                         {
-                            cse.back()->Push(gc,file->DecodeMetadata(ls,(size_t)index));
+                            cse.back()->Push(gc,file->MetadataDecode(ls,(size_t)index));
                             return false;
                         }
                     }

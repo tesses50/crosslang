@@ -1467,7 +1467,7 @@ namespace Tesses::CrossLang
             {
                 body = ParseNode();
             }
-            if(std::holds_alternative<nullptr_t>(item))
+            if(std::holds_alternative<std::nullptr_t>(item))
                 item = AdvancedSyntaxNode::Create(DeclareExpression,true, {
                     AdvancedSyntaxNode::Create(GetVariableExpression,true,{"item"})
                 });

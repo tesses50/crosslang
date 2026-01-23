@@ -1573,7 +1573,7 @@ class GC {
 
             void EnsureCanRunInCrossLang();
 
-            TDictionary* DecodeMetadata(GCList& ls, size_t index);
+            TDictionary* MetadataDecode(GCList& ls, size_t index);
     };
     class TAssociativeArray : public THeapObject
     {

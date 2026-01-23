@@ -145,7 +145,7 @@ namespace Tesses::CrossLang
             bytes.push_back(std::get<bool>(n) ? 1 : 0);
             return;
         }
-        if(std::holds_alternative<nullptr_t>(n))
+        if(std::holds_alternative<std::nullptr_t>(n))
         {
             bytes.push_back(2);
             return;

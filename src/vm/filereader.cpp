@@ -118,7 +118,7 @@ namespace Tesses::CrossLang
         throw VMException(errorMessage);
     }
 
-    TDictionary* TFile::DecodeMetadata(GCList& ls, size_t midx)
+    TDictionary* TFile::MetadataDecode(GCList& ls, size_t midx)
     {
         if(midx >= this->metadata.size()) return nullptr;
         if(this->metadata[midx].second.empty()) return nullptr;
