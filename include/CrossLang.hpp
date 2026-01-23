@@ -871,8 +871,10 @@ class CodeGen {
     std::vector<std::pair<std::vector<uint32_t>, std::vector<ByteCodeInstruction*>>> chunks;
     std::vector<std::pair<std::vector<uint32_t>,uint32_t>> funcs;
     std::vector<CodeGenClass> classes;
-   
 
+    std::vector<std::vector<uint8_t>> meta;
+    SyntaxNode OptimizeNode(SyntaxNode n);
+    void WriteMetadataObject(std::vector<uint8_t>& bytes, SyntaxNode n);
     void GenNode(std::vector<ByteCodeInstruction*>& instructions, SyntaxNode n,int32_t scope, int32_t contscope, int32_t brkscope, int32_t contI, int32_t brkI);
     void GenPop(std::vector<ByteCodeInstruction*>& instrs,SyntaxNode n);
     public:
@@ -1265,6 +1267,11 @@ constexpr std::string_view NullCoalescingExpression = "nullCoalescingExpression"
  */
 constexpr std::string_view LineNode="lineNode";
 /**
+ * @brief For storing generic metadata
+ */
+constexpr std::string_view MetadataStatement = "MetadataStatement";
+
+/**
  * @brief Advanced AST node
  * 
  */
@@ -1532,7 +1539,7 @@ class GC {
             TObject value;
 
     };
-
+    class TDictionary;
     class TFile : public THeapObject
     {
         public:
@@ -1547,6 +1554,7 @@ class GC {
             std::vector<std::pair<std::string,TVMVersion>> dependencies;
             std::vector<std::pair<std::string,TVMVersion>> tools;
             std::vector<std::pair<std::string,std::vector<uint8_t>>> sections;
+            std::vector<std::pair<std::string,std::vector<uint8_t>>> metadata;
             std::vector<std::vector<uint8_t>> resources;
             std::vector<TClass> classes;
             std::string name;
@@ -1564,6 +1572,8 @@ class GC {
             void Mark();
 
             void EnsureCanRunInCrossLang();
+
+            TDictionary* DecodeMetadata(GCList& ls, size_t index);
     };
     class TAssociativeArray : public THeapObject
     {

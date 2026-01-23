@@ -1456,7 +1456,7 @@ namespace Tesses::CrossLang
             EnsureSymbol("(");
             SyntaxNode list = ParseExpression();
             SyntaxNode body = nullptr;
-            if(IsSymbol(":"))
+            if(IsSymbol(":") || IsIdentifier("in"))
             {
                 item = list;
                 list = ParseExpression();
@@ -1467,6 +1467,11 @@ namespace Tesses::CrossLang
             {
                 body = ParseNode();
             }
+            if(std::holds_alternative<nullptr_t>(item))
+                item = AdvancedSyntaxNode::Create(DeclareExpression,true, {
+                    AdvancedSyntaxNode::Create(GetVariableExpression,true,{"item"})
+                });
+
             return AdvancedSyntaxNode::Create(EachStatement,false,{item,list,body});
         }
         if(IsIdentifier("class"))
@@ -1680,6 +1685,25 @@ namespace Tesses::CrossLang
                     })
                 });
             }
+        }
+        if(IsIdentifier("meta"))
+        {   
+            if(i >= tokens.size() || tokens[i].type != LexTokenType::String)
+            {
+                std::cout << "WARN: meta is a conditional keyword,\nif you suffix it with a string, it will be assumed to be a metadata tag" << std::endl;
+                i--;
+            }
+            else {
+                std::string name = tokens[i++].text;
+                EnsureSymbol("{");
+                auto expr = ParseExpression();
+            
+
+                EnsureSymbol("}");
+
+                return AdvancedSyntaxNode::Create(MetadataStatement,false,{name, AdvancedSyntaxNode::Create(DictionaryExpression,true,{expr})});
+            }
+
         }
         if(IsIdentifier("func"))
         {

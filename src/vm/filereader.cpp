@@ -118,6 +118,167 @@ namespace Tesses::CrossLang
         throw VMException(errorMessage);
     }
 
+    TDictionary* TFile::DecodeMetadata(GCList& ls, size_t midx)
+    {
+        if(midx >= this->metadata.size()) return nullptr;
+        if(this->metadata[midx].second.empty()) return nullptr;
+        if(this->metadata[midx].second[0] != 8) return nullptr;
+        size_t index = 0;
+        auto& bytes = this->metadata[midx].second;
+        
+        std::function<TObject()> parseEnt;
+        parseEnt = [&]()->TObject {
+            if(index >= bytes.size()) throw std::out_of_range("Abrupt end of metadata");
+            switch(bytes[index++])
+            {
+                case 0:
+                    return false;
+                case 1:
+                    return true;
+                case 2:
+                    return nullptr;
+                case 3:
+                {
+                    if(index + 8 <= bytes.size())
+                    {
+                        auto val= BitConverter::ToUint64BE(bytes[index]);
+                        index+=8;
+                        int64_t val2;
+                        memcpy(&val2,&val,sizeof(val));
+                        return val2;
+                    }
+                    else throw std::out_of_range("Abrupt end of metadata");
+                }
+                    break;
+                case 4:
+                {
+                    if(index + 8 <= bytes.size())
+                    {
+                        auto val= BitConverter::ToDoubleBE(bytes[index]);
+                        index+=8;
+                        return val;
+                    }
+                    else throw std::out_of_range("Abrupt end of metadata");
+                }
+                    break;
+                case 5:
+
+                    if(index + 1 <= bytes.size())
+                    {
+                        return (char)bytes[index++];
+                    }
+                    else throw std::out_of_range("Abrupt end of metadata");
+                    break;
+                case 6:
+                {
+                    if(index + 4 <= bytes.size())
+                    {
+                        auto val= BitConverter::ToUint32BE(bytes[index]);
+                        index+=4;
+                        return this->strings.at((size_t)val);
+                    } else throw std::out_of_range("Abrupt end of metadata");
+                   
+                }
+                    break;
+                case 7:
+                {
+                    if(index + 4 <= bytes.size())
+                    {
+                        auto val= BitConverter::ToUint32BE(bytes[index]);
+                        index+=4;
+                        std::vector<TObject> items;
+                        for(uint32_t i = 0; i < val; i++)
+                        {
+                            items.push_back(parseEnt());
+                        }
+
+                        return TList::Create(ls,items.begin(),items.end());
+                    } else throw std::out_of_range("Abrupt end of metadata");
+                }
+                    break;
+                case 8:
+                    if(index + 4 <= bytes.size())
+                    {
+                        auto val= BitConverter::ToUint32BE(bytes[index]);
+                        index+=4;
+                        std::vector<TDItem> items;
+
+                        for(uint32_t i = 0; i < val; i++)
+                        {
+                            if(index + 4 <= bytes.size())
+                            {
+                                auto val2= BitConverter::ToUint32BE(bytes[index]);
+                                index+=4;
+                                std::string& text=this->strings.at((size_t)val2);
+                                items.emplace_back(text,parseEnt());
+                            } else throw std::out_of_range("Abrupt end of metadata");
+
+                        }
+
+                        return TDictionary::Create(ls, items.begin(),items.end());
+                    }else throw std::out_of_range("Abrupt end of metadata");
+                    break;
+                case 9:
+                {
+                    if(index + 4 <= bytes.size())
+                    {
+                        auto val= BitConverter::ToUint32BE(bytes[index]);
+                        index+=4;
+                        auto ba = TByteArray::Create(ls);
+                        ba->data = this->resources.at((size_t)val);
+                        return ba;
+                    } else throw std::out_of_range("Abrupt end of metadata");
+                }
+                    break;
+                case 10:
+                {
+                    if(index + 4 <= bytes.size())
+                    {
+                        auto val= BitConverter::ToUint32BE(bytes[index]);
+                        index+=4;
+                        return std::make_shared<EmbedStream>(ls.GetGC(),this,val);
+                    } else throw std::out_of_range("Abrupt end of metadata");
+                }
+                    break;
+                case 11:
+                {
+                    auto data = parseEnt();
+                    TDictionary* dict;
+                    if(GetObjectHeap(data,dict))
+                    {
+                        return std::make_shared<EmbedDirectory>(ls.GetGC(),dict);
+                    }
+                    else return Undefined();
+                }
+                    break;
+                case 12:
+                {
+                    if(index + 4 <= bytes.size())
+                    {
+                        auto val= BitConverter::ToUint32BE(bytes[index]);
+                        index+=4;
+                        ls.GetGC()->BarrierBegin();
+                        auto em = TExternalMethod::Create(ls,"",{},[val,this](GCList& ls, std::vector<TObject> args)->TObject {
+                            return std::make_shared<EmbedStream>(ls.GetGC(),this,val);
+                        });
+                        em->watch.push_back(this);
+                        ls.GetGC()->BarrierEnd();
+
+                        return em;
+                    } else throw std::out_of_range("Abrupt end of metadata");
+                }
+                    break;
+                default:
+                    throw std::runtime_error("Invalid metadata opcode");
+            }
+        };
+
+        TDictionary* dict_res;
+        TObject ent = parseEnt();
+        if(GetObjectHeap(ent, dict_res)) return dict_res;
+        return nullptr;
+    }
+
     void TFile::Load(GC* gc, std::shared_ptr<Tesses::Framework::Streams::Stream> stream)
     {
         
@@ -166,10 +327,8 @@ namespace Tesses::CrossLang
             }
             else if(strncmp(table_name,"RESO",4) == 0) //resources (using embed)
             {
-                std::vector<uint8_t> data;
-                data.resize(tableLen);
-                Ensure(stream,data.data(), tableLen);
-                this->resources.push_back(data);
+                auto& data = this->resources.emplace_back(tableLen);
+                Ensure(stream,data.data(), data.size());
             }
             else if(strncmp(table_name,"CHKS",4) == 0 && gc != nullptr) //chunks
             {
@@ -268,13 +427,22 @@ namespace Tesses::CrossLang
                     this->classes.push_back(cls);
                 }
             }
+            else if(strncmp(table_name,"META",4) == 0) //structured metadata
+            {
+                if(tableLen > 4)
+                {
+                    auto name = this->GetString(stream);
+                    auto& data = this->metadata.emplace_back(name, std::vector<uint8_t>(tableLen-4));
+                    Ensure(stream,data.second.data(), tableLen-4);
+                }
+                else throw VMException("meta tag is not valid");
+
+            }
             else
             {
-                std::vector<uint8_t> data;
-                data.resize(tableLen);
-                Ensure(stream,data.data(), tableLen);
-                std::string key(std::string(table_name), 4);
-                this->sections.push_back(std::pair<std::string,std::vector<uint8_t>>(key,data));
+                auto& data = this->sections.emplace_back(std::string(table_name, 4), std::vector<uint8_t>(tableLen));
+                Ensure(stream,data.second.data(), tableLen);
+                
             }
         }
         

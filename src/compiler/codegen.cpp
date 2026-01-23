@@ -33,6 +33,350 @@ namespace Tesses::CrossLang
         }
     }
 
+    SyntaxNode CodeGen::OptimizeNode(SyntaxNode n)
+    {
+        if(std::holds_alternative<AdvancedSyntaxNode>(n))
+        {
+            auto& asn = std::get<AdvancedSyntaxNode>(n);
+            if(asn.nodeName == AddExpression && asn.nodes.size() == 2)
+            {
+                auto leftNode = OptimizeNode(asn.nodes[0]);
+                auto rightNode = OptimizeNode(asn.nodes[1]);
+
+
+                if(std::holds_alternative<int64_t>(leftNode) && std::holds_alternative<int64_t>(rightNode))
+                {
+                    return std::get<int64_t>(leftNode) + std::get<int64_t>(rightNode);
+                }
+                if(std::holds_alternative<double>(leftNode) && std::holds_alternative<double>(rightNode))
+                {
+                    return std::get<double>(leftNode) + std::get<double>(rightNode);
+                }
+                if(std::holds_alternative<int64_t>(leftNode) && std::holds_alternative<double>(rightNode))
+                {
+                    return (double)std::get<int64_t>(leftNode) + std::get<double>(rightNode);
+                }
+                if(std::holds_alternative<double>(leftNode) && std::holds_alternative<int64_t>(rightNode))
+                {
+                    return std::get<double>(leftNode) + (double)std::get<int64_t>(rightNode);
+                }
+                if(std::holds_alternative<std::string>(leftNode) && std::holds_alternative<std::string>(rightNode))
+                {
+                    return std::get<std::string>(leftNode) + std::get<std::string>(rightNode);
+                }
+                if(std::holds_alternative<std::string>(leftNode) && std::holds_alternative<char>(rightNode))
+                {
+                    return std::get<std::string>(leftNode) + std::get<char>(rightNode);
+                }
+                if(std::holds_alternative<char>(leftNode) && std::holds_alternative<std::string>(rightNode))
+                {
+                    return std::get<char>(leftNode) + std::get<std::string>(rightNode);
+                }
+            }
+            if(asn.nodeName == SubExpression && asn.nodes.size() == 2)
+            {
+                auto leftNode = OptimizeNode(asn.nodes[0]);
+                auto rightNode = OptimizeNode(asn.nodes[1]);
+
+
+                if(std::holds_alternative<int64_t>(leftNode) && std::holds_alternative<int64_t>(rightNode))
+                {
+                    return std::get<int64_t>(leftNode) - std::get<int64_t>(rightNode);
+                }
+                if(std::holds_alternative<double>(leftNode) && std::holds_alternative<double>(rightNode))
+                {
+                    return std::get<double>(leftNode) - std::get<double>(rightNode);
+                }
+                if(std::holds_alternative<int64_t>(leftNode) && std::holds_alternative<double>(rightNode))
+                {
+                    return (double)std::get<int64_t>(leftNode) - std::get<double>(rightNode);
+                }
+                if(std::holds_alternative<double>(leftNode) && std::holds_alternative<int64_t>(rightNode))
+                {
+                    return std::get<double>(leftNode) - (double)std::get<int64_t>(rightNode);
+                }
+            }
+            if(asn.nodeName == CommaExpression && asn.nodes.size() == 2)
+            {
+                return AdvancedSyntaxNode::Create(CommaExpression,true, {
+                    OptimizeNode(asn.nodes[0]),
+                    OptimizeNode(asn.nodes[1])
+                });
+            }
+            if(asn.nodeName == ScopeNode)
+            {
+                if(asn.nodes.empty())       
+                {
+                    asn.nodeName = NodeList;
+                    return asn;
+                }
+                else
+                {
+                    for(auto& item : asn.nodes)       
+                    {
+                        item = OptimizeNode(item);
+                    }
+                }
+            }
+        }
+        return n;
+    }
+
+    /*
+        0: false,
+    1: true,
+    2: null,
+    3: Long,
+    4: Double,
+    5: Char
+    6: String,
+    7: List,
+    8: Dictionary,
+    9: ByteArray (embed),
+    10: Stream (embedstrm),
+    11: VFS (embeddir),
+    12: ClosureOfEmbedStream (used by embeddir)
+    */
+
+    void CodeGen::WriteMetadataObject(std::vector<uint8_t>& bytes, SyntaxNode n)
+    {
+        if(std::holds_alternative<bool>(n))
+        {
+            bytes.push_back(std::get<bool>(n) ? 1 : 0);
+            return;
+        }
+        if(std::holds_alternative<nullptr_t>(n))
+        {
+            bytes.push_back(2);
+            return;
+        }
+        if(std::holds_alternative<int64_t>(n))
+        {
+            auto num = std::get<int64_t>(n);
+            bytes.push_back(3);
+            size_t offset = bytes.size();
+            bytes.resize(offset+8);
+            BitConverter::FromUint64BE(bytes[offset],num);
+            return;
+        }
+        if(std::holds_alternative<double>(n))
+        {
+            auto num = std::get<double>(n);
+            bytes.push_back(4);
+            size_t offset = bytes.size();
+            bytes.resize(offset+8);
+            BitConverter::FromDoubleBE(bytes[offset],num);
+            return;
+        }
+        if(std::holds_alternative<char>(n))
+        {
+            auto chr = std::get<char>(n);
+            bytes.push_back(5);
+            bytes.push_back((uint8_t)chr);
+            return;
+        }
+        if(std::holds_alternative<std::string>(n))
+        {
+            auto& str = std::get<std::string>(n);
+            bytes.push_back(6);
+            size_t offset = bytes.size();
+            bytes.resize(offset+4);
+            BitConverter::FromUint32BE(bytes[offset], GetString(str));
+            return;
+        }
+        if(std::holds_alternative<AdvancedSyntaxNode>(n))
+        {
+            auto& asn = std::get<AdvancedSyntaxNode>(n);
+            if(asn.nodeName == ArrayExpression)
+            {
+                std::vector<SyntaxNode> itms;
+                 if(asn.nodes.size() > 0)
+                
+                GetFunctionArgs(itms,asn.nodes[0]);
+                bytes.push_back(7);
+                size_t offset = bytes.size();
+                bytes.resize(offset+4);
+                BitConverter::FromUint32BE(bytes[offset], (uint32_t)itms.size());
+                for(auto& item : itms)
+                {
+                    WriteMetadataObject(bytes,item);
+                }
+                return;
+            }
+            if(asn.nodeName == DictionaryExpression)
+            {
+                std::vector<SyntaxNode> itms;
+                 if(asn.nodes.size() > 0)
+                
+                GetFunctionArgs(itms,asn.nodes[0]);
+                bytes.push_back(8);
+                size_t offset = bytes.size();
+                bytes.resize(offset+4);
+                BitConverter::FromUint32BE(bytes[offset], (uint32_t)itms.size());
+                for(auto& item : itms)
+                {
+                    if(std::holds_alternative<AdvancedSyntaxNode>(item))
+                    {
+                        auto tkn = std::get<AdvancedSyntaxNode>(item);
+                        if(tkn.nodeName == GetVariableExpression && !tkn.nodes.empty())
+                        {
+                            if(std::holds_alternative<std::string>(tkn.nodes[0]))
+                            {
+                                size_t offset2 = bytes.size();
+                                bytes.resize(offset2+4);
+                                BitConverter::FromUint32BE(bytes[offset2], GetString(std::get<std::string>(tkn.nodes[0])));
+                                bytes.push_back(2);
+                                
+                            }
+                            else
+                            {
+                                
+                                size_t offset2 = bytes.size();
+                                bytes.resize(offset2+4);
+                                BitConverter::FromUint32BE(bytes[offset2], GetString("__unknown"));
+                                bytes.push_back(2);
+                                
+                            }
+                        }
+                        else if(tkn.nodeName == AssignExpression && tkn.nodes.size()==2 && std::holds_alternative<AdvancedSyntaxNode>(tkn.nodes[0]))
+                        {
+                            auto myTn =  std::get<AdvancedSyntaxNode>(tkn.nodes[0]);
+                            if(myTn.nodeName == GetVariableExpression && !myTn.nodes.empty())
+                            {
+                                if(std::holds_alternative<std::string>(myTn.nodes[0]))
+                                {
+                                    size_t offset2 = bytes.size();
+                                    bytes.resize(offset2+4);
+                                    BitConverter::FromUint32BE(bytes[offset2], GetString(std::get<std::string>(myTn.nodes[0])));
+                                    WriteMetadataObject(bytes,tkn.nodes[1]);
+                                    
+                                }
+                                else
+                                {
+                                
+                                    size_t offset2 = bytes.size();
+                                    bytes.resize(offset2+4);
+                                    BitConverter::FromUint32BE(bytes[offset2], GetString("__unknown"));
+                                    bytes.push_back(2);
+                                
+                                }
+                            }
+                            else
+                            {
+                                
+                                size_t offset2 = bytes.size();
+                                bytes.resize(offset2+4);
+                                BitConverter::FromUint32BE(bytes[offset2], GetString("__unknown"));
+                                bytes.push_back(2);
+                                
+                            }
+                        }
+                        else
+                        {
+                                
+                            size_t offset2 = bytes.size();
+                            bytes.resize(offset2+4);
+                            BitConverter::FromUint32BE(bytes[offset2], GetString("__unknown"));
+                            bytes.push_back(2);
+                                
+                        }
+                    }
+                }
+                return;
+            }
+            if(asn.nodeName == EmbedExpression)
+            {
+                if(!asn.nodes.empty() && std::holds_alternative<std::string>(asn.nodes[0]))
+                {
+                    auto& filename = std::get<std::string>(asn.nodes[0]);
+                    bytes.push_back(9);
+                    size_t offset = bytes.size();
+                    bytes.resize(offset+4);
+                    BitConverter::FromUint32BE(bytes[offset], GetResource(std::make_shared<ResourceFile>(filename)));
+                    return;
+                }
+            }
+            if(asn.nodeName == EmbedStreamExpression)
+            {
+                if(!asn.nodes.empty() && std::holds_alternative<std::string>(asn.nodes[0]))
+                {
+                    auto& filename = std::get<std::string>(asn.nodes[0]);
+                    bytes.push_back(10);
+                    size_t offset = bytes.size();
+                    bytes.resize(offset+4);
+                    BitConverter::FromUint32BE(bytes[offset], GetResource(std::make_shared<ResourceFile>(filename)));
+                    return;
+                }
+            }
+            if(asn.nodeName == EmbedDirectoryExpression)
+            {
+                if(!asn.nodes.empty() && std::holds_alternative<std::string>(asn.nodes[0]))
+                {
+                    auto& filename = std::get<std::string>(asn.nodes[0]);
+                    bytes.push_back(11);
+
+
+                std::function<void(Tesses::Framework::Filesystem::VFSPath path)> embedDir;
+                embedDir = [&](Tesses::Framework::Filesystem::VFSPath path)-> void {
+                    bytes.push_back(8);
+                    std::vector<std::pair<Tesses::Framework::Filesystem::VFSPath, bool>> entries;
+                    if(embedFS != nullptr && embedFS->DirectoryExists(path))
+                    for(auto& item : embedFS->EnumeratePaths(path))
+                    {
+                        if(embedFS->DirectoryExists(item))
+                            entries.emplace_back(item,true);
+                        else if(embedFS->FileExists(item))
+                            entries.emplace_back(item,false);
+                        
+
+                        /*GenNode(instructions,item.GetFileName(),scope,contscope,brkscope,contI,brkI);
+                        if(embedFS->DirectoryExists(item))
+                        {
+                            embedDir(item);
+                        }
+                        else if(embedFS->RegularFileExists(item))
+                        {
+                            auto ce = AdvancedSyntaxNode::Create(ClosureExpression,true,{
+                                AdvancedSyntaxNode::Create(ParenthesesExpression,true,{}),
+                                AdvancedSyntaxNode::Create(ReturnStatement,false,{
+                                    AdvancedSyntaxNode::Create(EmbedStreamExpression,true,{item.ToString()})
+                                })
+                            });
+                            GenNode(instructions,ce,scope,contscope,brkscope,contI,brkI);
+                        }
+                        else {
+                            instructions.push_back(new SimpleInstruction(PUSHUNDEFINED));
+                        }
+
+                        instructions.push_back(new SimpleInstruction(APPENDDICT));*/
+                    }
+                    size_t offset = bytes.size();
+                    bytes.resize(offset+4);
+                    BitConverter::FromUint32BE(bytes[offset], (uint32_t)entries.size());
+                    for(auto& item : entries)
+                    {
+                        offset = bytes.size();
+                        bytes.resize(offset+4);
+                        BitConverter::FromUint32BE(bytes[offset],GetString(item.first.GetFileName()));
+                        if(item.second)
+                            embedDir(item.first);
+                        else {
+                            bytes.push_back(12);
+                            offset = bytes.size();
+                            bytes.resize(offset+4);
+                            bytes.resize(offset+4);
+                            BitConverter::FromUint32BE(bytes[offset],GetResource(std::make_shared<ResourceFile>(item.first.ToString())));
+                        }
+                    }
+                };
+                embedDir(filename);
+                    return;
+                }
+            }
+        }
+
+        bytes.push_back(2);
+    }
 
     void CodeGen::Save(std::shared_ptr<Tesses::Framework::Streams::Stream> stream)
     {
@@ -54,6 +398,10 @@ namespace Tesses::CrossLang
         for(auto& tool : this->tools)
         {
             GetString(tool.first);
+            sections++;
+        }
+        for(auto& meta : this->meta)
+        {
             sections++;
         }
         if(!this->icon.empty())
@@ -245,6 +593,13 @@ namespace Tesses::CrossLang
             WriteInt(stream,4);
             WriteInt(stream,this->GetResource(std::make_shared<ResourceFile>(this->icon)));
             
+        }
+        for(auto& meta : this->meta)
+        {
+            memcpy(buffer,"META", 4);
+            Write(stream,buffer,4);
+            WriteInt(stream,(uint32_t)meta.size());
+            Write(stream,meta.data(),meta.size());
         }
     }
 
@@ -1380,6 +1735,17 @@ namespace Tesses::CrossLang
                 instructions.push_back(new EmbedInstruction(GetResource(std::make_shared<ResourceFile>(filename))));
 
             }
+            else if(adv.nodeName == MetadataStatement && adv.nodes.size() == 2 && std::holds_alternative<std::string>(adv.nodes[0]))
+            {
+                auto& name = std::get<std::string>(adv.nodes[0]);
+                
+
+                auto& metabytes= this->meta.emplace_back();
+                metabytes.resize(4);
+                BitConverter::FromUint32BE(metabytes[0],GetString(name));
+
+                WriteMetadataObject(metabytes, adv.nodes[1]);
+            }
             else if(adv.nodeName == EmbedStreamExpression && adv.nodes.size() == 1 && std::holds_alternative<std::string>(adv.nodes[0]))
             {
                 std::string filename = std::get<std::string>(adv.nodes[0]);
@@ -1446,6 +1812,7 @@ namespace Tesses::CrossLang
             }
             else if(adv.nodeName == ScopeNode)
             {
+                
                 scope++;
                 instructions.push_back(new SimpleInstruction(SCOPEBEGIN));
                 for(size_t i = 0; i < adv.nodes.size(); i++)

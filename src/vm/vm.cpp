@@ -4328,7 +4328,31 @@ namespace Tesses::CrossLang {
                 auto cls = dynamic_cast<TClassObject*>(obj);
                 auto aArray=dynamic_cast<TAssociativeArray*>(obj);
                 auto ttask = dynamic_cast<TTask*>(obj);
+                auto file = dynamic_cast<TFile*>(obj);
 
+                if(file != nullptr)
+                {
+                    if(key == "MetadataDecode")
+                    {
+                        int64_t index;
+                        if(GetArgument(args,0, index) && (size_t)index < file->metadata.size())
+                        {
+                            cse.back()->Push(gc,file->DecodeMetadata(ls,(size_t)index));
+                            return false;
+                        }
+                    }
+                    if(key == "MetadataName")
+                    {
+                        int64_t index;
+                        if(GetArgument(args,0, index) && (size_t)index < file->metadata.size())
+                        {
+                            cse.back()->Push(gc,file->metadata.at((size_t)index).first);
+                            return false;
+                        }
+                    }
+                    cse.back()->Push(gc,Undefined());
+                    return false;
+                }
                 if(ttask != nullptr)
                 {
                     if(key == "ContinueWith")
@@ -6015,6 +6039,32 @@ namespace Tesses::CrossLang {
                         gc->BarrierEnd();
 
                         cse.back()->Push(gc, list);
+                        return false;
+                    }
+                    else if(key == "MetadataCount")
+                    {
+
+                        cse.back()->Push(gc, (int64_t)file->metadata.size());
+                        return false;
+                    }
+                    else if(key == "Metadata")
+                    {   
+                        TList* meta = TList::Create(ls);
+                        gc->BarrierBegin();
+                        for(size_t i = 0; i < file->metadata.size(); i++)
+                        {
+                            meta->Add(
+                                TDictionary::Create(ls,
+                                    {
+                                    TDItem("Name", file->metadata[i].first),
+                                    TDItem("Index",(int64_t)i)
+                                    }
+                                )
+                            );
+                        }
+                        gc->BarrierEnd();
+
+                        cse.back()->Push(gc, meta);
                         return false;
                     }
                     else if(key == "Sections")
