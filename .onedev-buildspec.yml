@@ -33,16 +33,6 @@ jobs:
     platforms: linux/amd64
     condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
   - !CommandStep
-    name: Wii Build
-    runInContainer: true
-    image: onedev.site.tesses.net/dependencies/wiidev:latest
-    interpreter: !DefaultInterpreter
-      commands: |
-        cd Packaging/CPKG
-        bash wiibuild.sh
-    useTTY: true
-    condition: ALL_PREVIOUS_STEPS_WERE_SUCCESSFUL
-  - !CommandStep
     name: Build archlinux
     runInContainer: true
     image: git.tesseslanguage.com/tesses50/arch-builds:2025-11-11
