@@ -133,7 +133,7 @@ namespace Tesses::CrossLang
 
         std::string name = "Out";
         std::vector<std::pair<std::string,std::string>> sources;
-        TVMVersion version(TVM_MAJOR,TVM_MINOR,TVM_PATCH,TVM_BUILD,TVM_VERSIONSTAGE);
+        TVMVersion version(CROSSLANG_BYTECODE_MAJOR,CROSSLANG_BYTECODE_MINOR,CROSSLANG_BYTECODE_PATCH,CROSSLANG_BYTECODE_BUILD,CROSSLANG_BYTECODE_VERSIONSTAGE);
         std::vector<std::pair<std::string,TVMVersion>> dependencies;
         std::vector<std::pair<std::string,TVMVersion>> tools;
         std::string info;
@@ -359,7 +359,10 @@ namespace Tesses::CrossLang
         
         dict->DeclareFunction(gc, "SourceToAst", "Convert source to ast", {"source"}, VM_SourceToAst);
         dict->DeclareFunction(gc, "getRuntimeVersion","Get the runtime version",{},[](GCList& ls,std::vector<TObject> args)->TObject {
-            return TVMVersion(TVM_MAJOR,TVM_MINOR,TVM_PATCH,TVM_BUILD,TVM_VERSIONSTAGE);
+            return TVMVersion(CROSSLANG_MAJOR,CROSSLANG_MINOR,CROSSLANG_PATCH,0,TVMVersionStage::DevVersion);
+        });
+        dict->DeclareFunction(gc, "getBytecodeVersion","Get the bytecode version",{},[](GCList& ls,std::vector<TObject> args)->TObject {
+            return TVMVersion(CROSSLANG_BYTECODE_MAJOR,CROSSLANG_BYTECODE_MINOR,CROSSLANG_BYTECODE_PATCH,CROSSLANG_BYTECODE_BUILD,CROSSLANG_BYTECODE_VERSIONSTAGE);
         });
         dict->DeclareFunction(gc, "getIsRunning","Is the program still running",{},[](GCList& ls, std::vector<TObject> args)->TObject {
             return Tesses::Framework::TF_IsRunning();

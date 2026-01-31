@@ -773,7 +773,7 @@ namespace Tesses::CrossLang {
     void Save(std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, std::shared_ptr<Tesses::Framework::Streams::Stream> stream)
     {
 
-        TVMVersion runtime_version(TVM_MAJOR,TVM_MINOR,TVM_PATCH,TVM_BUILD,TVM_VERSIONSTAGE);
+        TVMVersion runtime_version(CROSSLANG_BYTECODE_MAJOR,CROSSLANG_BYTECODE_MINOR,CROSSLANG_BYTECODE_PATCH,CROSSLANG_BYTECODE_BUILD,CROSSLANG_BYTECODE_VERSIONSTAGE);
         uint8_t buffer[18];
         memcpy(buffer,"TCROSSVM",8);
         runtime_version.ToArray(buffer+8);

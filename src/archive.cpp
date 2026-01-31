@@ -130,7 +130,7 @@ namespace Tesses::CrossLang
 
         uint8_t main_header[18];
         memcpy(main_header,"TCROSSVM",8);
-        TVMVersion rtVersion(TVM_MAJOR,TVM_MINOR,TVM_PATCH,TVM_BUILD,TVM_VERSIONSTAGE);
+        TVMVersion rtVersion(CROSSLANG_BYTECODE_MAJOR,CROSSLANG_BYTECODE_MINOR,CROSSLANG_BYTECODE_PATCH,CROSSLANG_BYTECODE_BUILD,CROSSLANG_BYTECODE_VERSIONSTAGE);
         rtVersion.ToArray(main_header+8);
         version.ToArray(main_header+13);
         strm->WriteBlock(main_header,sizeof(main_header));

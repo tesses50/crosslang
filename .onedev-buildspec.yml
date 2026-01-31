@@ -79,8 +79,6 @@ jobs:
         cd Packaging/Linux
         bash build-ubuntu-plucky.sh
         bash push-ubuntu-plucky.sh
-        cd ../CPKG
-        bash winbuild.sh
         cd ../Windows
         bash build.sh
     envVars:
@@ -102,10 +100,6 @@ jobs:
         bash build-ubuntu-jammy.sh
         bash push-ubuntu-jammy.sh
         bash build-tars.sh
-        apt update -y
-        apt install -y crosslang
-        cd ../CPKG
-        bash pack_and_publish.sh
     envVars:
     - name: GITEA_AUTH
       value: '@secret:GITEA_AUTH@'

@@ -19,31 +19,13 @@
 #include <time.h>
 #include <any>
 
-/**
- * @brief CrossLang Runtime Major version
- * 
- */
-#define TVM_MAJOR 1
-/**
- * @brief CrossLang Runtime Minor version
- * 
- */
-#define TVM_MINOR 0
-/**
- * @brief CrossLang Runtime Patch version
- * 
- */
-#define TVM_PATCH 0
-/**
- * @brief CrossLang Runtime Build version
- * 
- */
-#define TVM_BUILD 0
-/**
- * @brief CrossLang Runtime Stage version
- * 
- */
-#define TVM_VERSIONSTAGE DevVersion
+#include "CrossLangVersion.h"
+
+#define CROSSLANG_BYTECODE_MAJOR 1
+#define CROSSLANG_BYTECODE_MINOR 0
+#define CROSSLANG_BYTECODE_PATCH 0
+#define CROSSLANG_BYTECODE_BUILD 0 //SHOULD ALWAYS BE 0
+#define CROSSLANG_BYTECODE_VERSIONSTAGE DevVersion
 
 #if defined(_WIN32)
 #undef Yield
@@ -341,13 +323,13 @@ namespace Tesses::CrossLang {
                 return v;
             }
             /**
-             * @brief Compares this to the runtime version
+             * @brief Compares this to the runtime version (for Bytecode)
              * 
              * @return int CompareTo(RuntimeVersion) where RuntimeVersion is the runtime version
              */
             int CompareToRuntime()
             {
-                TVMVersion version(TVM_MAJOR,TVM_MINOR,TVM_PATCH,TVM_BUILD,TVM_VERSIONSTAGE);
+                TVMVersion version(CROSSLANG_BYTECODE_MAJOR,CROSSLANG_BYTECODE_MINOR,CROSSLANG_BYTECODE_PATCH,CROSSLANG_BYTECODE_BUILD,CROSSLANG_BYTECODE_VERSIONSTAGE);
                 return CompareTo(version);
             }
             /**

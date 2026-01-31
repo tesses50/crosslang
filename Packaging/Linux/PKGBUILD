@@ -1,6 +1,6 @@
 # Maintainer: Mike Nolan <tesses@tesses.net>
 pkgname=crosslang # '-bzr', '-git', '-hg' or '-svn'
-pkgver=1.0.0
+pkgver=0.0.1
 pkgrel=1
 pkgdesc=""
 arch=('x86_64' 'powerpc')
