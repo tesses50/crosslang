@@ -172,15 +172,157 @@ namespace Tesses::CrossLang
         return nullptr;
     }
 
+    
+
+    class FS_Watcher : public TNativeObject {
+        public:
+            std::shared_ptr<Tesses::Framework::Filesystem::FSWatcher> watcher;
+            
+            FS_Watcher(std::shared_ptr<Tesses::Framework::Filesystem::FSWatcher> watcher): watcher(watcher)
+            {}
+
+            TObject CallMethod(GCList& ls, std::string name, std::vector<TObject> args)
+            {   
+                if(name == "getPath")
+                {
+                    return watcher->GetPath();
+                }
+                if(name == "getFilesystem")
+                {
+                    return watcher->GetFilesystem();
+                }
+                if(name == "setEnabled")
+                {
+                    bool enabled;
+                    if(GetArgument(args,0,enabled))
+                    {
+                        watcher->SetEnabled(enabled);
+                       return enabled;
+                    }
+                }
+                if(name == "getEnabled")
+                {
+                    return watcher->GetEnabled();
+                }
+                if(name == "setEvents")
+                {
+                    int64_t evts;
+                    if(GetArgument(args,0,evts))
+                    {
+                        watcher->events = (Tesses::Framework::Filesystem::FSWatcherEventType)evts;
+                        return evts;
+                    }
+                }
+                if(name == "getEvents")
+                {
+                    return (int64_t)watcher->events;
+                }
+                if(name == "setCallback")
+                {
+                    TCallable* callable=nullptr;
+                    if(GetArgumentHeap(args,0,callable))
+                    {
+                        auto markedT = CreateMarkedTObject(ls,callable);
+                        watcher->event = [markedT](Tesses::Framework::Filesystem::FSWatcherEvent& evt) -> void {
+                            GCList ls(markedT->GetGC());
+                            TObject o = markedT->GetObject();
+                            TCallable* callable;
+                            if(GetObjectHeap(o,callable))
+                            {
+                            auto isEvent = TExternalMethod::Create(ls,"",{},[evt](GCList& ls, std::vector<TObject> args)->TObject
+                            {
+                                int64_t n;
+                                if(GetArgument(args,0,n))
+                                {
+                                    auto myevt = evt;
+                                    return myevt.IsEvent((Tesses::Framework::Filesystem::FSWatcherEventType)n);
+
+                                }
+
+                                return false;
+                            });
+                            auto toString = TExternalMethod::Create(ls,"",{},[evt](GCList& ls, std::vector<TObject> args)->TObject
+                            {
+                                auto myevt = evt;
+                                return myevt.ToString();
+                            });
+
+                            auto dict = TDictionary::Create(ls, {TDItem("IsDirectory",evt.isDir),TDItem("Type",(int64_t)evt.type),TDItem("Source",evt.src), TDItem("Destination",evt.dest),TDItem("ToString",toString),TDItem("IsEvent",isEvent)});
+                            callable->Call(ls,{dict});
+                            }
+                        };
+                    }
+                    else {
+                        watcher->event=nullptr;
+                    }
+                    return nullptr;
+                }
+                if(name == "Start")
+                {
+                    watcher->SetEnabled(true);
+                }
+                if(name == "Stop")
+                {
+                    watcher->SetEnabled(false);
+                }
+                if(name == "ToString")
+                {
+                    return "FSWatcher";
+                }
+                return Undefined();
+            }
+
+            std::string TypeName() {
+                return "FSWatcher";
+            }
+    };
+
+    TObject New_FSWatcher(GCList& ls, std::vector<TObject> args)
+    {
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+        Tesses::Framework::Filesystem::VFSPath path;
+        if(GetArgument(args,0,vfs) && GetArgumentAsPath(args,1,path))
+        {
+            return TNativeObject::Create<FS_Watcher>(ls,Tesses::Framework::Filesystem::FSWatcher::Create(vfs,path));
+        }
+        return nullptr;
+    }
+
     void TStd::RegisterIO(GC* gc,TRootEnvironment* env,bool enableLocalFilesystem)
     {
 
         env->permissions.canRegisterIO=true;
         env->permissions.canRegisterLocalFS = enableLocalFilesystem;
         GCList ls(gc);
-        TDictionary* dict = TDictionary::Create(ls);
         
         gc->BarrierBegin();
+        auto newDict = env->EnsureDictionary(gc, "New");
+        newDict->DeclareFunction(gc,"FSWatcher","Watch a file/directory",{"vfs","path"}, New_FSWatcher);
+        auto dict = env->EnsureDictionary(gc,"FS");
+        dict->SetValue("SEEK_SET",(int64_t)Tesses::Framework::Streams::SeekOrigin::Begin);
+        dict->SetValue("SEEK_CUR",(int64_t)Tesses::Framework::Streams::SeekOrigin::Current);
+        dict->SetValue("SEEK_END",(int64_t)Tesses::Framework::Streams::SeekOrigin::End);
+        dict->SetValue("FSWatcherEvents",TDictionary::Create(ls,
+            {
+                TDItem("None", (int64_t)Tesses::Framework::Filesystem::FSWatcherEventType::None),
+                TDItem("Accessed", (int64_t)Tesses::Framework::Filesystem::FSWatcherEventType::Accessed),
+                TDItem("AttributeChanged", (int64_t)Tesses::Framework::Filesystem::FSWatcherEventType::AttributeChanged),
+                TDItem("Writen", (int64_t)Tesses::Framework::Filesystem::FSWatcherEventType::Writen),
+                TDItem("Read", (int64_t)Tesses::Framework::Filesystem::FSWatcherEventType::Read),
+                TDItem("Created", (int64_t)Tesses::Framework::Filesystem::FSWatcherEventType::Created),
+                TDItem("Deleted", (int64_t)Tesses::Framework::Filesystem::FSWatcherEventType::Deleted),
+                TDItem("WatchEntryDeleted", (int64_t)Tesses::Framework::Filesystem::FSWatcherEventType::WatchEntryDeleted),
+                TDItem("Modified", (int64_t)Tesses::Framework::Filesystem::FSWatcherEventType::Modified),
+                TDItem("WatchEntryMoved", (int64_t)Tesses::Framework::Filesystem::FSWatcherEventType::WatchEntryMoved),
+                TDItem("MoveOld", (int64_t)Tesses::Framework::Filesystem::FSWatcherEventType::MoveOld),
+                TDItem("MoveNew", (int64_t)Tesses::Framework::Filesystem::FSWatcherEventType::MoveNew),
+                TDItem("Opened", (int64_t)Tesses::Framework::Filesystem::FSWatcherEventType::Opened),
+                TDItem("Closed", (int64_t)Tesses::Framework::Filesystem::FSWatcherEventType::Closed),
+                TDItem("Moved", (int64_t)Tesses::Framework::Filesystem::FSWatcherEventType::Moved),
+                TDItem("All", (int64_t)Tesses::Framework::Filesystem::FSWatcherEventType::All)
+            }
+        ));
+
         if(enableLocalFilesystem)
         {
             
@@ -202,7 +344,7 @@ namespace Tesses::CrossLang
     
         dict->DeclareFunction(gc, "CreateArchive", "Create a crvm archive",{"fs","strm","name","version","info"},FS_CreateArchive);
         dict->DeclareFunction(gc,"ExtractArchive", "Extract a crvm archive",{"strm","vfs"},FS_ExtractArchive);
-        env->DeclareVariable("FS", dict);
+
         gc->BarrierEnd();
     }
 }

@@ -245,7 +245,7 @@ install(TARGETS ${TessesCrossLangLibs}
 )
 
 install(FILES include/CrossLang.hpp DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/CrossLangVersion.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(EXPORT TessesCrossLangTargets
     FILE TessesCrossLangTargets.cmake
     NAMESPACE TessesCrossLang::
