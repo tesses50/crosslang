@@ -35,7 +35,6 @@ jobs:
           mkdir ../../artifacts
           apt update -y
           apt install -y pkg-config git
-          cd Packaging/Linux
           bash build-ubuntu-jammy.sh
           bash push-ubuntu-jammy.sh
           bash build-tars.sh
