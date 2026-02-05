@@ -1,0 +1,71 @@
+name: Build and Deploy on Tag
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  GITEA_AUTH: ${{ secrets.MY_GITEA_AUTH }}
+
+jobs:
+  build-arch:
+    runs-on: arch-builder
+    steps:
+      - run: pacman --noconfirm -Sy nodejs npm
+      - uses: actions/checkout@v4
+      - run: wget -O /root/repository.key https://git.tesseslanguage.com/api/packages/tesses50/arch/repository.key
+      - run: pacman-key --add /root/repository.key
+      - run: pacman-key --config /opt/cross/ppc/pacman.conf --add /root/repository.key
+      - run: printf "[tesses50.git.tesseslanguage.com]\nSigLevel = Optional TrustAll\nServer = https://git.tesseslanguage.com/api/packages/tesses50/arch/core/\$arch\n" >> /etc/pacman.conf
+      - run: printf "[tesses50.git.tesseslanguage.com]\nSigLevel = Optional TrustAll\nServer = https://git.tesseslanguage.com/api/packages/tesses50/arch/core/\$arch\n" >> /opt/cross/ppc/pacman.conf
+      - run: pacman --noconfirm -Sy mbedtls curl tesses-framework
+      - run: pacman --config /opt/cross/ppc/pacman.conf --noconfirm -Sy mbedtls tesses-framework
+      - run: cp Packaging/Linux/PKGBUILD /home/build/PKGBUILD
+      - run: cp Packaging/Linux/build-arch.sh /home/build/build-arch.sh
+      - run: chmod 755 /home/build/build-arch.sh
+      - run: chown build:build /home/build/PKGBUILD
+      - run: chown build:build /home/build/build-arch.sh
+      - run: su build -c /home/build/build-arch.sh
+  build-jammy:
+    runs-on: deb-builder-jammy
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build for jammy, noble
+        run: |
+          mkdir ../../artifacts
+          apt update -y
+          apt install -y pkg-config git
+          cd Packaging/Linux
+          bash build-ubuntu-jammy.sh
+          bash push-ubuntu-jammy.sh
+          bash build-tars.sh
+        working-directory: ./Packaging/Linux
+      - uses: akkuman/gitea-release-action@v1
+        env:
+          NODE_OPTIONS: '--experimental-fetch' # if nodejs < 18
+        with:
+          files: |-
+            artifacts/**
+  build-plucky:
+    runs-on: deb-builder-plucky
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build for plucky, resolute
+        run: |
+          mkdir ../../artifacts
+          apt update -y
+          apt install -y pkg-config git gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 gcc-mingw-w64-i686 g++-mingw-w64-i686 nsis
+          bash build-ubuntu-plucky.sh
+          bash push-ubuntu-plucky.sh
+        working-directory: ./Packaging/Linux
+      
+      - name: Build for windows
+        run: bash build.sh
+          
+        working-directory: ./Packaging/Windows
+      - uses: akkuman/gitea-release-action@v1
+        env:
+          NODE_OPTIONS: '--experimental-fetch' # if nodejs < 18
+        with:
+          files: |-
+            artifacts/**
