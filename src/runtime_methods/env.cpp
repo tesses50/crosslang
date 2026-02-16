@@ -1,4 +1,5 @@
 #include "CrossLang.hpp"
+#include "TessesFramework/Serialization/BitConverter.hpp"
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -131,6 +132,10 @@ namespace Tesses::CrossLang
         ls.GetGC()->BarrierEnd();
         return list;
     }
+    static TObject Env_getLittleEndian(GCList& ls, std::vector<TObject> args)
+    {
+        return Tesses::Framework::Serialization::BitConverter::IsLittleEndian();
+    }
     void TStd::RegisterEnv(GC* gc, TRootEnvironment* env)
     {
 
@@ -155,6 +160,7 @@ namespace Tesses::CrossLang
         dict->DeclareFunction(gc,"getUser","Get user folder",{},Env_getUser);
         dict->DeclareFunction(gc,"getPlatform","Get platform name",{},Env_getPlatform);
         dict->DeclareFunction(gc,"GetRealExecutablePath", "Get the absolute path for executable", {"path"},Env_GetRealExecutablePath);
+        dict->DeclareFunction(gc, "getLittleEndian", "Is the platform little endian", {},Env_getLittleEndian);
         gc->BarrierBegin();
         dict->SetValue("EnvPathSeperator",EnvPathSeperator);
         env->SetVariable("Env", dict);

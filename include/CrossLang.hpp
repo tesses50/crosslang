@@ -20,6 +20,7 @@
 #include <any>
 
 #include "CrossLangVersion.h"
+#include "TessesFramework/Streams/ByteReader.hpp"
 
 #define CROSSLANG_BYTECODE_MAJOR 1
 #define CROSSLANG_BYTECODE_MINOR 0
@@ -1404,7 +1405,7 @@ class TContinue {
      * 
      */
 
-using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder,TVMVersion,std::shared_ptr<Tesses::Framework::Date::DateTime>,std::shared_ptr<Tesses::Framework::Date::TimeSpan>,TBreak,TContinue,std::shared_ptr<Tesses::Framework::Streams::Stream>,std::shared_ptr<Tesses::Framework::Filesystem::VFS>,std::shared_ptr<Tesses::Framework::Http::IHttpServer>,std::shared_ptr<Tesses::Framework::Http::HttpRequestBody>,std::shared_ptr<Tesses::Framework::TextStreams::TextReader>,std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>;
+using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder,TVMVersion,std::shared_ptr<Tesses::Framework::Date::DateTime>,std::shared_ptr<Tesses::Framework::Date::TimeSpan>,TBreak,TContinue,std::shared_ptr<Tesses::Framework::Streams::Stream>,std::shared_ptr<Tesses::Framework::Filesystem::VFS>,std::shared_ptr<Tesses::Framework::Http::IHttpServer>,std::shared_ptr<Tesses::Framework::Http::HttpRequestBody>,std::shared_ptr<Tesses::Framework::TextStreams::TextReader>,std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>,std::shared_ptr<Tesses::Framework::Streams::ByteReader>,std::shared_ptr<Tesses::Framework::Streams::ByteWriter>, Tesses::Framework::Uuid>;
 
 class TRootEnvironment;
 class GC;
@@ -1841,6 +1842,7 @@ class GC {
     class TStd {
         private:
             static void RegisterHelpers(GC* gc, TRootEnvironment* env);
+            static void RegisterUuid(GC* gc, TRootEnvironment* env);
         public:
             static void RegisterStd(GC* gc, TRootEnvironment* env);
             static void RegisterConsole(GC* gc,TRootEnvironment* env);
@@ -1857,6 +1859,7 @@ class GC {
             static void RegisterEnv(GC* gc, TRootEnvironment* env);
             static void RegisterProcess(GC* gc, TRootEnvironment* env);
             static void RegisterClass(GC* gc, TRootEnvironment* env);
+            
     };
 
     class TSubEnvironment : public TEnvironment

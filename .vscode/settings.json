@@ -84,7 +84,11 @@
         "stack": "cpp",
         "stdfloat": "cpp"
     },
+    
     "clangd.fallbackFlags": [
-        "-Iinclude"
+        "-I${workspaceFolder}/include",
+        "-I/home/mike/tmp-crosslang/usr/local/include/"
     ]
+
+
 }

@@ -1,2 +1,0 @@
-CompileFlags: # Tweak the parse settings, example directory given to show format
-  Add: ["-Iinclude","-std=gnu++17"]

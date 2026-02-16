@@ -1,5 +1,11 @@
 
 #include "CrossLang.hpp"
+#include "TessesFramework/Streams/ByteReader.hpp"
+#include "TessesFramework/Streams/Stream.hpp"
+#include "TessesFramework/Uuid.hpp"
+#include <memory>
+#include <variant>
+#include <vector>
 #if defined(CROSSLANG_ENABLE_SHARED)
 #if defined(CROSSLANG_ENABLE_FFI)
 #include <ffi.h>
@@ -568,6 +574,23 @@ namespace Tesses::CrossLang
         std::shared_ptr<Tesses::Framework::TextStreams::TextWriter> strm;
         return GetArgument(args,0,strm);
     }
+    static TObject TypeIsByteReader(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        std::shared_ptr<Tesses::Framework::Streams::ByteReader> strm;
+        return GetArgument(args,0,strm);
+    }
+    static TObject TypeIsByteWriter(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        std::shared_ptr<Tesses::Framework::Streams::ByteWriter> strm;
+        return GetArgument(args,0,strm);
+    }
+    static TObject TypeIsUuid(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        return std::holds_alternative<Tesses::Framework::Uuid>(args[0]);
+    }
     static TObject TypeIsVFS(GCList& ls, std::vector<TObject> args)
     {
         if(args.empty()) return nullptr;
@@ -741,6 +764,11 @@ namespace Tesses::CrossLang
         if(std::holds_alternative<TVMVersion>(_obj)) return "Version";
         if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::DateTime>>(_obj)) return "DateTime";
         if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(_obj)) return "TimeSpan";
+        if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Streams::ByteReader>>(_obj)) return "ByteReader";
+
+        if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Streams::ByteWriter>>(_obj)) return "ByteWriter";
+
+        if(std::holds_alternative<Tesses::Framework::Uuid>(_obj)) return "Uuid";
         if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Streams::Stream>>(_obj))
         {
             auto strm = std::get<std::shared_ptr<Tesses::Framework::Streams::Stream>>(_obj);
@@ -1222,6 +1250,21 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }
+    static TObject New_ByteReader(GCList& ls, std::vector<TObject> args)
+    {
+        std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
+        if(GetArgument(args, 0, strm))
+            return std::make_shared<Tesses::Framework::Streams::ByteReader>(strm);
+        return nullptr;
+    }
+    static TObject New_ByteWriter(GCList& ls, std::vector<TObject> args)
+    {
+        std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
+        if(GetArgument(args, 0, strm))
+            return std::make_shared<Tesses::Framework::Streams::ByteWriter>(strm);
+        return nullptr;
+    }
+
     void TStd::RegisterRoot(GC* gc, TRootEnvironment* env)
     {
         GCList ls(gc);      
@@ -1230,6 +1273,8 @@ namespace Tesses::CrossLang
         
         env->permissions.canRegisterRoot=true;
         RegisterHelpers(gc,env);
+        RegisterUuid(gc, env);
+        
        
         auto date =env->EnsureDictionary(gc,"DateTime");
         date->DeclareFunction(gc, "Sleep","Sleep for a specified amount of milliseconds (multiply seconds by 1000 to get milliseconds)", {"ms"},DateTime_Sleep);
@@ -1269,6 +1314,10 @@ namespace Tesses::CrossLang
         task->DeclareFunction(gc, "FromResult", "async from result", {"result"}, Task_FromResult);
 
         TDictionary* newTypes = env->EnsureDictionary(gc, "New");
+
+        newTypes->DeclareFunction(gc, "ByteReader","Read binary data from stream",{"stream"},New_ByteReader);
+
+        newTypes->DeclareFunction(gc, "ByteWriter","Write binary data to stream",{"stream"},New_ByteWriter);
         //newTypes->DeclareFunction(gc,)
         newTypes->DeclareFunction(gc, "Promise", "Create an async object",{"resolve","reject"},New_Promise);
         newTypes->DeclareFunction(gc, "DateTime","Create a DateTime object, if only one arg is provided year is epoch, isLocal defaults to true unless epoch",{"year","$month","$day","$hour","$minute","$second","$isLocal"},New_DateTime);
@@ -1339,6 +1388,9 @@ namespace Tesses::CrossLang
         env->DeclareFunction(gc, "TypeIsTimeSpan","Get whether object is a TimeSpan",{"object"},TypeIsTimeSpan);
         env->DeclareFunction(gc, "TypeIsTextReader","Get whether object is a TextReader",{"object"},TypeIsTextReader);
         env->DeclareFunction(gc, "TypeIsTextWriter","Get whether object is a TextWriter",{"object"},TypeIsTextWriter);
+        env->DeclareFunction(gc, "TypeIsByteReader","Get whether object is a ByteReader",{"object"},TypeIsByteReader);
+        env->DeclareFunction(gc, "TypeIsByteWriter","Get whether object is a ByteWriter",{"object"},TypeIsByteWriter);
+        env->DeclareFunction(gc, "TypeIsUuid","Get whether object is a Uuid",{"object"},TypeIsUuid);
         
         
         newTypes->DeclareFunction(gc, "Regex", "Create regex object",{"regex"},[](GCList& ls,std::vector<TObject> args)->TObject {

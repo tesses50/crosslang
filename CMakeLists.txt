@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 set(CROSSLANG_MAJOR_VERSION 0)
 set(CROSSLANG_MINOR_VERSION 0)
-set(CROSSLANG_PATCH_VERSION 1)
+set(CROSSLANG_PATCH_VERSION 2)
 
 project(TessesCrossLang VERSION ${CROSSLANG_MAJOR_VERSION}.${CROSSLANG_MINOR_VERSION}.${CROSSLANG_PATCH_VERSION})
 
@@ -141,6 +141,16 @@ target_include_directories(${CROSSLANG_TARGET_NAME}
 endfunction()
 
 list(APPEND CROSSLANG_SOURCE
+src/vm/bc/add.cpp
+src/vm/bc/sub.cpp
+src/vm/bc/getfield.cpp
+src/vm/bc/setfield.cpp
+src/vm/bc/tostring.cpp
+src/vm/bc/equals.cpp
+src/vm/bc/invokemethod.cpp
+src/vm/bc/executemethod2.cpp
+src/vm/bc/invoketwo.cpp
+src/vm/bc/tobool.cpp
 src/assembler/asm.cpp
 src/assembler/disasm.cpp
 src/assembler/merge.cpp
@@ -148,6 +158,7 @@ src/compiler/codegen.cpp
 src/compiler/lexer.cpp
 src/compiler/parser.cpp
 src/compiler/ast.cpp
+src/runtime_methods/uuid.cpp
 src/runtime_methods/class.cpp
 src/runtime_methods/console.cpp
 src/runtime_methods/io.cpp
