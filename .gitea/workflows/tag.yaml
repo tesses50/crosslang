@@ -11,7 +11,6 @@ jobs:
   build-arch:
     runs-on: arch-builder
     steps:
-      - run: pacman --noconfirm -Sy nodejs npm
       - uses: actions/checkout@v4
       - run: wget -O /root/repository.key https://git.tesseslanguage.com/api/packages/tesses50/arch/repository.key
       - run: pacman-key --add /root/repository.key
@@ -63,6 +62,31 @@ jobs:
         run: bash build.sh
           
         working-directory: ./Packaging/Windows
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GITEA_DOMAIN }}
+          username: ${{ env.GITEA_REGISTRY_USER }}
+          password: ${{ secrets.MY_GITEA_AUTH }}
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/386,linux/amd64,linux/arm,linux/arm64,linux/riscv32,linux/riscv64
+          build-contexts:
+            - i686=./builds/containers/i686
+            - x86_64=./builds/containers/x86_64
+            - powerpc=./builds/containers/powerpc
+            - powerpc64=./builds/containers/powerpc64
+            - armv7a=./builds/containers/armv7a
+            - aarch64=./builds/containers/aarch64
+            - riscv32=./builds/containers/riscv32
+            - riscv64=./builds/containers/riscv64
+          context: .
+          file: ./Dockerfile.superslim
+          push: true
+          tags: ${{ env.GITEA_DOMAIN }}/${{ env.RESULT_IMAGE_NAME }}:${{ gitea.ref_name }},${{ env.GITEA_DOMAIN }}/${{ env.RESULT_IMAGE_NAME }}:latest
       - uses: akkuman/gitea-release-action@v1
         env:
           NODE_OPTIONS: '--experimental-fetch' # if nodejs < 18

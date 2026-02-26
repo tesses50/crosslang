@@ -21,4 +21,12 @@ cd build
 cmake -S ../../../../ -B . -DTESSESFRAMEWORK_ENABLE_SHARED=OFF -DTESSESFRAMEWORK_FETCHCONTENT=ON -DTESSESFRAMEWORK_ENABLE_STATIC=ON -DCMAKE_TOOLCHAIN_FILE="$DIR/toolchain.cmake" -DCROSSLANG_ENABLE_SUPERSLIM=ON -DCMAKE_BUILD_TYPE=Release
 make -j`nproc`
 cp crosslang ../../../../artifacts/crosslang-slim-$TOOLCHAIN
+mkdir -p ../../../../builds/containers/$ARCH/usr/bin
+cp crosslang ../../../../builds/containers/$ARCH/usr/bin/crosslang
+ln -s crosslang ../../../../builds/containers/$ARCH/usr/bin/crossint
+ln -s crosslang ../../../../builds/containers/$ARCH/usr/bin/crossc
+ln -s crosslang ../../../../builds/containers/$ARCH/usr/bin/crossvm
+ln -s crosslang ../../../../builds/containers/$ARCH/usr/bin/crossarchivecreate
+ln -s crosslang ../../../../builds/containers/$ARCH/usr/bin/crossarchiveextract
+ln -s crosslang ../../../../builds/containers/$ARCH/usr/bin/crossdump
 rm -rf "$DIR"

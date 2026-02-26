@@ -1,4 +1,5 @@
 #include "CrossLang.hpp"
+#include "TessesFramework/Platform/Environment.hpp"
 #include <iostream>
 
 #include <string>
@@ -10,6 +11,27 @@ namespace Tesses::CrossLang::Programs
 
 static bool Download(Tesses::Framework::Filesystem::VFSPath filename,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs)
 {
+    auto inContainer=Platform::Environment::GetVariable("CROSSLANG_CONTAINER");
+    if(inContainer && *inContainer=="1" || *inContainer=="y" || *inContainer=="Y")
+    {
+        HttpRequest req;
+        req.url = "https://downloads.tesses.net/ShellPackage.crvm";
+        req.method = "GET";
+        HttpResponse resp(req);
+        if(resp.statusCode == StatusCode::OK)
+        {
+            auto strm = resp.ReadAsStream();
+            CrossLang::CrossArchiveExtract(strm, vfs);
+               
+            return true;
+        }
+        else
+        {
+            std::cout << "Error when fetching the script error: " << std::to_string(resp.statusCode) << " " << HttpUtils::StatusCodeString(resp.statusCode) << std::endl;
+            return false;
+        }
+    }
+
     while(true)
     {
         std::cout << "File " << filename.ToString() << " not found, do you want to download the installer from: https://downloads.tesses.net/ShellPackage.crvm (this may install other stuff as well) (Y/n)? ";
