@@ -39,6 +39,7 @@ jobs:
           bash build-tars.sh
         working-directory: ./Packaging/Linux
       - uses: akkuman/gitea-release-action@v1
+        prerelease: true
         env:
           NODE_OPTIONS: '--experimental-fetch' # if nodejs < 18
         with:
@@ -63,6 +64,7 @@ jobs:
           
         working-directory: ./Packaging/Windows
       - uses: akkuman/gitea-release-action@v1
+        prerelease: true
         env:
           NODE_OPTIONS: '--experimental-fetch' # if nodejs < 18
         with:
