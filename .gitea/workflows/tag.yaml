@@ -74,15 +74,16 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           platforms: linux/386,linux/amd64,linux/arm,linux/arm64,linux/riscv32,linux/riscv64
-          build-contexts:
-            - i686=./builds/containers/i686
-            - x86_64=./builds/containers/x86_64
-            - powerpc=./builds/containers/powerpc
-            - powerpc64=./builds/containers/powerpc64
-            - armv7a=./builds/containers/armv7a
-            - aarch64=./builds/containers/aarch64
-            - riscv32=./builds/containers/riscv32
-            - riscv64=./builds/containers/riscv64
+          build-contexts: |
+            i686=./builds/containers/i686
+            x86_64=./builds/containers/x86_64
+            powerpc=./builds/containers/powerpc
+            powerpc64=./builds/containers/powerpc64
+            armv7a=./builds/containers/armv7a
+            aarch64=./builds/containers/aarch64
+            riscv32=./builds/containers/riscv32
+            riscv64=./builds/containers/riscv64
+          
           context: .
           file: ./Dockerfile.superslim
           push: true
