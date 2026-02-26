@@ -11,3 +11,6 @@ bin
 *.exe
 build-x86
 build-x64
+build-x86-slim
+build-x64-slim
+crosslang-*-temp

@@ -3,10 +3,12 @@
 
 #include <string>
 using namespace Tesses::Framework;
-using namespace Tesses::CrossLang;
 using namespace Tesses::Framework::Http;
 
-bool Download(Tesses::Framework::Filesystem::VFSPath filename,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs)
+namespace Tesses::CrossLang::Programs
+{
+
+static bool Download(Tesses::Framework::Filesystem::VFSPath filename,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs)
 {
     while(true)
     {
@@ -22,7 +24,7 @@ bool Download(Tesses::Framework::Filesystem::VFSPath filename,std::shared_ptr<Te
             if(resp.statusCode == StatusCode::OK)
             {
                 auto strm = resp.ReadAsStream();
-                CrossArchiveExtract(strm, vfs);
+                CrossLang::CrossArchiveExtract(strm, vfs);
                
                 return true;
             }
@@ -46,26 +48,21 @@ bool Download(Tesses::Framework::Filesystem::VFSPath filename,std::shared_ptr<Te
     return false;
 }
 
-int main(int argc, char** argv)
+TObject CrossLangShell(GCList& ls, std::vector<std::string>& argv)
 {
-    TF_InitWithConsole();
-    if(argc > 0)
-        TF_AllowPortable(argv[0]);
-
-    
-    
+   
     Tesses::Framework::Filesystem::VFSPath dir = GetCrossLangConfigDir();
 
     Tesses::Framework::Filesystem::VFSPath filename = dir / "Shell" / "Shell.crvm";
     
 
     auto p = Tesses::Framework::Platform::Environment::GetRealExecutablePath(Tesses::Framework::Filesystem::LocalFS->SystemToVFSPath(argv[0])).GetParent().GetParent() / "share" / "Tesses" / "CrossLang" / "Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm";
-    if(argc == 2 && strcmp(argv[1],"configdir") == 0)
+    if(argv.size() == 2 && argv[1] == "configdir")
     {
         std::cout << dir.ToString() << std::endl;
         return 0;
     }
-    if(argc > 1 && strcmp(argv[1],"update-shell") == 0)
+    if(argv.size() > 1 && argv[1] == "update-shell")
     {
 
         auto subdir = std::make_shared<Tesses::Framework::Filesystem::SubdirFilesystem>(Tesses::Framework::Filesystem::LocalFS,dir);
@@ -76,7 +73,7 @@ int main(int argc, char** argv)
             if(resp.statusCode == StatusCode::OK)
             {
                 auto strm = resp.ReadAsStream();
-                CrossArchiveExtract(strm, subdir);
+                CrossLang::CrossArchiveExtract(strm, subdir);
                 
                 return 0;
             }
@@ -97,7 +94,7 @@ int main(int argc, char** argv)
             auto strm = Tesses::Framework::Filesystem::LocalFS->OpenFile(p,"rb");
             if(strm != nullptr)
             {
-                CrossArchiveExtract(strm, subdir);
+                CrossLang::CrossArchiveExtract(strm, subdir);
                 
             }
             else
@@ -113,29 +110,24 @@ int main(int argc, char** argv)
     }
     
 
-    GC gc;
-    gc.Start();
-
-    GCList ls(gc);
     TRootEnvironment* env = TRootEnvironment::Create(ls, TDictionary::Create(ls));
     
 
-    TStd::RegisterStd(&gc,env);
+    TStd::RegisterStd(ls.GetGC(),env);
     
     
-    env->LoadFileWithDependencies(&gc, Tesses::Framework::Filesystem::LocalFS, filename);
+    env->LoadFileWithDependencies(ls.GetGC(), Tesses::Framework::Filesystem::LocalFS, filename);
     
 
     TList* args = TList::Create(ls);
 
     args->Add(filename.ToString());
     
-    for(int arg=1;arg<argc;arg++)
+    for(size_t arg=1;arg<argv.size();arg++)
         args->Add(std::string(argv[arg]));
    
-    auto res = env->CallFunctionWithFatalError(ls,"main",{args});
-    int64_t iresult;
-    if(GetObject(res,iresult))
-        return (int)iresult;
-    return 0;
+    return env->CallFunctionWithFatalError(ls,"main",{args});
+    
+}
+
 }

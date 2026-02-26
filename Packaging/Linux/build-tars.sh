@@ -1,7 +1,7 @@
 #!/bin/bash
 mkdir build-x86_64-tar
 cd build-x86_64-tar
-cmake -S ../../.. -B . -DTESSESFRAMEWORK_ENABLE_SHARED=ON -DTESSESFRAMEWORK_ENABLE_STATIC=OFF -DTESSESFRAMEWORK_FETCHCONTENT=ON
+cmake -S ../../.. -B . -DTESSESFRAMEWORK_ENABLE_SHARED=ON -DTESSESFRAMEWORK_ENABLE_STATIC=OFF -DTESSESFRAMEWORK_FETCHCONTENT=ON -DCMAKE_BUILD_TYPE=Release
 make -j`nproc`
 make install DESTDIR=./crosslang-x86_64
 mkdir -p crosslang-x86_64/share/Tesses/CrossLang
@@ -12,7 +12,7 @@ cd ..
 foreign() {
 mkdir build-$1\-tar
 cd build-$1\-tar
-cmake -S ../../.. -B . -DTESSESFRAMEWORK_ENABLE_SHARED=ON -DTESSESFRAMEWORK_ENABLE_STATIC=OFF -DTESSESFRAMEWORK_FETCHCONTENT=ON -DCMAKE_TOOLCHAIN_FILE=/opt/toolchains/$1\.cmake
+cmake -S ../../.. -B . -DTESSESFRAMEWORK_ENABLE_SHARED=ON -DTESSESFRAMEWORK_ENABLE_STATIC=OFF -DTESSESFRAMEWORK_FETCHCONTENT=ON -DCMAKE_TOOLCHAIN_FILE=/opt/toolchains/$1\.cmake -DCMAKE_RELEASE_TYPE=Release
 make -j`nproc`
 make install DESTDIR=./crosslang-$1
 mkdir -p crosslang-$1\/share/Tesses/CrossLang

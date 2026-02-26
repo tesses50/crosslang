@@ -2615,5 +2615,15 @@ class GC {
             Tesses::Framework::Filesystem::VFSPath SystemToVFSPath(std::string path);
     };
 
-    
+    namespace Programs {
+        int64_t CrossArchiveCreate(std::vector<std::string>& argv);
+        int64_t CrossArchiveExtract(std::vector<std::string>& argv);
+        TObject CrossLangInterperter(GCList& ls,TRootEnvironment* env,std::vector<std::string>& argv);
+        TObject CrossLangShell(GCList& ls, std::vector<std::string>& argv);
+        
+        TObject CrossLangVM(GCList& ls,TRootEnvironment* env, std::vector<std::string>& argv);
+        
+        void CrossLangDump(std::shared_ptr<Tesses::Framework::Streams::Stream> strm);
+        void CrossLangCompiler(std::vector<std::string>& argv);
+    }
 };

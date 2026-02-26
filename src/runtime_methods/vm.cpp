@@ -354,6 +354,11 @@ namespace Tesses::CrossLang
             }
             return nullptr;
         });
+        #if defined(CROSSLANG_ENABLE_SUPERSLIM)
+        dict->SetValue("SuperSlim", true);
+        #else
+        dict->SetValue("SuperSlim", false);
+        #endif
         dict->DeclareFunction(gc, "Eval", "Eval source code",{"source"}, VM_Eval);
         dict->DeclareFunction(gc, "Compile", "Compile Source",{"dict"},VM_Compile);
         

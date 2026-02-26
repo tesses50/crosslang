@@ -4,20 +4,13 @@
 #include <sstream>
 #include <vector>
 using namespace Tesses::Framework;
-using namespace Tesses::CrossLang;
 using namespace Tesses::Framework::Filesystem;
-int main(int argc, char** argv)
+
+namespace Tesses::CrossLang::Programs {
+TObject CrossLangInterperter(GCList& ls,TRootEnvironment* env,std::vector<std::string>& argv)
 {
-    TF_InitWithConsole();
-    if(argc > 0)
-        TF_AllowPortable(argv[0]);
-    GC gc;
-    gc.Start();
-    GCList ls(gc);
-    TRootEnvironment* env = TRootEnvironment::Create(ls, TDictionary::Create(ls));
-    TStd::RegisterStd(&gc,env);
-    
-    if(argc > 1)
+    GC* gc = ls.GetGC();    
+    if(argv.size() > 1)
     {
         std::ifstream strm(argv[1],std::ios_base::in|std::ios_base::binary);
         std::vector<LexToken> tokens;
@@ -32,30 +25,28 @@ int main(int argc, char** argv)
         gen.GenRoot(parser.ParseRoot());
         std::vector<uint8_t> data;
         {
-        auto strm2 = std::make_shared<Tesses::Framework::Streams::MemoryStream>(true);
-        gen.Save(strm2);
+            auto strm2 = std::make_shared<Tesses::Framework::Streams::MemoryStream>(true);
+            gen.Save(strm2);
 
         
-        {
-            TFile* file = TFile::Create(ls);
+            {
+                TFile* file = TFile::Create(ls);
 
-            strm2->Seek(0,Tesses::Framework::Streams::SeekOrigin::Begin);
-            file->Load(&gc,strm2);
+                strm2->Seek(0,Tesses::Framework::Streams::SeekOrigin::Begin);
+                file->Load(gc,strm2);
     
-            env->LoadFile(&gc, file);
+                env->LoadFile(gc, file);
 
             
+            }
         }
-    }
 
-         TList* args = TList::Create(ls);
-    for(int arg=1;arg<argc;arg++)
-        args->Add(std::string(argv[arg]));
+        TList* args = TList::Create(ls);
+        for(int arg=1;arg<argv.size();arg++)
+            args->Add(std::string(argv[arg]));
    
-    auto res = env->CallFunctionWithFatalError(ls,"main",{args});
-    int64_t iresult;
-    if(GetObject(res,iresult))
-        return (int)iresult;
+        return env->CallFunctionWithFatalError(ls,"main",{args});
+    
    
     }
     else
@@ -91,7 +82,7 @@ int main(int argc, char** argv)
             }
             else if(source == "exit")
             {
-                return 0;
+                return (int64_t)0;
             }
             else
             {
@@ -116,9 +107,9 @@ int main(int argc, char** argv)
             TFile* file = TFile::Create(ls);
 
             strm2->Seek(0,Tesses::Framework::Streams::SeekOrigin::Begin);
-            file->Load(&gc,strm2);
+            file->Load(gc,strm2);
     
-            env->LoadFile(&gc, file);
+            env->LoadFile(gc, file);
 
                 
             }   
@@ -126,4 +117,8 @@ int main(int argc, char** argv)
     
         }
     }
+
+    return (int64_t)0;
+}
+
 }

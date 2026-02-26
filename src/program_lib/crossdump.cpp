@@ -1,20 +1,20 @@
 #include "CrossLang.hpp"
 #include <iostream>
-using namespace Tesses::CrossLang;
-void Ensure(Tesses::Framework::Streams::Stream& strm,uint8_t* buffer, size_t len)
+namespace Tesses::CrossLang::Programs {
+static void Ensure(std::shared_ptr<Tesses::Framework::Streams::Stream> strm,uint8_t* buffer, size_t len)
 {
-    if(strm.ReadBlock(buffer,len) != len)
+    if(strm->ReadBlock(buffer,len) != len)
     {
         throw VMException("Could not read " + std::to_string(len) + " byte(s).");
     }
 }
-uint32_t EnsureInt(Tesses::Framework::Streams::Stream& strm)
+static uint32_t EnsureInt(std::shared_ptr<Tesses::Framework::Streams::Stream> strm)
 {
     uint8_t buff[4];
     Ensure(strm,buff,sizeof(buff));
     return BitConverter::ToUint32BE(buff[0]);
 }
-std::string EnsureString(Tesses::Framework::Streams::Stream& strm)
+static std::string EnsureString(std::shared_ptr<Tesses::Framework::Streams::Stream> strm)
 {
     size_t len = (size_t)EnsureInt(strm);
     std::string myStr={};
@@ -22,30 +22,24 @@ std::string EnsureString(Tesses::Framework::Streams::Stream& strm)
     Ensure(strm,(uint8_t*)myStr.data(), len);
     return myStr;
 }
-void DumpFile(std::filesystem::path p)
+void CrossLangDump(std::shared_ptr<Tesses::Framework::Streams::Stream> strm)
 {
-    if(std::filesystem::is_regular_file(p))
+    uint8_t main_header[18];
+    Ensure(strm,main_header,sizeof(main_header));
+    if(strncmp((const char*)main_header,"TCROSSVM",8) != 0) throw VMException("Invalid TCrossVM image.");
+    TVMVersion version(main_header+8);
+    if(version.CompareToRuntime() == 1)
     {
-        try
-        {
-            std::cout << "File: " << p.string() << std::endl;
-            Tesses::Framework::Streams::FileStream strm(p,"rb");
-            uint8_t main_header[18];
-            Ensure(strm,main_header,sizeof(main_header));
-            if(strncmp((const char*)main_header,"TCROSSVM",8) != 0) throw VMException("Invalid TCrossVM image.");
-            TVMVersion version(main_header+8);
-            if(version.CompareToRuntime() == 1)
-            {
-                throw VMException("Runtime is too old.");
-            }
-            TVMVersion v2(main_header+13);
-            std::cout << "Version: " << v2.ToString() << std::endl;
+        throw VMException("Runtime is too old.");
+    }
+    TVMVersion v2(main_header+13);
+    std::cout << "Version: " << v2.ToString() << std::endl;
 
-            size_t _len = (size_t)EnsureInt(strm);
+    size_t _len = (size_t)EnsureInt(strm);
 
-            std::cout << "SectionCount: " << _len << std::endl;
+    std::cout << "SectionCount: " << _len << std::endl;
 
-            std::vector<std::string> strs;
+    std::vector<std::string> strs;
 
             std::unordered_map<uint32_t, std::vector<std::string>> funs;
             std::vector<std::vector<std::string>> closures;
@@ -177,7 +171,7 @@ void DumpFile(std::filesystem::path p)
                         }
                         auto len = EnsureInt(strm);
 
-                        strm.Seek(len,Tesses::Framework::Streams::SeekOrigin::Current);
+                        strm->Seek(len,Tesses::Framework::Streams::SeekOrigin::Current);
 
                         closures.push_back(args);
                     }
@@ -208,7 +202,7 @@ void DumpFile(std::filesystem::path p)
                 }
                 else 
                 {
-                    strm.Seek((int64_t)tableLen,Tesses::Framework::Streams::SeekOrigin::Current);
+                    strm->Seek((int64_t)tableLen,Tesses::Framework::Streams::SeekOrigin::Current);
                 }
             }
             if(hasIcon)
@@ -252,22 +246,10 @@ void DumpFile(std::filesystem::path p)
             for(auto str : strs) {
                 std::cout << EscapeString(str, true) << std::endl;
             }
-        } 
-        catch(std::exception& ex)
-        {
-            std::cout << "Error when reading file \"" << p.string() << "\" " << ex.what() << std::endl;
-        }
-    }
-    else
-    {
-        std::cout << "CrossVM file \"" << p.string() << "\" does not exist." << std::endl;
-    }
+         
+        
+    
+    
 }
-int main(int argc, char** argv)
-{
-    Tesses::Framework::TF_Init();
-    for(int i = 1; i < argc; i++)
-    {
-        DumpFile(argv[i]);
-    }
+
 }

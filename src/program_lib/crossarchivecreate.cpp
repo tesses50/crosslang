@@ -1,11 +1,11 @@
 #include "CrossLang.hpp"
 #include <iostream>
-using namespace Tesses::CrossLang;
+namespace Tesses::CrossLang::Programs {
 using namespace Tesses::Framework::Filesystem;
 using namespace Tesses::Framework::Streams;
-void Help(const char* filename)
+static void Help(std::string& filename)
 {
-    printf("USAGE: %s [OPTIONS] <dirasroot> <archive.crvm>\n", filename);
+    std::cout << "USAGE: " << filename << " [OPTIONS] <dirasroot> <archive.crvm>" << std::endl;
     printf("OPTIONS:\n");
     printf("  -i:  Set info (ex {\"maintainer\": \"Mike Nolan\", \"repo\": \"https://example.com/\", \"homepage\": \"https://example.com/\",\"license\":\"MIT\"})\n");
     printf("  -I:  Set icon name (relative to dirasroot), should be a 128x128 png\n");
@@ -15,7 +15,8 @@ void Help(const char* filename)
     printf("Options except for help have flag with arg like this: -F ARG\n");
     exit(1);
 }
-int main(int argc, char** argv)
+
+int64_t CrossArchiveCreate(std::vector<std::string>& argv)
 {
     Tesses::Framework::TF_Init();
     std::string name="out";
@@ -23,40 +24,40 @@ int main(int argc, char** argv)
    TVMVersion version;
    std::string icon="";
    std::vector<std::string> args;
-    for(int i = 1; i < argc; i++)
+    for(int i = 1; i < argv.size(); i++)
    {
-        if(strcmp(argv[i],"--help") == 0 || strcmp(argv[i],"-h")==0) 
+        if(argv[i] == "--help" || argv[i] == "-h") 
         {
             Help(argv[0]);
         }
-        else if(strcmp(argv[i], "-i") == 0)
+        else if(argv[i] == "-i")
         {
             i++;
-            if(i < argc)
+            if(i < argv.size())
             {
                 info = argv[i];
             }
         }
-        else if(strcmp(argv[i], "-I") == 0)
+        else if(argv[i] == "-I")
         {
             i++;
-            if(i < argc)
+            if(i < argv.size())
             {
                 icon = argv[i];
             }
         }
-        else if(strcmp(argv[i], "-n") == 0)
+        else if(argv[i] == "-n")
         {
             i++;
-            if(i < argc)
+            if(i < argv.size())
             {
                 name = argv[i];
             }
         }
-        else if(strcmp(argv[i], "-v") == 0)
+        else if(argv[i] == "-v")
         {
             i++;
-            if(i < argc)
+            if(i < argv.size())
             {
                 
                 if(!TVMVersion::TryParse(argv[i],version))
@@ -90,4 +91,5 @@ int main(int argc, char** argv)
     CrossArchiveCreate(sdfs,strm,name,version,info,icon);
 
     return 0;
+}
 }

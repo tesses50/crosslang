@@ -1,34 +1,34 @@
 #include "CrossLang.hpp"
 #include <iostream>
-using namespace Tesses::CrossLang;
+
+namespace Tesses::CrossLang::Programs {
 using namespace Tesses::Framework::Filesystem;
 using namespace Tesses::Framework::Streams;
 
-int main(int argc, char** argv)
+int64_t CrossArchiveExtract(std::vector<std::string>& argv)
 {
     Tesses::Framework::TF_Init();
-    if(argc < 3)
+    if(argv.size() < 3)
     {
-        printf("USAGE: %s <archive.crvm> <dirasroot>\n", argv[0]);
+        std::cout << "USAGE: " << argv[0] << " <archive.crvm> <dirasroot>" << std::endl;
         return 1;
     }
 
     auto sdfs= std::make_shared<SubdirFilesystem>(Tesses::Framework::Filesystem::LocalFS,std::string(argv[2]));
-
-    FILE* f = fopen(argv[1],"rb");
-    if(f == NULL) 
+    auto strm= LocalFS->OpenFile(argv[1], "rb");
+    if(strm->CanRead()) 
     {
-        printf("ERROR: could not open %s\n", argv[1]);
+        std::cout << "ERROR: could not open " << argv[1] << std::endl;
         return 1;
     }
 
-    auto strm = std::make_shared<FileStream>(f,true,"rb",true);
 
-    auto res = CrossArchiveExtract(strm,sdfs);
+    auto res = Tesses::CrossLang::CrossArchiveExtract(strm,sdfs);
 
     std::cout << "Crvm Name: " << res.first.first << std::endl;
     std::cout << "Crvm Version: " << res.first.second.ToString() << std::endl;
     std::cout << "Crvm Info: " << std::endl << res.second << std::endl;
 
     return 0;
+}
 }

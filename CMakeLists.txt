@@ -25,6 +25,7 @@ option(CROSSLANG_FETCHCONTENT "Use fetchcontent" ON)
 option(CROSSLANG_ENABLE_CONFIG_ENVVAR "Allow setting config directory via the environment variable CROSSLANG_CONFIG" ON)
 option(CROSSLANG_ENABLE_FFI "Enable libffi" OFF)
 option(CROSSLANG_ENABLE_RPATH "Enable RPATH" ON)
+option(CROSSLANG_ENABLE_SUPERSLIM "Enable crosslang superslim, one binary" OFF)
 
 option(CROSSLANG_CUSTOM_CONSOLE "Enable custom Console" OFF)
 
@@ -93,6 +94,10 @@ target_compile_definitions(${CROSSLANG_TARGET_NAME} PUBLIC CROSSLANG_ENABLE_FFI)
 target_link_libraries(${CROSSLANG_TARGET_NAME} PUBLIC PkgConfig::LIBFFI)
 
 endif()
+if(CROSSLANG_ENABLE_SUPERSLIM)
+
+target_compile_definitions(${CROSSLANG_TARGET_NAME} PUBLIC CROSSLANG_ENABLE_SUPERSLIM)
+endif()
 if(CROSSLANG_ENABLE_TIME)
 target_compile_definitions(${CROSSLANG_TARGET_NAME} PUBLIC CROSSLANG_ENABLE_TIME)
 endif()
@@ -139,7 +144,8 @@ target_include_directories(${CROSSLANG_TARGET_NAME}
 )
 
 endfunction()
-
+configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/CrossLangVersion.h.in "${CMAKE_CURRENT_BINARY_DIR}/include/CrossLangVersion.h"
+INSTALL_DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/CrossLangVersion.h)
 list(APPEND CROSSLANG_SOURCE
 src/vm/bc/add.cpp
 src/vm/bc/sub.cpp
@@ -198,6 +204,13 @@ src/vm/vm.cpp
 src/vm/exception.cpp
 src/archive.cpp
 src/markedtobject.cpp
+src/program_lib/crossarchivecreate.cpp
+src/program_lib/crossarchiveextract.cpp
+src/program_lib/crossdump.cpp
+src/program_lib/crosslang.cpp
+src/program_lib/crosslangcompiler.cpp
+src/program_lib/crosslanginterperter.cpp
+src/program_lib/crosslangvm.cpp
 )
 
 if(CROSSLANG_OFFLINE_SHELL_PACKAGE STREQUAL "")
@@ -244,7 +257,28 @@ list(APPEND TessesCrossLangLibs crosslang_shared)
 endif()
 
 
+if(CROSSLANG_ENABLE_SUPERSLIM)
+add_executable(crosslang WIN32 src/programs/slim.cpp ${CROSSLANG_WIN32_EXE_SRC})
 
+if(CROSSLANG_ENABLE_STATIC)
+
+target_link_libraries(crosslang PUBLIC crosslang_static)
+elseif(CROSSLANG_ENABLE_SHARED)
+target_link_libraries(crosslang PUBLIC crosslang_shared)
+endif()
+
+if(CROSSLANG_ENABLE_SHARED)
+
+install(TARGETS crosslang_shared
+    EXPORT TessesCrossLangTargets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+endif()
+
+install(TARGETS crosslang DESTINATION "${CMAKE_INSTALL_BINDIR}")
+else()
 
 if(CROSSLANG_INSTALL_DEVELOPMENT)
 install(TARGETS ${TessesCrossLangLibs} 
@@ -265,12 +299,12 @@ install(EXPORT TessesCrossLangTargets
 
 configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/TessesCrossLangConfig.cmake"
 INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/TessesCrossLang)
-configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/CrossLangVersion.h.in "${CMAKE_CURRENT_BINARY_DIR}/include/CrossLangVersion.h"
-INSTALL_DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/CrossLangVersion.h)
+
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/TessesCrossLangConfig.cmake"
 DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/TessesCrossLang)
 else()
+
 if(CROSSLANG_ENABLE_SHARED)
 install(TARGETS crosslang_shared
     EXPORT TessesCrossLangTargets
@@ -298,13 +332,13 @@ add_executable(crossmerge src/crossmergecli.cpp ${CROSSLANG_WIN32_EXE_SRC})
 add_executable(crossasm src/crossasmcli.cpp ${CROSSLANG_WIN32_EXE_SRC})
 add_executable(crossdisasm src/crossdisasmcli.cpp ${CROSSLANG_WIN32_EXE_SRC})
 
-add_executable(crossc src/crosslangcompiler.cpp ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crossvm src/crosslangvm.cpp ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crossint src/crosslanginterperter.cpp ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crossdump src/crosslangdump.cpp ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crosslang src/crosslang.cpp ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crossarchiveextract src/crossarchiveextract.cpp ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crossarchivecreate src/crossarchivecreate.cpp ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossc src/programs/crosslangcompiler.cpp ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossvm src/programs/crosslangvm.cpp ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossint src/programs/crosslanginterperter.cpp ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossdump src/programs/crosslangdump.cpp ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crosslang src/programs/crosslang.cpp ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossarchiveextract src/programs/crossarchiveextract.cpp ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossarchivecreate src/programs/crossarchivecreate.cpp ${CROSSLANG_WIN32_EXE_SRC})
 if(NOT WIN32)
 add_executable(crossthumbnailer src/crossthumbnailer.cpp ${CROSSLANG_WIN32_EXE_SRC})
 endif()
@@ -324,13 +358,13 @@ target_link_libraries(crossthumbnailer PUBLIC crosslang_shared)
 endif()
 elseif(CROSSLANG_ENABLE_STATIC)
 
-add_executable(crossc src/crosslangcompiler.cpp ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crossvm src/crosslangvm.cpp ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crossint src/crosslanginterperter.cpp ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crossdump src/crosslangdump.cpp ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crosslang src/crosslang.cpp ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crossarchiveextract src/crossarchiveextract.cpp ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crossarchivecreate src/crossarchivecreate.cpp ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossc src/programs/crosslangcompiler.cpp ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossvm src/programs/crosslangvm.cpp ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossint src/programs/crosslanginterperter.cpp ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossdump src/programs/crosslangdump.cpp ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crosslang src/programs/crosslang.cpp ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossarchiveextract src/programs/crossarchiveextract.cpp ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossarchivecreate src/programs/crossarchivecreate.cpp ${CROSSLANG_WIN32_EXE_SRC})
 add_executable(crossasm src/crossasmcli.cpp ${CROSSLANG_WIN32_EXE_SRC})
 add_executable(crossdisasm src/crossdisasmcli.cpp ${CROSSLANG_WIN32_EXE_SRC})
 add_executable(crossmerge src/crossmergecli.cpp ${CROSSLANG_WIN32_EXE_SRC})
@@ -353,13 +387,13 @@ if(NOT WIN32)
 target_link_libraries(crossthumbnailer PUBLIC crosslang_static)
 endif()
 else()
-add_executable(crossc src/crosslangcompiler.cpp ${CROSSLANG_SOURCE} ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crossvm src/crosslangvm.cpp ${CROSSLANG_SOURCE} ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crossint src/crosslanginterperter.cpp ${CROSSLANG_SOURCE} ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crossdump src/crosslangdump.cpp ${CROSSLANG_SOURCE} ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crosslang src/crosslang.cpp ${CROSSLANG_SOURCE} ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crossarchiveextract src/crossarchiveextract.cpp ${CROSSLANG_SOURCE} ${CROSSLANG_WIN32_EXE_SRC})
-add_executable(crossarchivecreate src/crossarchivecreate.cpp ${CROSSLANG_SOURCE} ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossc src/programs/crosslangcompiler.cpp ${CROSSLANG_SOURCE} ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossvm src/programs/crosslangvm.cpp ${CROSSLANG_SOURCE} ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossint src/programs/crosslanginterperter.cpp ${CROSSLANG_SOURCE} ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossdump src/programs/crosslangdump.cpp ${CROSSLANG_SOURCE} ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crosslang src/programs/crosslang.cpp ${CROSSLANG_SOURCE} ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossarchiveextract src/programs/crossarchiveextract.cpp ${CROSSLANG_SOURCE} ${CROSSLANG_WIN32_EXE_SRC})
+add_executable(crossarchivecreate src/programs/crossarchivecreate.cpp ${CROSSLANG_SOURCE} ${CROSSLANG_WIN32_EXE_SRC})
 add_executable(crossasm src/crossasmcli.cpp ${CROSSLANG_SOURCE} ${CROSSLANG_WIN32_EXE_SRC})
 add_executable(crossdisasm src/crossdisasmcli.cpp ${CROSSLANG_SOURCE} ${CROSSLANG_WIN32_EXE_SRC})
 add_executable(crossmerge src/crossmergecli.cpp ${CROSSLANG_SOURCE} ${CROSSLANG_WIN32_EXE_SRC})
@@ -436,6 +470,7 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/crosslang.thumbnailer"
 DESTINATION ${CMAKE_INSTALL_PREFIX}/share/thumbnailers)
 endif()
 endif()
+endif()
 include(InstallRequiredSystemLibraries)
 set(CPACK_PACKAGE_CONTACT "Mike Nolan <tesses@tesses.net>")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.md")
@@ -475,5 +510,6 @@ set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOL
 
 
 include(CPack)
-
+if(CROSSLANG_INSTALL_DEVELOPMENT)
 add_subdirectory(pkgconfig)
+endif()
