@@ -1,57 +1,42 @@
 version: 43
 jobs:
-- name: Build for x86_64
-  steps:
-  - type: CheckoutStep
-    name: Checkout
-    cloneCredential:
-      type: DefaultCredential
-    withLfs: true
-    withSubmodules: false
-    condition: SUCCESSFUL
-    optional: false
-  - type: CommandStep
-    name: Execute build
-    runInContainer: true
-    image: onedev.site.tesses.net/tesses-framework/tesses-framework:latest
-    interpreter:
-      type: DefaultInterpreter
-      commands: |
-        mkdir build
-        cd build
-        cmake -S .. -B . -DCROSSLANG_FETCHCONTENT=OFF
-        make -j12
-        make install DESTDIR=../out
-    useTTY: true
-    condition: SUCCESSFUL
-    optional: false
-  - type: BuildImageStep
-    name: Build Docker Image
-    dockerfile: Dockerfile.run
-    output:
-      type: RegistryOutput
-      tags: onedev.site.tesses.net/crosslang/crosslang:latest onedev.site.tesses.net/crosslang/crosslang:@commit_hash@
-    registryLogins:
-    - registryUrl: '@server_url@'
-      userName: '@job_token@'
-      passwordSecret: dockersecret
-    platforms: linux/amd64
-    condition: SUCCESSFUL
-    optional: false
-  triggers:
-  - type: DependencyFinishedTrigger
-    projects: tesses-framework
-  - type: BranchUpdateTrigger
-    branches: master
-    userMatch: anyone
-    projects: crosslang
-  projectDependencies:
-  - projectPath: tesses-framework
-    buildProvider:
-      type: LastFinishedBuild
-      jobName: Build for x86_64
-    artifacts: '*'
-  retryCondition: never
-  maxRetries: 3
-  retryDelay: 30
-  timeout: 14400
+  - name: Build for x86_64
+    steps:
+      - type: CheckoutStep
+        name: Checkout
+        cloneCredential:
+          type: DefaultCredential
+        withLfs: true
+        withSubmodules: false
+        condition: SUCCESSFUL
+        optional: false
+      - type: BuildImageStep
+        name: Build Docker Image
+        dockerfile: Dockerfile
+        output:
+          type: RegistryOutput
+          tags: onedev.site.tesses.net/crosslang/crosslang:latest onedev.site.tesses.net/crosslang/crosslang:@commit_hash@
+        registryLogins:
+          - registryUrl: "@server_url@"
+            userName: "@job_token@"
+            passwordSecret: dockersecret
+        platforms: linux/amd64
+        condition: SUCCESSFUL
+        optional: false
+    triggers:
+      - type: DependencyFinishedTrigger
+        projects: tesses-framework
+      - type: BranchUpdateTrigger
+        branches: master
+        userMatch: anyone
+        projects: crosslang
+    projectDependencies:
+      - projectPath: tesses-framework
+        buildProvider:
+          type: LastFinishedBuild
+          jobName: Build for x86_64
+        artifacts: "*"
+    retryCondition: never
+    maxRetries: 3
+    retryDelay: 30
+    timeout: 14400
