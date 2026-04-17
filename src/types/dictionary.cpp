@@ -110,18 +110,18 @@ namespace Tesses::CrossLang  {
             if(GetObjectHeap(res,callable))
             {
                  auto closure = dynamic_cast<TClosure*>(callable);
-                if(closure != nullptr && !closure->closure->args.empty() && closure->closure->args.front() == "this") 
+                if(closure != nullptr && !closure->closure->args.empty() && closure->closure->args.front() == "this")
                 {
                    std::vector<TObject> args2;
                         args2.push_back(this);
                         args2.insert(args2.end(), args.begin(),args.end());
                     return closure->Call(ls,args2);
-                    
+
                 }
                 else
                 {
                     return callable->Call(ls,args);
-                    
+
                 }
             }
         return Undefined();
@@ -136,23 +136,23 @@ namespace Tesses::CrossLang  {
             if(GetObjectHeap(res,callable))
             {
                  auto closure = dynamic_cast<TClosure*>(callable);
-                if(closure != nullptr && !closure->closure->args.empty() && closure->closure->args.front() == "this") 
+                if(closure != nullptr && !closure->closure->args.empty() && closure->closure->args.front() == "this")
                 {
                    std::vector<TObject> args2;
                         args2.push_back(this);
                         args2.insert(args2.end(), args.begin(),args.end());
                     return closure->CallWithFatalError(ls,args2);
-                    
+
                 }
                 else
                 {
                     return callable->CallWithFatalError(ls,args);
-                    
+
                 }
             }
         return Undefined();
     }
-    
+
     void TDictionary::DeclareFunction(GC* gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb)
     {
         gc->BarrierBegin();
@@ -184,10 +184,8 @@ namespace Tesses::CrossLang  {
     TObject TDictionary::GetValue(std::string key)
     {
         if(this->items.empty()) return Undefined();
-        for(auto item : this->items)
-        {
-            if(item.first == key) return item.second;
-        }
+        if(this->items.count(key) > 0)
+                return this->items[key];
         return Undefined();
     }
     void TDictionary::SetValue(std::string key, TObject value)
@@ -231,5 +229,5 @@ namespace Tesses::CrossLang  {
         _gc->Watch(dict);
         return dict;
     }
-    
+
 };

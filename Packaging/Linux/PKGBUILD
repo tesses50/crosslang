@@ -1,13 +1,13 @@
 # Maintainer: Mike Nolan <tesses@tesses.net>
 pkgname=crosslang # '-bzr', '-git', '-hg' or '-svn'
-pkgver=0.0.2
+pkgver=0.0.3
 pkgrel=1
 pkgdesc=""
 arch=('x86_64' 'powerpc')
 url="https://onedev.site.tesses.net/crosslang"
 license=('GPLv3')
 groups=()
-depends=('mbedtls' 'tesses-framework')
+depends=('mbedtls' 'tesses-framework=0.0.2')
 makedepends=('git' 'cmake' 'make' 'base-devel' 'wget') # 'bzr', 'git', 'mercurial' or 'subversion'
 install=
 source=('crosslang::git+https://onedev.site.tesses.net/crosslang')
@@ -30,16 +30,16 @@ prepare() {
 build() {
 	cd "$srcdir/${pkgname}"
 	mkdir build
-	
+
 	if [[ -z "$CMAKE_TOOLCHAIN" ]]; then
  	cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr -DCROSSLANG_FETCHCONTENT=OFF -DCMAKE_BUILD_TYPE=Release
   	else
 	cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr -DCROSSLANG_FETCHCONTENT=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$CMAKE_TOOLCHAIN"
 	fi
- 
+
 	cd build
 	make -j`nproc`
-	
+
 }
 
 
@@ -49,4 +49,3 @@ package() {
 	cd "$srcdir/${pkgname}/build"
 	make install DESTDIR="$pkgdir/"
 }
-

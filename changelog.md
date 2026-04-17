@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.3
+Fixed cmake, unnecessary itteration on dictionary, and a crosslang binary bug when shell is not installed
+
 ## 0.0.2
 Add uuids, bytestreams and single file runtime binaries
 

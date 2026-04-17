@@ -12,7 +12,7 @@ namespace Tesses::CrossLang::Programs
 static bool Download(Tesses::Framework::Filesystem::VFSPath filename,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs)
 {
     auto inContainer=Platform::Environment::GetVariable("CROSSLANG_CONTAINER");
-    if(inContainer && *inContainer=="1" || *inContainer=="y" || *inContainer=="Y")
+    if(inContainer && (*inContainer=="1" || *inContainer=="y" || *inContainer=="Y"))
     {
         HttpRequest req;
         req.url = "https://downloads.tesses.net/ShellPackage.crvm";
@@ -22,7 +22,7 @@ static bool Download(Tesses::Framework::Filesystem::VFSPath filename,std::shared
         {
             auto strm = resp.ReadAsStream();
             CrossLang::CrossArchiveExtract(strm, vfs);
-               
+
             return true;
         }
         else
@@ -47,7 +47,7 @@ static bool Download(Tesses::Framework::Filesystem::VFSPath filename,std::shared
             {
                 auto strm = resp.ReadAsStream();
                 CrossLang::CrossArchiveExtract(strm, vfs);
-               
+
                 return true;
             }
             else
@@ -61,10 +61,10 @@ static bool Download(Tesses::Framework::Filesystem::VFSPath filename,std::shared
             std::cout << "Looks like you will need to install manually" << std::endl;
             return false;
         }
-        else 
+        else
         {
             std::cout << "Please use Y or N (case insensitive)" << std::endl;
-            
+
         }
     }
     return false;
@@ -72,11 +72,11 @@ static bool Download(Tesses::Framework::Filesystem::VFSPath filename,std::shared
 
 TObject CrossLangShell(GCList& ls, std::vector<std::string>& argv)
 {
-   
+
     Tesses::Framework::Filesystem::VFSPath dir = GetCrossLangConfigDir();
 
     Tesses::Framework::Filesystem::VFSPath filename = dir / "Shell" / "Shell.crvm";
-    
+
 
     auto p = Tesses::Framework::Platform::Environment::GetRealExecutablePath(Tesses::Framework::Filesystem::LocalFS->SystemToVFSPath(argv[0])).GetParent().GetParent() / "share" / "Tesses" / "CrossLang" / "Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm";
     if(argv.size() == 2 && argv[1] == "configdir")
@@ -96,7 +96,7 @@ TObject CrossLangShell(GCList& ls, std::vector<std::string>& argv)
             {
                 auto strm = resp.ReadAsStream();
                 CrossLang::CrossArchiveExtract(strm, subdir);
-                
+
                 return 0;
             }
             else
@@ -117,7 +117,7 @@ TObject CrossLangShell(GCList& ls, std::vector<std::string>& argv)
             if(strm != nullptr)
             {
                 CrossLang::CrossArchiveExtract(strm, subdir);
-                
+
             }
             else
             {
@@ -130,26 +130,26 @@ TObject CrossLangShell(GCList& ls, std::vector<std::string>& argv)
             return 0;
         }
     }
-    
+
 
     TRootEnvironment* env = TRootEnvironment::Create(ls, TDictionary::Create(ls));
-    
+
 
     TStd::RegisterStd(ls.GetGC(),env);
-    
-    
+
+
     env->LoadFileWithDependencies(ls.GetGC(), Tesses::Framework::Filesystem::LocalFS, filename);
-    
+
 
     TList* args = TList::Create(ls);
 
     args->Add(filename.ToString());
-    
+
     for(size_t arg=1;arg<argv.size();arg++)
         args->Add(std::string(argv[arg]));
-   
+
     return env->CallFunctionWithFatalError(ls,"main",{args});
-    
+
 }
 
 }
