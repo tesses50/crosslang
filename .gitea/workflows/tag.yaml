@@ -37,6 +37,11 @@ jobs:
           prerelease: true
           files: |-
             artifacts/** 
+          
+  update-tap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Log in to registry
@@ -53,11 +58,6 @@ jobs:
           push: true
           image: ${{ env.GITEA_DOMAIN }}/${{ env.RESULT_IMAGE_NAME }}
           tags: ${{ env.VERSION }}, latest
-          
-  update-tap:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
           ref: "master"
