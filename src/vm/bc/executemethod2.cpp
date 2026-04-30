@@ -1997,6 +1997,38 @@ namespace Tesses::CrossLang {
                         cse.back()->Push(gc, nullptr);
                         return false;
                     }
+                    if(key == "Stat")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath path;
+                        
+                        if(GetArgumentAsPath(args,0,path))
+                        {
+                            Tesses::Framework::Filesystem::StatData data;
+                            if(vfs->Stat(path,data))
+                            {
+                                cse.back()->Push(gc, TDictionary::Create(ls,{
+                                    TDItem("BlockCount", (int64_t)data.BlockCount),
+                                    TDItem("BlockSize", (int64_t)data.BlockSize),
+                                    TDItem("Device", (int64_t)data.Device),
+                                    TDItem("DeviceId", (int64_t)data.DeviceId),
+                                    TDItem("GroupId", (int64_t)data.GroupId),
+                                    TDItem("HardLinks", (int64_t)data.HardLinks),
+                                    TDItem("Inode", (int64_t)data.Inode),
+                                    TDItem("LastAccess", std::make_shared<Tesses::Framework::Date::DateTime>(data.LastAccess)),
+                                    TDItem("LastModified", std::make_shared<Tesses::Framework::Date::DateTime>(data.LastModified)),
+                                    TDItem("LastStatus", std::make_shared<Tesses::Framework::Date::DateTime>(data.LastStatus)),
+                                    TDItem("Mode", (int64_t)data.Mode),
+                                    TDItem("Size", (int64_t)data.Size),
+                                    TDItem("UserId", (int64_t)data.UserId)
+                                }));
+                                return false;
+                            }
+                        }
+
+                        cse.back()->Push(gc, nullptr);
+                        return false;
+                    }
+                    
                     if(key == "StatVFS")
                     {
                         Tesses::Framework::Filesystem::VFSPath path;

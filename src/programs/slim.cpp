@@ -7,7 +7,7 @@ using namespace Tesses::Framework::Filesystem;
 int main(int argc, char** argv)
 {
     //crosslang crossint
-    //crosslang 
+    //crosslang
     //crosslang ...
 
     std::string programName = "crosslang";
@@ -20,7 +20,7 @@ int main(int argc, char** argv)
         path.RemoveExtension();
         programName = path.GetFileName();
     }
-   
+
     std::vector<std::string> args(argc);
     for(int i = 0; i < argc; i++)
         args[i] = argv[i];
@@ -28,14 +28,17 @@ int main(int argc, char** argv)
         {
             GC gc;
             gc.Start();
+            int64_t myi64=0;
+            {
             GCList ls(gc);
             TRootEnvironment* env = TRootEnvironment::Create(ls, TDictionary::Create(ls));
             TStd::RegisterStd(&gc,env);
             auto res= Programs::CrossLangInterperter(ls, env, args);
-            int64_t myi64;
-            if(GetObject(res,myi64))
-                return (int)myi64;
-            return 0;
+
+                GetObject(res,myi64);
+
+            }
+            return (int)myi64;
         }
         else if(programName == "crossc")
         {
@@ -73,31 +76,37 @@ int main(int argc, char** argv)
         {
             GC gc;
             gc.Start();
+            int64_t myi64=0;
+
+            {
             GCList ls(gc);
             TRootEnvironment* env = TRootEnvironment::Create(ls, TDictionary::Create(ls));
             TStd::RegisterStd(&gc,env);
             auto res= Programs::CrossLangVM(ls, env, args);
-            int64_t myi64;
-            if(GetObject(res,myi64))
+            GetObject(res,myi64);
+            }
                 return (int)myi64;
-            return 0;
+
     }
     else if(args.size() > 1)
-    {    
-        
+    {
+
         if(args[1] == "crossint")
         {
+            int64_t myi64=0;
             args.erase(args.begin());
             GC gc;
             gc.Start();
+            {
             GCList ls(gc);
             TRootEnvironment* env = TRootEnvironment::Create(ls, TDictionary::Create(ls));
             TStd::RegisterStd(&gc,env);
             auto res= Programs::CrossLangInterperter(ls, env, args);
-            int64_t myi64;
-            if(GetObject(res,myi64))
-                return (int)myi64;
-            return 0;
+
+                GetObject(res,myi64);
+            }
+            return (int)myi64;
+
         }
         else if(args[1] == "crossc")
         {
@@ -136,29 +145,36 @@ int main(int argc, char** argv)
         }
         else if(args[1] == "crossvm")
         {
+            int64_t myi64=0;
+
             args.erase(args.begin());
             GC gc;
+
             gc.Start();
+            {
             GCList ls(gc);
             TRootEnvironment* env = TRootEnvironment::Create(ls, TDictionary::Create(ls));
             TStd::RegisterStd(&gc,env);
             auto res= Programs::CrossLangVM(ls, env, args);
-            int64_t myi64;
-            if(GetObject(res,myi64))
-                return (int)myi64;
-            return 0;
+                GetObject(res,myi64);
+            }
+
+            return (int)myi64;
         }
     }
-    
-    
+    {
+         int64_t myi64=0;
         GC gc;
+
         gc.Start();
-        GCList ls(gc);
-        auto res= Programs::CrossLangShell(ls, args);
-        int64_t myi64;
-        if(GetObject(res,myi64))
-            return (int)myi64;
-        return 0;
-        return 0;
-    
+        {
+            GCList ls(gc);
+            auto res= Programs::CrossLangShell(ls, args);
+
+            GetObject(res,myi64);
+
+
+        }
+        return (int)myi64;
+    }
 }

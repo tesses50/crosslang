@@ -641,10 +641,7 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }
-    static TObject New_MemoryFilesystem(GCList& ls, std::vector<TObject> args)
-    {
-        return std::make_shared<Tesses::Framework::Filesystem::MemoryFilesystem>();
-    }
+    
 
     static TObject New_Filesystem(GCList& ls, std::vector<TObject> args)
     {
@@ -1329,9 +1326,7 @@ namespace Tesses::CrossLang
         newTypes->DeclareFunction(gc, "Filesystem","Create filesystem", {"fs"},New_Filesystem);
         newTypes->DeclareFunction(gc, "TempFS","Create a temp directory",{"",""}, New_TempFS);
         newTypes->DeclareFunction(gc, "Stream","Create stream", {"strm"},New_Stream);
-
-        newTypes->DeclareFunction(gc, "MemoryFilesystem","Create in memory filesystem", {},New_MemoryFilesystem);
-
+        
     
         newTypes->DeclareFunction(gc,"Version","Create a version object",{"$major","$minor","$patch","$build","$stage"},[](GCList& ls, std::vector<TObject> args)->TObject{
             int64_t major=1;

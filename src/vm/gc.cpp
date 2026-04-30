@@ -13,28 +13,23 @@ using namespace Tesses::Framework::Threading;
 using namespace std::chrono;
 namespace Tesses::CrossLang
 {
-   
+
     bool GC::IsRunning()
     {
-        
+
         bool run = this->running;
-       
+
         return run;
     }
     GC::GC()
     {
 
-        this->tpool=new Tesses::Framework::Lazy<Tesses::Framework::Threading::ThreadPool*>([]()->Tesses::Framework::Threading::ThreadPool*{
-            auto threads = Tesses::Framework::Threading::ThreadPool::GetNumberOfCores();
-            if(threads < 4) threads=4;
-            return new Tesses::Framework::Threading::ThreadPool(threads);
-        },[](Tesses::Framework::Threading::ThreadPool* p)->void{delete p;});
     }
     TDictionary* CreateThread(GCList& ls, TCallable* callable,bool detached)
     {
 
         TDictionary* dict = TDictionary::Create(ls);
-                        
+
         ThreadHandle* th = new ThreadHandle();
         th->gc = ls.GetGC();
         th->callable = callable;
@@ -43,16 +38,16 @@ namespace Tesses::CrossLang
         th->detached=detached;
         ls.Add(th);
         ls.GetGC()->Watch(th);
-                        
+
         ls.GetGC()->BarrierBegin();
         dict->SetValue("_internal", th);
-                        
+
         dict->DeclareFunction(ls.GetGC(),"Join","Join thread",{},[th](GCList& _ls, std::vector<TObject> _args)-> TObject{
-                            
-            
+
+
             th->thrd->Join();
             delete th->thrd;
-                                            
+
             if(th->hasReturned)
             {
                 _ls.GetGC()->BarrierBegin();
@@ -69,12 +64,12 @@ namespace Tesses::CrossLang
             _ls.GetGC()->BarrierEnd();
             return Undefined();
         });
-                        
+
         dict->DeclareFunction(ls.GetGC(),"getFinished","Get whether thread has finished",{},[th](GCList& _ls, std::vector<TObject> _args)-> TObject{
             return (bool)(th->hasReturned==true);
         });
-                        
-        ls.GetGC()->BarrierEnd();  
+
+        ls.GetGC()->BarrierEnd();
         th->thrd =new Thread([th]()->void {
             GC* gc=th->gc;
             GCList ls(gc);
@@ -83,7 +78,7 @@ namespace Tesses::CrossLang
             TObject cb = th->callable->Call(ls,{});
             gc->BarrierBegin();
             th->returnValue=cb;
-            gc->BarrierEnd();   
+            gc->BarrierEnd();
             th->hasReturned=true;
         });
         while(!th->hasInit);
@@ -91,14 +86,20 @@ namespace Tesses::CrossLang
     }
     void GC::Start()
     {
+
+        this->tpool=new Tesses::Framework::Lazy<Tesses::Framework::Threading::ThreadPool*>([]()->Tesses::Framework::Threading::ThreadPool*{
+            auto threads = Tesses::Framework::Threading::ThreadPool::GetNumberOfCores();
+            if(threads < 4) threads=4;
+            return new Tesses::Framework::Threading::ThreadPool(threads);
+        },[](Tesses::Framework::Threading::ThreadPool* p)->void{delete p;});
         this->mtx=new Mutex();
         this->running = true;
         this->thrd = new Thread([this]()->void {
               std::chrono::time_point<std::chrono::system_clock> last_frame, this_frame;
-        
+
         this_frame = system_clock::now();
         last_frame = this_frame;
-        
+
         while(this->IsRunning())
         {
             this_frame = system_clock::now();
@@ -108,7 +109,7 @@ namespace Tesses::CrossLang
 
                 last_frame = this_frame;
                 this->Collect();
-                
+
 
             }
 
@@ -129,14 +130,14 @@ namespace Tesses::CrossLang
 
     void GC::BarrierBegin()
     {
-        
+
         this->mtx->Lock();
     }
     void GC::BarrierEnd()
-    {  
-        
+    {
+
         this->mtx->Unlock();
-        
+
     }
     void GC::Watch(TObject obj)
     {
@@ -144,7 +145,7 @@ namespace Tesses::CrossLang
         {
             auto _item=std::get<THeapObjectHolder>(obj).obj;
             this->BarrierBegin();
-            
+
             for(auto item : this->objects)
             {
                 if(item == _item) {
@@ -187,7 +188,7 @@ namespace Tesses::CrossLang
         {
             auto _item=std::get<THeapObjectHolder>(obj).obj;
             this->BarrierBegin();
-            
+
             for(auto item : this->roots)
             {
                 if(item == _item) {
@@ -203,6 +204,7 @@ namespace Tesses::CrossLang
     {
         return this->tpool->GetValue();
     }
+
     void GC::UnsetRoot(TObject obj)
     {
         if(std::holds_alternative<THeapObjectHolder>(obj))
@@ -224,14 +226,19 @@ namespace Tesses::CrossLang
     GC::~GC()
     {
         GC::BarrierBegin();
+
         this->roots.clear();
         GC::BarrierEnd();
+
+
+
         this->running=false;
         this->thrd->Join();
         delete this->thrd;
         for(auto item : objects) delete item;
-        delete this->mtx;
+
         delete this->tpool;
+        delete this->mtx;
     }
 
     void GC::RegisterEverythingCallback(std::function<void(GC* gc, TRootEnvironment* env)> cb)
@@ -265,6 +272,6 @@ namespace Tesses::CrossLang
             }
         }
         this->BarrierEnd();
-       
+
     }
 };

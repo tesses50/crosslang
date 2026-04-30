@@ -44,7 +44,7 @@ namespace Tesses::CrossLang
         {
             auto _item=std::get<THeapObjectHolder>(obj).obj;
             this->gc->BarrierBegin();
-            
+
             for(auto item : this->items)
             {
                 if(item == _item) {

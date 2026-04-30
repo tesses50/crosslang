@@ -7,130 +7,23 @@ namespace Tesses::CrossLang {
         this->ls = new GCList(gc);
         this->ls->Add(obj);
         this->obj = obj;
-        TDictionary* dict;
-        if(GetObjectHeap(obj,dict))
-        {
-            gc->BarrierBegin();
-            if(!dict->HasValue("OpenFile"))
-            {
-                dict->DeclareFunction(gc,"OpenFile","Open a file",{"path","mode"}, [](GCList& ls, std::vector<TObject> args)->TObject {
-                    return nullptr;
-                });
-            }
-            if(!dict->HasValue("EnumeratePaths"))
-            {
-                dict->DeclareFunction(gc,"EnumeratePaths","Enumerate paths",{"path"}, [](GCList& ls, std::vector<TObject> args)->TObject {
-                    return TVFSPathEnumerator::Create(ls,Tesses::Framework::Filesystem::VFSPathEnumerator());
-                });
-            }
-            if(!dict->HasValue("ReadLink"))
-            {
-                dict->DeclareFunction(gc,"ReadLink","Read a symlink",{"path"}, [](GCList& ls, std::vector<TObject> args)->TObject {
-                    return Tesses::Framework::Filesystem::VFSPath();
-                });
-            }
-
-            if(!dict->HasValue("VFSPathToSystem"))
-            {
-                dict->DeclareFunction(gc,"VFSPathToSystem","Convert path to system",{"path"}, [](GCList& ls, std::vector<TObject> args)->TObject {
-                    Tesses::Framework::Filesystem::VFSPath path;
-                    if(GetArgumentAsPath(args,0,path))
-                    {
-                        return path.ToString();
-                    }
-                    return "/";
-                });
-            }
-            if(!dict->HasValue("SystemToVFSPath"))
-            {
-                dict->DeclareFunction(gc,"SystemToVFSPath","Convert system to path",{"path"}, [](GCList& ls, std::vector<TObject> args)->TObject {
-                    std::string p;
-                    if(GetArgument(args,0,p))
-                    {
-                        return Tesses::Framework::Filesystem::VFSPath(p);
-                    }
-                    return Tesses::Framework::Filesystem::VFSPath();
-                });
-            }
-            if(!dict->HasValue("GetDate"))
-            {
-                dict->DeclareFunction(gc,"GetDate","Get date from file",{"path"}, [](GCList& ls, std::vector<TObject> args)->TObject {
-                    auto dict = TDictionary::Create(ls);
-                    ls.GetGC()->BarrierBegin();
-                    dict->SetValue("LastWrite", (int64_t)time(NULL));
-                    dict->SetValue("LastAccess", (int64_t)time(NULL));
-                    ls.GetGC()->BarrierEnd();
-                    return dict;    
-                });
-            }
-            if(!dict->HasValue("RegularFileExists"))
-            {
-                dict->DeclareFunction(gc,"RegularFileExists","Regular file exists",{"path"}, [](GCList& ls, std::vector<TObject> args)->TObject {
-                    
-                    return false;
-                });
-            }
-            if(!dict->HasValue("SymlinkExists"))
-            {
-                dict->DeclareFunction(gc,"SymlinkExists","Symlink exists",{"path"}, [](GCList& ls, std::vector<TObject> args)->TObject {
-                    
-                    return false;
-                });
-            }
-            if(!dict->HasValue("CharacterDeviceExists"))
-            {
-                dict->DeclareFunction(gc,"CharacterDeviceExists","Character file exists",{"path"}, [](GCList& ls, std::vector<TObject> args)->TObject {
-                    
-                    return false;
-                });
-            }
-            if(!dict->HasValue("BlockDeviceExists"))
-            {
-                dict->DeclareFunction(gc,"BlockDeviceExists","Block file exists",{"path"}, [](GCList& ls, std::vector<TObject> args)->TObject {
-                    
-                    return false;
-                });
-            }
-            if(!dict->HasValue("SocketFileExists"))
-            {
-                dict->DeclareFunction(gc,"SocketFileExists","Socket file exists",{"path"}, [](GCList& ls, std::vector<TObject> args)->TObject {
-                    
-                    return false;
-                });
-            }
-
-            if(!dict->HasValue("FIFOFileExists"))
-            {
-                dict->DeclareFunction(gc,"FIFOFileExists","FIFO file exists",{"path"}, [](GCList& ls, std::vector<TObject> args)->TObject {
-                    
-                    return false;
-                });
-            }
-            if(!dict->HasValue("FileExists"))
-            {
-                dict->DeclareFunction(gc,"FileExists","File exists",{"path"}, [](GCList& ls, std::vector<TObject> args)->TObject {
-                    
-                    return false;
-                });
-            }
-            if(!dict->HasValue("SpecialFileExists"))
-            {
-                dict->DeclareFunction(gc,"SpecialFileExists","Special file exists",{"path"}, [](GCList& ls, std::vector<TObject> args)->TObject {
-                    
-                    return false;
-                });
-            }
-            if(!dict->HasValue("DirectoryExists"))
-            {
-                dict->DeclareFunction(gc,"DirectoryExists","Directory exists",{"path"}, [](GCList& ls, std::vector<TObject> args)->TObject {
-                    
-                    return false;
-                });
-            }
-            gc->BarrierEnd();
-        }
+        
         
     }
+    Tesses::Framework::Filesystem::FIFOCreationResult TObjectVFS::CreateFIFO(Tesses::Framework::Filesystem::VFSPath path)
+    {
+        TDictionary* dict;
+        
+        if(GetObjectHeap(this->obj, dict))
+        {
+            GCList ls(this->ls->GetGC());
+            auto res = dict->CallMethod(ls, "CreateFIFO",{path});
+            int64_t n=0;
+            if(GetObject(res, n)) return (Tesses::Framework::Filesystem::FIFOCreationResult)n;
+        }
+        return Tesses::Framework::Filesystem::FIFOCreationResult::UnknownError;
+    }
+            
     std::shared_ptr<Tesses::Framework::Streams::Stream> TObjectVFS::OpenFile(Tesses::Framework::Filesystem::VFSPath path, std::string mode)
     {
         TDictionary* dict;
@@ -189,136 +82,7 @@ namespace Tesses::CrossLang {
             
         }
     }
-    bool TObjectVFS::RegularFileExists(Tesses::Framework::Filesystem::VFSPath path)
-    {
-
-        TDictionary* dict;
-        if(GetObjectHeap(this->obj, dict))
-        {
-            GCList ls(this->ls->GetGC());
-            auto res = dict->CallMethod(ls, "RegularFileExists",{path});
-            bool out;
-            if(GetObject(res,out))
-            {
-                return out;
-            }
-        }
-        return false;
-    }
-
-    bool TObjectVFS::SymlinkExists(Tesses::Framework::Filesystem::VFSPath path)
-    {
-        TDictionary* dict;
-        
-        if(GetObjectHeap(this->obj, dict))
-        {
-            GCList ls(this->ls->GetGC());
-            auto res = dict->CallMethod(ls, "SymlinkExists",{path});
-            bool out;
-            if(GetObject(res,out))
-            {
-                return out;
-            }
-        }
-        return false;
-    }
-    bool TObjectVFS::CharacterDeviceExists(Tesses::Framework::Filesystem::VFSPath path)
-    {
-        TDictionary* dict;
-        
-        if(GetObjectHeap(this->obj, dict))
-        {
-            GCList ls(this->ls->GetGC());
-            auto res = dict->CallMethod(ls, "CharacterDeviceExists",{path});
-            bool out;
-            if(GetObject(res,out))
-            {
-                return out;
-            }
-        }
-        return false;
-    }
-    bool TObjectVFS::BlockDeviceExists(Tesses::Framework::Filesystem::VFSPath path)
-    {
-        TDictionary* dict;
-        
-        if(GetObjectHeap(this->obj, dict))
-        {
-            GCList ls(this->ls->GetGC());
-            auto res = dict->CallMethod(ls, "BlockDeviceExists",{path});
-            bool out;
-            if(GetObject(res,out))
-            {
-                return out;
-            }
-        }
-        return false;
-    }
-    bool TObjectVFS::SocketFileExists(Tesses::Framework::Filesystem::VFSPath path)
-    {
-        TDictionary* dict;
-        
-        if(GetObjectHeap(this->obj, dict))
-        {
-            GCList ls(this->ls->GetGC());
-            auto res = dict->CallMethod(ls, "SocketFileExists",{path});
-            bool out;
-            if(GetObject(res,out))
-            {
-                return out;
-            }
-        }
-        return false;
-    }
-    bool TObjectVFS::FIFOFileExists(Tesses::Framework::Filesystem::VFSPath path)
-    {
-        TDictionary* dict;
-        
-        if(GetObjectHeap(this->obj, dict))
-        {
-            GCList ls(this->ls->GetGC());
-            auto res = dict->CallMethod(ls, "FIFOFileExists",{path});
-            bool out;
-            if(GetObject(res,out))
-            {
-                return out;
-            }
-        }
-        return false;
-    }
-    bool TObjectVFS::FileExists(Tesses::Framework::Filesystem::VFSPath path)
-    {
-        TDictionary* dict;
-        
-        if(GetObjectHeap(this->obj, dict))
-        {
-            GCList ls(this->ls->GetGC());
-            auto res = dict->CallMethod(ls, "FileExists",{path});
-            bool out;
-            if(GetObject(res,out))
-            {
-                return out;
-            }
-        }
-        return false;
-    }
-    bool TObjectVFS::SpecialFileExists(Tesses::Framework::Filesystem::VFSPath path)
-    {
-        TDictionary* dict;
-        
-        if(GetObjectHeap(this->obj, dict))
-        {
-            GCList ls(this->ls->GetGC());
-            auto res = dict->CallMethod(ls, "SpecialFileExists",{path});
-            bool out;
-            if(GetObject(res,out))
-            {
-                return out;
-            }
-        }
-        return false;
-    }
-    void TObjectVFS::CreateSymlink(Tesses::Framework::Filesystem::VFSPath existingFile, Tesses::Framework::Filesystem::VFSPath symlinkFile)
+  void TObjectVFS::CreateSymlink(Tesses::Framework::Filesystem::VFSPath existingFile, Tesses::Framework::Filesystem::VFSPath symlinkFile)
     {
         TDictionary* dict;
         
@@ -340,22 +104,7 @@ namespace Tesses::CrossLang {
             
         }
     }
-    bool TObjectVFS::DirectoryExists(Tesses::Framework::Filesystem::VFSPath path)
-    {
-        TDictionary* dict;
-        if(GetObjectHeap(this->obj, dict))
-        {
-            GCList ls(this->ls->GetGC());
-            auto res = dict->CallMethod(ls, "DirectoryExists",{path});
-            bool out;
-            if(GetObject(res,out))
-            {
-                return out;
-            }
-        }
-        return false;
-    }
-    void TObjectVFS::DeleteFile(Tesses::Framework::Filesystem::VFSPath path)
+   void TObjectVFS::DeleteFile(Tesses::Framework::Filesystem::VFSPath path)
     {
         TDictionary* dict;
         
@@ -484,31 +233,6 @@ namespace Tesses::CrossLang {
         }
         return Tesses::Framework::Filesystem::VFSPath();
     }
-    void TObjectVFS::GetDate(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Date::DateTime& lastWrite, Tesses::Framework::Date::DateTime& lastAccess)
-    {
-
-        TDictionary* dict;
-        if(GetObjectHeap(this->obj, dict))
-        {
-            GCList ls(this->ls->GetGC());
-            auto res = dict->CallMethod(ls, "GetDate",{path});
-            if(GetObjectHeap(res,dict))
-            {
-                this->ls->GetGC()->BarrierBegin();
-                res = dict->GetValue("LastWrite");
-                std::shared_ptr<Tesses::Framework::Date::DateTime> d;
-                if(GetObject(res,d))
-                    lastWrite =*d;
-
-                res = dict->GetValue("LastAccess");
-                
-                if(GetObject(res,d))
-                lastWrite = *d;
-
-                this->ls->GetGC()->BarrierEnd();
-            }
-        }
-    }
     void TObjectVFS::SetDate(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Date::DateTime lastWrite, Tesses::Framework::Date::DateTime lastAccess)
     {
 
@@ -531,6 +255,80 @@ namespace Tesses::CrossLang {
             dict->CallMethod(ls, "Chmod",{path,(int64_t)mode});
             
         }
+    }
+    void TObjectVFS::Chown(Tesses::Framework::Filesystem::VFSPath path, uint32_t uid, uint32_t gid)
+    {
+        TDictionary* dict;
+        
+        if(GetObjectHeap(this->obj, dict))
+        {
+            GCList ls(this->ls->GetGC());
+            dict->CallMethod(ls, "Chown",{path,(int64_t)uid, (int64_t)gid});
+            
+        }
+    }
+    bool TObjectVFS::Stat(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Filesystem::StatData& data)
+    {
+        TDictionary* dict;
+        
+        if(GetObjectHeap(this->obj, dict))
+        {
+            GCList ls(this->ls->GetGC());
+            auto res = dict->CallMethod(ls, "Stat",{path});
+            int64_t _num;
+            TDictionary* _dict;
+            TObject _o;
+            if(GetObjectHeap(res,_dict))
+            {
+                this->ls->GetGC()->BarrierBegin();
+                _o = dict->GetValue("BlockSize");
+                if(GetObject(_o,_num)) data.BlockSize = (uint64_t)_num;
+
+                _o = dict->GetValue("BlockCount");
+                if(GetObject(_o,_num)) data.BlockCount = (uint64_t)_num;
+                
+                _o = dict->GetValue("Device");
+                if(GetObject(_o,_num)) data.Device = (uint64_t)_num;
+                
+                _o = dict->GetValue("DeviceId");
+                if(GetObject(_o,_num)) data.DeviceId = (uint64_t)_num;
+                
+                _o = dict->GetValue("GroupId");
+                if(GetObject(_o,_num)) data.GroupId = (uint32_t)_num;
+                
+                _o = dict->GetValue("HardLinks");
+                if(GetObject(_o,_num)) data.HardLinks = (uint64_t)_num;
+                std::shared_ptr<Tesses::Framework::Date::DateTime> dt;
+                _o = dict->GetValue("LastAccess");
+                if(GetObject(_o,dt)) data.LastAccess = dt ? *dt : Tesses::Framework::Date::DateTime(0);
+                
+
+                _o = dict->GetValue("LastModified");
+                if(GetObject(_o,dt)) data.LastModified = dt ? *dt : Tesses::Framework::Date::DateTime(0);
+                
+                
+
+                _o = dict->GetValue("LastStatus");
+                if(GetObject(_o,dt)) data.LastStatus = dt ? *dt : Tesses::Framework::Date::DateTime(0);
+                
+
+
+                _o = dict->GetValue("Mode");
+                if(GetObject(_o,_num)) data.Mode = (uint32_t)_num;
+                
+                _o = dict->GetValue("Size");
+                if(GetObject(_o,_num)) data.Size = (uint64_t)_num;
+                
+                _o = dict->GetValue("UserId");
+                if(GetObject(_o,_num)) data.UserId = (uint32_t)_num;
+
+
+                this->ls->GetGC()->BarrierEnd();
+                return true;
+            }
+        }
+
+        return false;
     }
     bool TObjectVFS::StatVFS(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Filesystem::StatVFSData& data)
     {

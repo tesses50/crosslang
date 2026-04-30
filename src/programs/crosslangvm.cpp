@@ -6,12 +6,13 @@
 using namespace Tesses::Framework;
 using namespace Tesses::CrossLang;
 using namespace Tesses::Framework::Filesystem;
+static GC gc;
 int main(int argc, char** argv)
 {
     TF_InitWithConsole();
     if(argc > 0)
         TF_AllowPortable(argv[0]);
-    GC gc;
+
     gc.Start();
     GCList ls(gc);
     TRootEnvironment* env = TRootEnvironment::Create(ls, TDictionary::Create(ls));
