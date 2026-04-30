@@ -7,7 +7,7 @@ echo "  url \"https://git.tesses.org/tesses50/crosslang/archive/$VERSION.tar.gz\
 echo "  sha256 \"$HASH\"" >> "Formula/crosslang.rb"
 echo "  license \"GPLv3\"" >> "Formula/crosslang.rb"
 echo "  depends_on \"cmake\" => :build" >> "Formula/crosslang.rb"
-echo "  depends_on \"tessesframework\"" >> "Formula/crosslang.rb"
+echo "  depends_on \"tesses50/tesses-tap/tessesframework\"" >> "Formula/crosslang.rb"
 echo "  def install" >> "Formula/crosslang.rb"
 echo "    system \"cmake\", \"-S\", \".\", \"-B\", \"build\", \"-DCROSSLANG_FETCHCONTENT=OFF\", *std_cmake_args" >> "Formula/crosslang.rb"
 echo "    system \"cmake\", \"--build\", \"build\"" >> "Formula/crosslang.rb"
