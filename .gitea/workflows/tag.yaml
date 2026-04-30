@@ -56,8 +56,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          image: ${{ env.GITEA_DOMAIN }}/${{ env.RESULT_IMAGE_NAME }}
-          tags: ${{ env.VERSION }}, latest
+          tags:  ${{ env.GITEA_DOMAIN }}/${{ env.RESULT_IMAGE_NAME }}:latest
       - uses: actions/checkout@v4
         with:
           ref: "master"
