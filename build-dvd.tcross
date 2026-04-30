@@ -114,11 +114,11 @@ wget -O {mbedversion}.tar.bz2 https://downloads.tesses.net/cache/libraries/sourc
 tar xf {mbedversion}.tar.bz2
 rm {mbedversion}.tar.bz2
 fi
-git clone --depth=1 https://onedev.site.tesses.net/tesses-framework
-git clone --depth=1 https://onedev.site.tesses.net/crosslang
+git clone --depth=1 https://git.tesses.org/tesses50/tessesframework
+git clone --depth=1 https://git.tesses.org/tesses50/crosslang
 zip -r \"{working / \"DvdFiles\" / \"crosslang-source.zip\"}\" ./*
 cp ../DvdFiles/crosslang-source.zip ../Output/crosslang-source.zip
-wget -O \"{working / \"DvdFiles\" / \"Common\" / \"ShellPackage.crvm\"}\" https://downloads.tesses.net/ShellPackage.crvm
+wget -O \"{working / \"DvdFiles\" / \"Common\" / \"ShellPackage.crvm\"}\" https://redirect.tesses.net/crosslang-shell
 ";
     var w32_toolchain = $"
             set(CMAKE_C_COMPILER \"/usr/bin/i686-w64-mingw32-gcc\")

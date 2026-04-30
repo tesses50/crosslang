@@ -86,7 +86,7 @@ namespace Tesses::CrossLang {
         return value;
     }
             
-    void TRootEnvironment::LoadDependency(GC* gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, std::pair<std::string,TVMVersion> dep)
+    void TRootEnvironment::LoadDependency(std::shared_ptr<GC> gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, std::pair<std::string,TVMVersion> dep)
     {
          for(auto item : this->dependencies)
             if(item.first == dep.first && item.second.CompareTo(dep.second) >= 0) return;
@@ -129,7 +129,7 @@ namespace Tesses::CrossLang {
             f->Load(ls.GetGC(),ms);
         return this->LoadFile(ls.GetGC(), f);
     }
-    TDictionary* TEnvironment::EnsureDictionary(GC* gc, std::string key)
+    TDictionary* TEnvironment::EnsureDictionary(std::shared_ptr<GC> gc, std::string key)
     {
         TObject item = this->GetVariable(key);
         TDictionary* dict;
@@ -139,7 +139,7 @@ namespace Tesses::CrossLang {
         this->DeclareVariable(key, dict);
         return dict;
     }
-    void TEnvironment::DeclareVariable(GC* gc, std::vector<std::string> name, TObject o)
+    void TEnvironment::DeclareVariable(std::shared_ptr<GC> gc, std::vector<std::string> name, TObject o)
     {
         if(name.size() == 0)
                 throw VMException("name can't be empty.");
@@ -209,7 +209,7 @@ namespace Tesses::CrossLang {
             }
     }
 
-    TObject TEnvironment::LoadFile(GC* gc, TFile* file)
+    TObject TEnvironment::LoadFile(std::shared_ptr<GC> gc, TFile* file)
     {
         file->EnsureCanRunInCrossLang();
         for(size_t i = 0; i < file->classes.size(); i++)
@@ -266,7 +266,7 @@ namespace Tesses::CrossLang {
         }
         return nullptr;
     }
-    void TRootEnvironment::LoadFileWithDependencies(GC* gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, TFile* file)
+    void TRootEnvironment::LoadFileWithDependencies(std::shared_ptr<GC> gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, TFile* file)
     {
         this->dependencies.push_back(std::pair<std::string,TVMVersion>(file->name,file->version));
         for(auto item : file->dependencies)
@@ -276,7 +276,7 @@ namespace Tesses::CrossLang {
         LoadFile(gc, file);
       
     }
-    void TRootEnvironment::LoadFileWithDependencies(GC* gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, Tesses::Framework::Filesystem::VFSPath path)
+    void TRootEnvironment::LoadFileWithDependencies(std::shared_ptr<GC> gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, Tesses::Framework::Filesystem::VFSPath path)
     {
        
 
@@ -344,7 +344,7 @@ namespace Tesses::CrossLang {
     TRootEnvironment* TRootEnvironment::Create(GCList* gc,TDictionary* dict)
     {
         TRootEnvironment* env=new TRootEnvironment(dict);
-        GC* _gc = gc->GetGC();
+        std::shared_ptr<GC> _gc = gc->GetGC();
         gc->Add(env);
         _gc->Watch(env);
         return env;
@@ -352,13 +352,13 @@ namespace Tesses::CrossLang {
     TRootEnvironment* TRootEnvironment::Create(GCList& gc,TDictionary* dict)
     {
         TRootEnvironment* env=new TRootEnvironment(dict);
-        GC* _gc = gc.GetGC();
+        std::shared_ptr<GC> _gc = gc.GetGC();
         gc.Add(env);
         _gc->Watch(env);
         return env;
     }
 
-    bool TRootEnvironment::HandleException(GC* gc,TEnvironment* env, TObject err)
+    bool TRootEnvironment::HandleException(std::shared_ptr<GC> gc,TEnvironment* env, TObject err)
     {
         if(error != nullptr)
         {
@@ -373,7 +373,7 @@ namespace Tesses::CrossLang {
         }
         return false;
     }
-    bool TRootEnvironment::HandleBreakpoint(GC* gc,TEnvironment* env, TObject err)
+    bool TRootEnvironment::HandleBreakpoint(std::shared_ptr<GC> gc,TEnvironment* env, TObject err)
     {
         if(error != nullptr)
         {

@@ -14,7 +14,7 @@
 namespace Tesses::CrossLang {
     extern bool IHttpServer_Handle(std::shared_ptr<Tesses::Framework::Http::IHttpServer> svr,std::vector<TObject>& args);
     
-     bool InterperterThread::ExecuteMethod2(GC* gc, TObject instance, std::string key, std::vector<TObject> args)
+     bool InterperterThread::ExecuteMethod2(std::shared_ptr<GC> gc, TObject instance, std::string key, std::vector<TObject> args)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         if(!cse.empty())
@@ -395,7 +395,7 @@ namespace Tesses::CrossLang {
                     cse.back()->Push(gc, path.GetExtension());
                     return false;
                 }
-                if(cse.back()->env->GetRootEnvironment()->permissions.canRegisterLocalFS && key == "MakeAbsolute")
+                if(cse.back()->env->GetRootEnvironment()->permissions.localfs && key == "MakeAbsolute")
                 {
                     Tesses::Framework::Filesystem::VFSPath p;
                     if(GetArgumentAsPath(args,0,p))
@@ -405,11 +405,11 @@ namespace Tesses::CrossLang {
                     }
                     else
                     {
-                        cse.back()->Push(gc,path.MakeAbsolute());
+                        cse.back()->Push(gc,path.MakeAbsolute(cse.back()->env->GetRootEnvironment()->permissions.localfs->GetWorking()));
                         return false;
                     }
                 }
-                if(cse.back()->env->GetRootEnvironment()->permissions.canRegisterLocalFS && key == "MakeRelative")
+                if(cse.back()->env->GetRootEnvironment()->permissions.localfs && key == "MakeRelative")
                 {
                     Tesses::Framework::Filesystem::VFSPath p;
                     if(GetArgumentAsPath(args,0,p))
@@ -419,7 +419,7 @@ namespace Tesses::CrossLang {
                     }
                     else
                     {
-                        cse.back()->Push(gc,path.MakeRelative());
+                        cse.back()->Push(gc,path.MakeRelative(cse.back()->env->GetRootEnvironment()->permissions.localfs->GetWorking()));
                         return false;
                     }
                 }
@@ -1199,6 +1199,48 @@ namespace Tesses::CrossLang {
                 cse.back()->Push(gc,Undefined());
                 return false;
             }
+            else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Http::ServerSentEvents>>(instance))
+            {
+                auto& sse = std::get<std::shared_ptr<Tesses::Framework::Http::ServerSentEvents>>(instance);
+                if(sse != nullptr)
+                {
+                    std::string text;
+                    std::string text2;
+                    if(key == "SendComment" && GetArgument(args, 0, text))
+                    {
+                        sse->SendComment(text);
+                    }
+                    else if(key == "SendCustomEvent" && GetArgument(args, 0, text) && GetArgument(args,1,text2)) {
+                        sse->SendCustomEvent(text,text2);
+                    }
+                    else if(key == "SendCustomEvent" && GetArgument(args, 0, text)) {
+                        if(GetArgument(args,1,text2))
+                        sse->SendData(text,text2);
+                        else
+                        sse->SendData(text);
+                    }
+                    else if(key == "SendId" && GetArgument(args, 0, text))
+                    {
+                        sse->SendId(text);
+                    }
+                    else if(key == "SendRetry")
+                    {
+                        std::shared_ptr<Tesses::Framework::Date::TimeSpan> ts;
+                        int64_t num;
+                        if(GetArgument(args,0,ts) && ts)
+                        {
+                            sse->SendRetry(*ts);
+                        }
+                        else if(GetArgument(args,0,num))
+                        {
+                            sse->SendRetry((uint32_t)num);
+                        }
+                    }
+                }
+
+                cse.back()->Push(gc, Undefined());
+                return false;
+            }
             else if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Streams::Stream>>(instance))
             {
                 auto& strm = std::get<std::shared_ptr<Tesses::Framework::Streams::Stream>>(instance);
@@ -1234,6 +1276,18 @@ namespace Tesses::CrossLang {
                     }
                     if(netStrm != nullptr)
                     {
+                        if(key == "SetMulticastMembership")
+                        {
+                            std::string ma;
+                            std::string ifaceIP = "0.0.0.0";
+                            if(GetArgument(args,0,ma))
+                            {
+                                GetArgument(args,1,ifaceIP);
+                                netStrm->SetMulticastMembership(ma,ifaceIP);
+                            }
+                            cse.back()->Push(gc, Undefined());
+                            return false;
+                        }
                         if(key == "GetPort")
                         {
                             cse.back()->Push(gc, (int64_t)netStrm->GetPort());
@@ -2230,9 +2284,10 @@ namespace Tesses::CrossLang {
                     }
                     if(key == "RegisterEverything")
                     {
-                        if(myEnv->permissions.canRegisterEverything)
+                        if(myEnv->permissions.canRegisterEverything && myEnv->permissions.localfs)
                         {
-                            TStd::RegisterStd(gc, rootEnv);
+                            TStd::RegisterStd(gc, rootEnv, std::make_shared<RelativeFilesystem>(myEnv->permissions.localfs->GetVFS(),myEnv->permissions.localfs->GetWorking()));
+                            
                         } 
                         else
                         {
@@ -2250,7 +2305,15 @@ namespace Tesses::CrossLang {
 
 
                         if(myEnv->permissions.canRegisterIO && !rootEnv->permissions.locked)
-                            TStd::RegisterIO(gc, rootEnv, myEnv->permissions.canRegisterLocalFS);
+                        {
+                            if(myEnv->permissions.localfs)
+                            {
+                                TStd::RegisterIO(gc, rootEnv, std::make_shared<RelativeFilesystem>(myEnv->permissions.localfs->GetVFS(),myEnv->permissions.localfs->GetWorking()));
+                            }
+                            else {
+                                TStd::RegisterIO(gc, rootEnv, nullptr);
+                            }
+                        }
                         
                         if(myEnv->permissions.canRegisterJSON && !rootEnv->permissions.locked)
                         TStd::RegisterJson(gc, rootEnv);
@@ -2329,7 +2392,15 @@ namespace Tesses::CrossLang {
                         if(GetArgument(args,0,r))
                         {
                             if((myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterIO) && !rootEnv->permissions.locked)
-                                TStd::RegisterIO(gc, rootEnv, myEnv->permissions.canRegisterLocalFS ? r : false);
+                            {
+                                if(myEnv->permissions.localfs)
+                                {
+                                    TStd::RegisterIO(gc, rootEnv, std::make_shared<RelativeFilesystem>(myEnv->permissions.localfs->GetVFS(),myEnv->permissions.localfs->GetWorking()));
+                                }
+                                else {
+                                    TStd::RegisterIO(gc, rootEnv, nullptr);
+                                }
+                            }
                         }
                         cse.back()->Push(gc,nullptr);
                         return false;

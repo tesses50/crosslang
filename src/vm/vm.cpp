@@ -36,9 +36,9 @@ namespace Tesses::CrossLang {
 
     #define TVM_HANDLER(hndl) if(hndl(gc)) goto execute
 
-    typedef bool (InterperterThread::*opcode)(GC* gc);
+    typedef bool (InterperterThread::*opcode)(std::shared_ptr<GC> gc);
 
-    bool InterperterThread::InterperterThread::Breakpoint(GC* gc)
+    bool InterperterThread::InterperterThread::Breakpoint(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -53,7 +53,7 @@ namespace Tesses::CrossLang {
         return false;
     }
     
-    bool InterperterThread::Times(GC* gc)
+    bool InterperterThread::Times(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -138,7 +138,7 @@ namespace Tesses::CrossLang {
  
         return false;
     }
-    bool InterperterThread::Divide(GC* gc)
+    bool InterperterThread::Divide(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -253,7 +253,7 @@ namespace Tesses::CrossLang {
         }
         return false;
     }
-    bool InterperterThread::Mod(GC* gc)
+    bool InterperterThread::Mod(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -340,7 +340,7 @@ namespace Tesses::CrossLang {
  
         return false;
     }
-    bool InterperterThread::Neg(GC* gc)
+    bool InterperterThread::Neg(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -414,7 +414,7 @@ namespace Tesses::CrossLang {
  
         return false;
     }
-    bool InterperterThread::LNot(GC* gc)
+    bool InterperterThread::LNot(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -499,7 +499,7 @@ namespace Tesses::CrossLang {
  
         return false;
     }
-    bool InterperterThread::BNot(GC* gc)
+    bool InterperterThread::BNot(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -571,7 +571,7 @@ namespace Tesses::CrossLang {
  
         return false;
     }
-    bool InterperterThread::Lt(GC* gc)
+    bool InterperterThread::Lt(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -691,7 +691,7 @@ namespace Tesses::CrossLang {
  
         return false;
     }
-    bool InterperterThread::Gt(GC* gc)
+    bool InterperterThread::Gt(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -812,7 +812,7 @@ namespace Tesses::CrossLang {
  
         return false;
     }
-    bool InterperterThread::Lte(GC* gc)
+    bool InterperterThread::Lte(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -933,7 +933,7 @@ namespace Tesses::CrossLang {
  
         return false;
     }
-    bool InterperterThread::Gte(GC* gc)
+    bool InterperterThread::Gte(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -1056,7 +1056,7 @@ namespace Tesses::CrossLang {
  
         return false;
     }
-    bool InterperterThread::Eq(GC* gc)
+    bool InterperterThread::Eq(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -1242,7 +1242,7 @@ namespace Tesses::CrossLang {
  
         return false;
     }
-    bool InterperterThread::NEq(GC* gc)
+    bool InterperterThread::NEq(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -1420,7 +1420,7 @@ namespace Tesses::CrossLang {
  
         return false;
     }
-    bool InterperterThread::LShift(GC* gc)
+    bool InterperterThread::LShift(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -1491,7 +1491,7 @@ namespace Tesses::CrossLang {
  
         return false;
     }
-    bool InterperterThread::RShift(GC* gc)
+    bool InterperterThread::RShift(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -1563,7 +1563,7 @@ namespace Tesses::CrossLang {
  
         return false;
     }
-    bool InterperterThread::BOr(GC* gc)
+    bool InterperterThread::BOr(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -1635,7 +1635,7 @@ namespace Tesses::CrossLang {
  
         return false;
     }
-    bool InterperterThread::XOr(GC* gc)
+    bool InterperterThread::XOr(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -1707,7 +1707,7 @@ namespace Tesses::CrossLang {
  
         return false;
     }
-    bool InterperterThread::BAnd(GC* gc)
+    bool InterperterThread::BAnd(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -1812,7 +1812,7 @@ namespace Tesses::CrossLang {
         return false;
     }
     
-    bool InterperterThread::ExecuteFunction(GC* gc)
+    bool InterperterThread::ExecuteFunction(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         if(!cse.empty())
@@ -1889,7 +1889,7 @@ namespace Tesses::CrossLang {
         return false;
     }
     
-    bool InterperterThread::Yield(GC* gc)
+    bool InterperterThread::Yield(std::shared_ptr<GC> gc)
     {
         GCList ls(gc);
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -1902,7 +1902,7 @@ namespace Tesses::CrossLang {
         }
         return false;
     }
-    bool InterperterThread::ExecuteMethod(GC* gc)
+    bool InterperterThread::ExecuteMethod(std::shared_ptr<GC> gc)
     {
          GCList ls(gc);
          std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -1939,7 +1939,7 @@ namespace Tesses::CrossLang {
         return false;
     }
    
-    bool InterperterThread::GetVariable(GC* gc)
+    bool InterperterThread::GetVariable(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         if(!cse.empty())
@@ -1961,7 +1961,7 @@ namespace Tesses::CrossLang {
         }
         return false;
     }
-    bool InterperterThread::SetVariable(GC* gc)
+    bool InterperterThread::SetVariable(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         if(!cse.empty())
@@ -2120,7 +2120,7 @@ namespace Tesses::CrossLang {
         }
         return false;
     }
-    bool InterperterThread::DeclareVariable(GC* gc)
+    bool InterperterThread::DeclareVariable(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         if(!cse.empty())
@@ -2279,7 +2279,7 @@ namespace Tesses::CrossLang {
     }
   
 
-    bool InterperterThread::DeclareConstVariable(GC* gc)
+    bool InterperterThread::DeclareConstVariable(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         if(!cse.empty())
@@ -2436,7 +2436,7 @@ namespace Tesses::CrossLang {
         }
         return false;
     }
-    bool InterperterThread::PushResourceStream(GC* gc)
+    bool InterperterThread::PushResourceStream(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         if(!cse.empty())
@@ -2466,7 +2466,7 @@ namespace Tesses::CrossLang {
         return false;
     }
 
-    bool InterperterThread::PushResource(GC* gc)
+    bool InterperterThread::PushResource(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         if(!cse.empty())
@@ -2495,7 +2495,7 @@ namespace Tesses::CrossLang {
         }
         return false;
     }
-    bool InterperterThread::Throw(GC* gc)
+    bool InterperterThread::Throw(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -2509,7 +2509,7 @@ namespace Tesses::CrossLang {
         }
         return false;
     }
-    bool InterperterThread::PushResourceDirectory(GC* gc)
+    bool InterperterThread::PushResourceDirectory(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);
@@ -2524,7 +2524,7 @@ namespace Tesses::CrossLang {
         }
         return false;
     }
-    bool InterperterThread::JumpIfDefined(GC* gc)
+    bool InterperterThread::JumpIfDefined(std::shared_ptr<GC> gc)
     {
         
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2550,7 +2550,7 @@ namespace Tesses::CrossLang {
             throw VMException("Can't read jmpifdefined pc.");
         return false;
     }
-    bool InterperterThread::JumpIfBreak(GC* gc)
+    bool InterperterThread::JumpIfBreak(std::shared_ptr<GC> gc)
     {
         
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2576,7 +2576,7 @@ namespace Tesses::CrossLang {
         return false;
     }
 
-    bool InterperterThread::JumpIfContinue(GC* gc)
+    bool InterperterThread::JumpIfContinue(std::shared_ptr<GC> gc)
     {
         
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2601,7 +2601,7 @@ namespace Tesses::CrossLang {
             throw VMException("Can't read jmpifcontinue pc.");
         return false;
     }
-    bool InterperterThread::JumpUndefined(GC* gc)
+    bool InterperterThread::JumpUndefined(std::shared_ptr<GC> gc)
     {
         
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2626,7 +2626,7 @@ namespace Tesses::CrossLang {
             throw VMException("Can't read jmpundefined pc.");
         return false;
     }
-    bool InterperterThread::Jump(GC* gc)
+    bool InterperterThread::Jump(std::shared_ptr<GC> gc)
     {
 
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2641,7 +2641,7 @@ namespace Tesses::CrossLang {
             throw VMException("Can't read jmp pc.");
         return false;
     }
-    bool InterperterThread::PushNull(GC* gc)
+    bool InterperterThread::PushNull(std::shared_ptr<GC> gc)
     {
 
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2650,7 +2650,7 @@ namespace Tesses::CrossLang {
         stk->Push(gc,nullptr);
         return false;
     }
-    bool InterperterThread::PushBreak(GC* gc)
+    bool InterperterThread::PushBreak(std::shared_ptr<GC> gc)
     {
 
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2659,7 +2659,7 @@ namespace Tesses::CrossLang {
         stk->Push(gc,TBreak());
         return false;
     }
-    bool InterperterThread::PushContinue(GC* gc)
+    bool InterperterThread::PushContinue(std::shared_ptr<GC> gc)
     {
 
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2668,7 +2668,7 @@ namespace Tesses::CrossLang {
         stk->Push(gc,TContinue());
         return false;
     }
-     bool InterperterThread::PushUndefined(GC* gc)
+     bool InterperterThread::PushUndefined(std::shared_ptr<GC> gc)
     {
 
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2677,7 +2677,7 @@ namespace Tesses::CrossLang {
         stk->Push(gc,Undefined());
         return false;
     }
-    bool InterperterThread::LineInfo(GC* gc)
+    bool InterperterThread::LineInfo(std::shared_ptr<GC> gc)
     {
         GCList ls(gc);
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2695,7 +2695,7 @@ namespace Tesses::CrossLang {
 
         return false;
     }
-      bool InterperterThread::PushFalse(GC* gc)
+      bool InterperterThread::PushFalse(std::shared_ptr<GC> gc)
     {
 
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2704,7 +2704,7 @@ namespace Tesses::CrossLang {
         stk->Push(gc,false);
         return false;
     }
-      bool InterperterThread::PushTrue(GC* gc)
+      bool InterperterThread::PushTrue(std::shared_ptr<GC> gc)
     {
 
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2713,7 +2713,7 @@ namespace Tesses::CrossLang {
         stk->Push(gc,true);
         return false;
     }
-    bool InterperterThread::CreateDictionary(GC* gc)
+    bool InterperterThread::CreateDictionary(std::shared_ptr<GC> gc)
     {
 
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2723,11 +2723,11 @@ namespace Tesses::CrossLang {
         stk->Push(gc,dict);
         return false;
     }
-     bool InterperterThread::Nop(GC* gc)
+     bool InterperterThread::Nop(std::shared_ptr<GC> gc)
     {
         return false;
     }   
-    bool InterperterThread::AppendList(GC* gc)
+    bool InterperterThread::AppendList(std::shared_ptr<GC> gc)
     {
 
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2760,7 +2760,7 @@ namespace Tesses::CrossLang {
                         gc->BarrierEnd();
         return false;
     }
-     bool InterperterThread::AppendDictionary(GC* gc)
+     bool InterperterThread::AppendDictionary(std::shared_ptr<GC> gc)
     {
 
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2800,7 +2800,7 @@ namespace Tesses::CrossLang {
                         gc->BarrierEnd();
         return false;
     }
-     bool InterperterThread::CreateArray(GC* gc)
+     bool InterperterThread::CreateArray(std::shared_ptr<GC> gc)
     {
 
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2810,7 +2810,7 @@ namespace Tesses::CrossLang {
         stk->Push(gc,dict);
         return false;
     }
-    bool InterperterThread::Pop(GC* gc)
+    bool InterperterThread::Pop(std::shared_ptr<GC> gc)
     {
 
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2819,7 +2819,7 @@ namespace Tesses::CrossLang {
         stk->Pop(ls);
         return false;
     }
-    bool InterperterThread::TryCatch(GC* gc)
+    bool InterperterThread::TryCatch(std::shared_ptr<GC> gc)
     {
 
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2861,7 +2861,7 @@ namespace Tesses::CrossLang {
                         }
         return false;
     }
-    bool InterperterThread::JumpConditional(GC* gc)
+    bool InterperterThread::JumpConditional(std::shared_ptr<GC> gc)
     {
 
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2884,7 +2884,7 @@ namespace Tesses::CrossLang {
             throw VMException("Can't read jmpc pc.");
         return false;
     }
-    bool InterperterThread::PushClosure(GC* gc)
+    bool InterperterThread::PushClosure(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         if(!cse.empty())
@@ -2912,7 +2912,7 @@ namespace Tesses::CrossLang {
         }
         return false;
     }
-    bool InterperterThread::PushScopelessClosure(GC* gc)
+    bool InterperterThread::PushScopelessClosure(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         if(!cse.empty())
@@ -2941,7 +2941,7 @@ namespace Tesses::CrossLang {
         return false;
     }
     
-    bool InterperterThread::PushString(GC* gc)
+    bool InterperterThread::PushString(std::shared_ptr<GC> gc)
     {
         
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -2962,7 +2962,7 @@ namespace Tesses::CrossLang {
         return false;
     }
     
-    bool InterperterThread::PushLong(GC* gc)
+    bool InterperterThread::PushLong(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         if(!cse.empty())
@@ -2978,7 +2978,7 @@ namespace Tesses::CrossLang {
         }
         return false;
     }
-    bool InterperterThread::PushChar(GC* gc)
+    bool InterperterThread::PushChar(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         if(!cse.empty())
@@ -2994,7 +2994,7 @@ namespace Tesses::CrossLang {
         }
         return false;
     }
-    bool InterperterThread::PushDouble(GC* gc)
+    bool InterperterThread::PushDouble(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         if(!cse.empty())
@@ -3010,7 +3010,7 @@ namespace Tesses::CrossLang {
         }
         return false;
     }
-    bool InterperterThread::Return(GC* gc)
+    bool InterperterThread::Return(std::shared_ptr<GC> gc)
     {
 
 
@@ -3020,7 +3020,7 @@ namespace Tesses::CrossLang {
              stk->ip = (uint32_t)stk->callable->closure->code.size();
             return false;
     }
-    bool InterperterThread::ScopeBegin(GC* gc)
+    bool InterperterThread::ScopeBegin(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
 
@@ -3034,7 +3034,7 @@ namespace Tesses::CrossLang {
         
         return false;
     }
-     bool InterperterThread::Defer(GC* gc)
+     bool InterperterThread::Defer(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
 
@@ -3050,7 +3050,7 @@ namespace Tesses::CrossLang {
         
         return false;
     }
-     bool InterperterThread::Dup(GC* gc)
+     bool InterperterThread::Dup(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
 
@@ -3062,7 +3062,7 @@ namespace Tesses::CrossLang {
 
         return false;
     }
-    bool InterperterThread::ScopeEndTimes(GC* gc)
+    bool InterperterThread::ScopeEndTimes(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
 
@@ -3097,7 +3097,7 @@ namespace Tesses::CrossLang {
         
         return false;
     }
-     bool InterperterThread::ScopeEnd(GC* gc)
+     bool InterperterThread::ScopeEnd(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
 
@@ -3127,7 +3127,7 @@ namespace Tesses::CrossLang {
         
         return false;
     }
-    bool InterperterThread::PushRelativePath(GC* gc)
+    bool InterperterThread::PushRelativePath(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
 
@@ -3138,7 +3138,7 @@ namespace Tesses::CrossLang {
         stk->Push(gc, p);
         return false;
     }
-    bool InterperterThread::PushRootPath(GC* gc)
+    bool InterperterThread::PushRootPath(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
 
@@ -3149,7 +3149,7 @@ namespace Tesses::CrossLang {
         stk->Push(gc, p);
         return false;
     }
-    bool InterperterThread::Illegal(GC* gc)
+    bool InterperterThread::Illegal(std::shared_ptr<GC> gc)
     {
 
 
@@ -3162,7 +3162,7 @@ namespace Tesses::CrossLang {
                     
     }
 
-    void InterperterThread::Execute(GC* gc)
+    void InterperterThread::Execute(std::shared_ptr<GC> gc)
     {
 
        std::vector<CallStackEntry*>& cse=this->call_stack_entries;
@@ -3342,7 +3342,7 @@ namespace Tesses::CrossLang {
         this->callable->Mark();
         for(auto item : this->stack) GC::Mark(item);
     }
-    void CallStackEntry::Push(GC* gc,TObject o)
+    void CallStackEntry::Push(std::shared_ptr<GC> gc,TObject o)
     {
         gc->BarrierBegin();
         this->stack.push_back(o);
@@ -3376,7 +3376,7 @@ namespace Tesses::CrossLang {
     InterperterThread* InterperterThread::Create(GCList& ls)
     {
         InterperterThread* it = new InterperterThread();
-        GC* _gc = ls.GetGC();
+        std::shared_ptr<GC> _gc = ls.GetGC();
         ls.Add(it);
         _gc->Watch(it);
         return it;
@@ -3384,7 +3384,7 @@ namespace Tesses::CrossLang {
     InterperterThread* InterperterThread::Create(GCList* ls)
     {
         InterperterThread* it = new InterperterThread();
-        GC* _gc = ls->GetGC();
+        std::shared_ptr<GC> _gc = ls->GetGC();
         ls->Add(it);
         _gc->Watch(it);
         return it;
@@ -3396,7 +3396,7 @@ namespace Tesses::CrossLang {
         cse->srcline = -1;
         cse->srcfile = "";
         cse->thread=nullptr;
-        GC* _gc = ls.GetGC();
+        std::shared_ptr<GC> _gc = ls.GetGC();
         ls.Add(cse);
         _gc->Watch(cse);
         return cse;
@@ -3409,7 +3409,7 @@ namespace Tesses::CrossLang {
         cse->srcline = -1;
         cse->srcfile = "";
         cse->thread=nullptr;
-        GC* _gc = ls->GetGC();
+        std::shared_ptr<GC> _gc = ls->GetGC();
         ls->Add(cse);
         _gc->Watch(cse);
         return cse;

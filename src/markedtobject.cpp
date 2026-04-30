@@ -2,7 +2,7 @@
 
 namespace Tesses::CrossLang
 {
-    SharedPtrTObject::SharedPtrTObject(GC* gc, TObject o)
+    SharedPtrTObject::SharedPtrTObject(std::shared_ptr<GC> gc, TObject o)
     {
         this->ls = new GCList(gc);
         this->ls->Add(o);
@@ -17,18 +17,15 @@ namespace Tesses::CrossLang
         if(this->ls)
         delete this->ls;
     }
-    GC* SharedPtrTObject::GetGC()
+    std::shared_ptr<GC> SharedPtrTObject::GetGC()
     {
         return this->ls->GetGC();
     }
-    MarkedTObject CreateMarkedTObject(GC* gc, TObject o)
+    MarkedTObject CreateMarkedTObject(std::shared_ptr<GC> gc, TObject o)
     {
         return std::make_shared<SharedPtrTObject>(gc,o);
     }
-    MarkedTObject CreateMarkedTObject(GC& gc, TObject o)
-    {
-        return CreateMarkedTObject(&gc,o);
-    }
+   
     MarkedTObject CreateMarkedTObject(GCList* gc, TObject o)
     {
         return CreateMarkedTObject(gc->GetGC(),o);

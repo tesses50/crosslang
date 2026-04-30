@@ -11,7 +11,11 @@
 #include <variant>
 namespace Tesses::CrossLang {
      
-    bool InterperterThread::SetField(GC* gc)
+    static void empty()
+    {
+
+    }
+    bool InterperterThread::SetField(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
 
@@ -30,7 +34,61 @@ namespace Tesses::CrossLang {
             }
 
             std::string key = std::get<std::string>(_key);
-             if(std::holds_alternative<std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>(instance))
+            if(std::holds_alternative<std::shared_ptr<Tesses::Framework::TF_Timer_Handle>>(instance))
+            {
+                auto handle = std::get<std::shared_ptr<Tesses::Framework::TF_Timer_Handle>>(instance);
+                if(handle)
+                {
+                    int64_t ms;
+                    bool b;
+                    if(key == "Enabled" && GetObject(value,b))
+                    {
+
+                        handle->SetEnabled(b);
+
+                        cse.back()->Push(gc,b);
+                        return false;
+                    }
+
+                    if(key == "Interval" && GetObject(value, ms))
+                    {
+                        handle->SetIntervalFromMilliseconds(ms);
+
+                        cse.back()->Push(gc,ms);
+                        return false;
+                    }
+                    if(key == "Callback")
+                    {
+                        TCallable* callable;
+                        if(GetObjectHeap(value,callable))
+                        {
+
+                            auto obj = CreateMarkedTObject(ls.GetGC(), callable);
+                            handle->SetCallback([obj]()->void {
+                                TCallable* callable;
+                                if(GetObjectHeap(obj->GetObject(), callable))
+                                {
+                                    GCList ls(obj->GetGC());
+                                    callable->Call(ls,{});
+                                }
+                            });
+                            cse.back()->Push(gc, callable);
+                            return false;
+                        }
+                        else
+                        {
+                            handle->SetCallback(empty);
+                            cse.back()->Push(gc, nullptr);
+                            return false;
+                        }
+                    }
+                    
+                }
+
+                cse.back()->Push(gc, Undefined());
+                return false;
+            }
+            if(std::holds_alternative<std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>(instance))
             {
                 auto writer = std::get<std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>>(instance);
                 auto stringWriter = std::dynamic_pointer_cast<Tesses::Framework::TextStreams::StringWriter>(writer);
@@ -177,11 +235,19 @@ namespace Tesses::CrossLang {
                 auto netStrm = std::dynamic_pointer_cast<Tesses::Framework::Streams::NetworkStream>(strm);
                 if(netStrm != nullptr)
                 {
+                    int64_t n0;
                     bool bc;
                     if(key == "Broadcast" && GetObject(value,bc))
                         netStrm->SetBroadcast(bc);
                     if(key == "NoDelay" && GetObject(value,bc))
                         netStrm->SetNoDelay(bc);
+                    if(key == "ReuseAddress" && GetObject(value,bc))
+                        netStrm->SetReuseAddress(bc);
+                    if(key == "ReusePort" && GetObject(value,bc))
+                        netStrm->SetReusePort(bc);
+                    if(key == "MulticastTTL" && GetObject(value,n0))
+                        netStrm->SetMulticastTTL((uint8_t)n0);
+                    
                 }
                 stk->Push(gc, Undefined());
                 return false;

@@ -317,7 +317,7 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }
-    void TStd::RegisterVM(GC* gc,TRootEnvironment* env)
+    void TStd::RegisterVM(std::shared_ptr<GC> gc,TRootEnvironment* env)
     {
         env->permissions.canRegisterVM=true;
         GCList ls(gc);

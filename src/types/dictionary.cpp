@@ -6,7 +6,7 @@ namespace Tesses::CrossLang  {
 
         TDynamicDictionary* dict=new TDynamicDictionary();
         dict->cb = callable;
-        GC* _gc = ls.GetGC();
+        std::shared_ptr<GC> _gc = ls.GetGC();
         ls.Add(dict);
         _gc->Watch(dict);
         return dict;
@@ -15,7 +15,7 @@ namespace Tesses::CrossLang  {
     {
         TDynamicDictionary* dict=new TDynamicDictionary();
         dict->cb = callable;
-        GC* _gc = ls->GetGC();
+        std::shared_ptr<GC> _gc = ls->GetGC();
         ls->Add(dict);
         _gc->Watch(dict);
         return dict;
@@ -153,34 +153,22 @@ namespace Tesses::CrossLang  {
         return Undefined();
     }
 
-    void TDictionary::DeclareFunction(GC* gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb)
+    void TDictionary::DeclareFunction(std::shared_ptr<GC> gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb)
     {
         gc->BarrierBegin();
         GCList ls(gc);
         this->SetValue(key, TExternalMethod::Create(ls,documentation,argNames,cb));
         gc->BarrierEnd();
     }
-    void TDictionary::DeclareFunction(GC& gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb)
-    {
-        gc.BarrierBegin();
-        GCList ls(gc);
-        this->SetValue(key, TExternalMethod::Create(ls,documentation,argNames,cb));
-        gc.BarrierEnd();
-    }
-    void TDictionary::DeclareFunction(GC* gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb,std::function<void()> destroy)
+    
+    void TDictionary::DeclareFunction(std::shared_ptr<GC> gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb,std::function<void()> destroy)
     {
         gc->BarrierBegin();
         GCList ls(gc);
         this->SetValue(key, TExternalMethod::Create(ls,documentation,argNames,cb,destroy));
         gc->BarrierEnd();
     }
-    void TDictionary::DeclareFunction(GC& gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb,std::function<void()> destroy)
-    {
-        gc.BarrierBegin();
-        GCList ls(gc);
-        this->SetValue(key, TExternalMethod::Create(ls,documentation,argNames,cb,destroy));
-        gc.BarrierEnd();
-    }
+    
     TObject TDictionary::GetValue(std::string key)
     {
         if(this->items.empty()) return Undefined();
@@ -216,7 +204,7 @@ namespace Tesses::CrossLang  {
     TDictionary* TDictionary::Create(GCList* gc)
     {
         TDictionary* dict=new TDictionary();
-        GC* _gc = gc->GetGC();
+        std::shared_ptr<GC> _gc = gc->GetGC();
         gc->Add(dict);
         _gc->Watch(dict);
         return dict;
@@ -224,7 +212,7 @@ namespace Tesses::CrossLang  {
     TDictionary* TDictionary::Create(GCList& gc)
     {
         TDictionary* dict=new TDictionary();
-        GC* _gc = gc.GetGC();
+        std::shared_ptr<GC> _gc = gc.GetGC();
         gc.Add(dict);
         _gc->Watch(dict);
         return dict;

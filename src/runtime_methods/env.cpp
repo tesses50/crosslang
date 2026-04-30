@@ -136,7 +136,7 @@ namespace Tesses::CrossLang
     {
         return Tesses::Framework::Serialization::BitConverter::IsLittleEndian();
     }
-    void TStd::RegisterEnv(GC* gc, TRootEnvironment* env)
+    void TStd::RegisterEnv(std::shared_ptr<GC> gc, TRootEnvironment* env)
     {
 
         env->permissions.canRegisterEnv=true;

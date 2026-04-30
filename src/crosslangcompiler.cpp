@@ -212,15 +212,15 @@ int main(int argc, char** argv)
         
     }
 
-    GC* gc=nullptr;
-    GCList* ls=nullptr;
+    std::shared_ptr<GC> gc;
+    std::shared_ptr<GCList> ls;
     TRootEnvironment* env=nullptr;
     if(comptime != "none")
     {
-        gc = new GC();
+        gc = std::make_shared<GC>();
         gc->Start();
-        ls = new GCList(gc);
-        env = TRootEnvironment::Create(ls,TDictionary::Create(ls));
+        ls = std::make_shared<GCList>(gc);
+        env = TRootEnvironment::Create(*ls,TDictionary::Create(*ls));
 
         if(comptime == "secure")
         {
@@ -280,11 +280,6 @@ int main(int argc, char** argv)
         auto strm = std::make_shared<Tesses::Framework::Streams::FileStream>(outputDir / (name + "-" + version.ToString() + ".crvm"),"wb");
     
         gen.Save(strm);
-    }
-    if(gc != nullptr)
-    {
-        delete ls;
-        delete gc;
     }
     return 0;
 }

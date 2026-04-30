@@ -27,7 +27,7 @@ namespace Tesses::CrossLang {
         return nullptr;
     }
     
-    void TStd::RegisterUuid(GC* gc, TRootEnvironment* env)
+    void TStd::RegisterUuid(std::shared_ptr<GC> gc, TRootEnvironment* env)
     {
         gc->BarrierBegin();
         TDictionary* guid = env->EnsureDictionary(gc, "Uuid");

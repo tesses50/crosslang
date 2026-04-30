@@ -4,23 +4,6 @@
 
 namespace Tesses::CrossLang
 {
-    static TObject FS_MakeFull(GCList& ls, std::vector<TObject> args)
-    {
-        Tesses::Framework::Filesystem::VFSPath path;
-        if(GetArgumentAsPath(args,0,path))
-        {
-            if(path.relative)
-            {
-                Tesses::Framework::Filesystem::LocalFilesystem lfs;
-                auto curDir = std::filesystem::current_path();
-                auto myPath = lfs.SystemToVFSPath(curDir.string()) / path;
-                myPath = myPath.CollapseRelativeParents();
-                return myPath;
-            }
-            return path.CollapseRelativeParents();
-        }
-        return nullptr;
-    }
     static TObject FS_CreateArchive(GCList& ls, std::vector<TObject> args)
     {
         std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
@@ -160,17 +143,7 @@ namespace Tesses::CrossLang
         return nullptr;
     }
 
-    static TObject FS_getCurrentPath(GCList& ls, std::vector<TObject> args)
-    {
-        return Tesses::Framework::Filesystem::VFSPath::GetAbsoluteCurrentDirectory();
-    }
-    static TObject FS_setCurrentPath(GCList& ls, std::vector<TObject> args)
-    {
-        Tesses::Framework::Filesystem::VFSPath path;
-        if(GetArgumentAsPath(args,0,path))
-        Tesses::Framework::Filesystem::VFSPath::SetAbsoluteCurrentDirectory(path);
-        return nullptr;
-    }
+   
 
     
 
@@ -287,12 +260,22 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }
-
-    void TStd::RegisterIO(GC* gc,TRootEnvironment* env,bool enableLocalFilesystem)
+    void TStd::RegisterIO(std::shared_ptr<GC> gc,TRootEnvironment* env, bool enable)
+    {
+        if(enable)
+        {
+            RegisterIO(gc,env,std::make_shared<RelativeFilesystem>(Tesses::Framework::Filesystem::LocalFS, Tesses::Framework::Filesystem::VFSPath::GetAbsoluteCurrentDirectory()));
+        }
+        else
+        {
+            RegisterIO(gc,env,nullptr);
+        }
+    }
+    void TStd::RegisterIO(std::shared_ptr<GC> gc,TRootEnvironment* env,std::shared_ptr<RelativeFilesystem> fs)
     {
 
         env->permissions.canRegisterIO=true;
-        env->permissions.canRegisterLocalFS = enableLocalFilesystem;
+        env->permissions.localfs = fs;
         GCList ls(gc);
         
         gc->BarrierBegin();
@@ -323,14 +306,36 @@ namespace Tesses::CrossLang
             }
         ));
 
-        if(enableLocalFilesystem)
+        if(fs)
         {
             
         
-            dict->SetValue("Local", Tesses::Framework::Filesystem::LocalFS);
-            dict->DeclareFunction(gc, "MakeFull", "Make absolute path from relative path",{"path"},FS_MakeFull);
-            dict->DeclareFunction(gc,"getCurrentPath","Get current path",{},FS_getCurrentPath);
-            dict->DeclareFunction(gc,"setCurrentPath","Set the current path",{"path"},FS_setCurrentPath);
+            dict->SetValue("Local", fs);
+            dict->DeclareFunction(gc, "MakeFull", "Make absolute path from relative path",{"path"},[fs](GCList& ls, std::vector<TObject> args)->TObject{
+                Tesses::Framework::Filesystem::VFSPath path;
+                if(GetArgumentAsPath(args,0,path))
+                {
+                    if(path.relative)
+                    {
+                        auto myPath = fs->GetWorking() / path;
+                        myPath = myPath.CollapseRelativeParents();
+                        return myPath;
+                    }
+                    return path.CollapseRelativeParents();
+                }
+                return nullptr;
+            });
+            dict->DeclareFunction(gc,"getCurrentPath","Get current path",{},[fs](GCList& ls, std::vector<TObject> args)->TObject{
+                return fs->GetWorking();
+            });
+            dict->DeclareFunction(gc,"setCurrentPath","Set the current path",{"path"}, [fs](GCList& ls, std::vector<TObject> args)->TObject {
+                Tesses::Framework::Filesystem::VFSPath path;
+                if(GetArgumentAsPath(args,0,path))
+                {
+                    fs->SetWorking(path);
+                }
+                return path;
+            });
         }
 
         dict->DeclareFunction(gc, "ReadAllText","Read all text from file", {"fs","filename"},FS_ReadAllText);

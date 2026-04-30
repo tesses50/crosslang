@@ -184,7 +184,7 @@ namespace Tesses::CrossLang
                 return Undefined();
             }
     };
-    static TObject Process_Start(GCList& ls, std::vector<TObject> args)
+    static TObject Process_Start(GCList& ls, std::vector<TObject> args, TRootEnvironment* env)
     {
         
         //Process.Start({
@@ -220,7 +220,11 @@ namespace Tesses::CrossLang
             GetObject(name,process->process.name);
 
             Tesses::Framework::Filesystem::VFSPath wdPath;
-
+            if(env->permissions.localfs)
+            {
+                process->process.workingDirectory = env->permissions.localfs->GetWorking().ToString();
+            }
+            
             if(GetObject(workingDirectory,wdPath))
             {
                 process->process.workingDirectory= wdPath.MakeAbsolute().ToString();
@@ -274,23 +278,36 @@ namespace Tesses::CrossLang
 
         return nullptr;
     }
-    static TObject New_Process(GCList& ls, std::vector<TObject> args)
-    {
-        return TNativeObject::Create<ProcessObject>(ls,ls);
-    }
+    
 
-    void TStd::RegisterProcess(GC* gc,TRootEnvironment* env)
+    void TStd::RegisterProcess(std::shared_ptr<GC> gc,TRootEnvironment* env)
     {
 
         env->permissions.canRegisterProcess=true;
         GCList ls(gc);
         TDictionary* dict = TDictionary::Create(ls);
-        dict->DeclareFunction(gc,"Start","Start a process",{"process_object"},Process_Start);
-       
+        
         gc->BarrierBegin();
+        auto processStart = TExternalMethod::Create(ls,"Start a process",{"process_object"},[env](GCList& ls, std::vector<TObject> args)->TObject{
+            return Process_Start(ls,args,env);
+        });
+        processStart->watch.push_back(env);
+        dict->SetValue("Start",processStart);
+
+
         env->SetVariable("Process",dict);
         auto process = env->EnsureDictionary(gc,"New");
-        process->DeclareFunction(gc, "Process", "Create process",{},New_Process);
+        auto newProcess = TExternalMethod::Create(ls, "Create process",{},[env](GCList& ls, std::vector<TObject> args)->TObject {
+            auto obj= TNativeObject::Create<ProcessObject>(ls,ls);
+            if(env->permissions.localfs)
+            {
+                obj->process.workingDirectory = env->permissions.localfs->GetWorking().ToString();
+            }
+             return obj;
+        });
+        newProcess->watch.push_back(env);
+        process->SetValue("Process",newProcess);
+        //process->DeclareFunction(gc, "Process", "Create process",{},New_Process);
         process->DeclareFunction(gc, "CGIServer", "Create a CGI Server",{"path"},[](GCList& ls, std::vector<TObject> args)->TObject{
             Tesses::Framework::Filesystem::VFSPath path;
             if(GetArgumentAsPath(args,0,path))

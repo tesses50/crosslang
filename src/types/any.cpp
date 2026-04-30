@@ -5,7 +5,7 @@ namespace Tesses::CrossLang {
     {
         TAny* anyObj = new TAny();
         
-        GC* gc = ls.GetGC();
+        std::shared_ptr<GC> gc = ls.GetGC();
         ls.Add(anyObj);
         gc->Watch(anyObj);
         return anyObj;
@@ -14,7 +14,7 @@ namespace Tesses::CrossLang {
     {
          TAny* anyObj = new TAny();
         
-        GC* gc = ls->GetGC();
+        std::shared_ptr<GC> gc = ls->GetGC();
         ls->Add(anyObj);
         gc->Watch(anyObj);
         return anyObj;

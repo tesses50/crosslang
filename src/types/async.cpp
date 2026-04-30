@@ -1,7 +1,7 @@
 #include "CrossLang.hpp"
 //THANKS TO https://www.youtube.com/watch?v=R-z2Hv-7nxk
 namespace Tesses::CrossLang {
-    TTask::TTask(GC* gc)
+    TTask::TTask(std::shared_ptr<GC> gc)
     {
         this->gc = gc;
     }
@@ -172,10 +172,10 @@ namespace Tesses::CrossLang {
     }
 
     class TTaskCseObj {
-        GC* gc;
+        std::shared_ptr<GC> gc;
         TTask* task;
         public:
-            TTaskCseObj(GC* gc, TTask* task)
+            TTaskCseObj(std::shared_ptr<GC> gc, TTask* task)
             {
                 this->gc = gc;
                 this->task = task;
@@ -230,7 +230,7 @@ namespace Tesses::CrossLang {
 
         //try {
             GCList ls2(ls.GetGC());
-            GC* gc = ls.GetGC();
+            std::shared_ptr<GC> gc = ls.GetGC();
             
             std::shared_ptr<TTaskCseObj> obj = std::make_shared<TTaskCseObj>(gc,task);
 

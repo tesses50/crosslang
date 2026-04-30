@@ -2,7 +2,7 @@
 
 namespace Tesses::CrossLang {
 
-    TObjectVFS::TObjectVFS(GC* gc, TObject obj)
+    TObjectVFS::TObjectVFS(std::shared_ptr<GC> gc, TObject obj)
     {
         this->ls = new GCList(gc);
         this->ls->Add(obj);

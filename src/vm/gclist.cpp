@@ -2,21 +2,15 @@
 
 namespace Tesses::CrossLang
 {
-    GCList::GCList(GC* gc)
+    GCList::GCList(std::shared_ptr<GC> gc)
     {
         gc->BarrierBegin();
         this->gc = gc;
         gc->SetRoot(this);
         gc->BarrierEnd();
     }
-    GCList::GCList(GC& gc)
-    {
-        gc.BarrierBegin();
-        this->gc = &gc;
-        gc.SetRoot(this);
-        gc.BarrierEnd();
-    }
-    GC* GCList::GetGC()
+    
+    std::shared_ptr<GC> GCList::GetGC()
     {
         return this->gc;
     }

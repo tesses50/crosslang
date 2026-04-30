@@ -11,7 +11,7 @@ namespace Tesses::CrossLang
     {
         TFile* f = new TFile();
         f->icon = -1;
-        GC* _gc = ls.GetGC();
+        std::shared_ptr<GC> _gc = ls.GetGC();
         ls.Add(f);
         _gc->Watch(f);
         return f;
@@ -20,7 +20,7 @@ namespace Tesses::CrossLang
     {
         TFile* f = new TFile();
         f->icon=-1;
-        GC* _gc = ls->GetGC();
+        std::shared_ptr<GC> _gc = ls->GetGC();
         ls->Add(f);
         _gc->Watch(f);
         return f;
@@ -35,7 +35,7 @@ namespace Tesses::CrossLang
     TFileChunk* TFileChunk::Create(GCList& ls)
     {
         TFileChunk* chk = new TFileChunk();
-        GC* _gc = ls.GetGC();
+        std::shared_ptr<GC> _gc = ls.GetGC();
         ls.Add(chk);
         _gc->Watch(chk);
         return chk;
@@ -43,7 +43,7 @@ namespace Tesses::CrossLang
     TFileChunk* TFileChunk::Create(GCList* ls)
     {
         TFileChunk* chk = new TFileChunk();
-        GC* _gc = ls->GetGC();
+        std::shared_ptr<GC> _gc = ls->GetGC();
         ls->Add(chk);
         _gc->Watch(chk);
         return chk;
@@ -280,7 +280,7 @@ namespace Tesses::CrossLang
         return nullptr;
     }
 
-    void TFile::Load(GC* gc, std::shared_ptr<Tesses::Framework::Streams::Stream> stream)
+    void TFile::Load(std::shared_ptr<GC> gc, std::shared_ptr<Tesses::Framework::Streams::Stream> stream)
     {
         
         uint8_t main_header[18];

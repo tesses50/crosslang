@@ -99,7 +99,7 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }   
-    void TStd::RegisterCrypto(GC* gc,TRootEnvironment* env)
+    void TStd::RegisterCrypto(std::shared_ptr<GC> gc,TRootEnvironment* env)
     {
 
         env->permissions.canRegisterCrypto=true;

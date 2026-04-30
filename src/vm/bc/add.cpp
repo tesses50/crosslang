@@ -10,7 +10,7 @@
 #include <sstream>
 #include <variant>
 namespace Tesses::CrossLang {
-    bool InterperterThread::Add(GC* gc)
+    bool InterperterThread::Add(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
         GCList ls(gc);

@@ -129,7 +129,7 @@ namespace Tesses::CrossLang
         }
         return nullptr;
     }
-    void TStd::RegisterDictionary(GC* gc,TRootEnvironment* env)
+    void TStd::RegisterDictionary(std::shared_ptr<GC> gc,TRootEnvironment* env)
     {
 
         env->permissions.canRegisterDictionary=true;

@@ -4,7 +4,7 @@ namespace Tesses::CrossLang {
     {
         TDynamicList* list=new TDynamicList();
         list->cb = callable;
-        GC* _gc = ls.GetGC();
+        std::shared_ptr<GC> _gc = ls.GetGC();
         ls.Add(list);
         _gc->Watch(list);
         return list;
@@ -13,7 +13,7 @@ namespace Tesses::CrossLang {
     {
         TDynamicList* list=new TDynamicList();
         list->cb = callable;
-        GC* _gc = ls->GetGC();
+        std::shared_ptr<GC> _gc = ls->GetGC();
         ls->Add(list);
         _gc->Watch(list);
         return list;
@@ -140,7 +140,7 @@ namespace Tesses::CrossLang {
     TByteArray* TByteArray::Create(GCList& ls)
     {
          TByteArray* arr=new TByteArray();
-        GC* _gc = ls.GetGC();
+        std::shared_ptr<GC> _gc = ls.GetGC();
         ls.Add(arr);
         _gc->Watch(arr);
         return arr;
@@ -149,7 +149,7 @@ namespace Tesses::CrossLang {
     TByteArray* TByteArray::Create(GCList* ls)
     {
          TByteArray* arr=new TByteArray();
-        GC* _gc = ls->GetGC();
+        std::shared_ptr<GC> _gc = ls->GetGC();
         ls->Add(arr);
         _gc->Watch(arr);
         return arr;
@@ -157,7 +157,7 @@ namespace Tesses::CrossLang {
     TList* TList::Create(GCList* gc)
     {
         TList* list=new TList();
-        GC* _gc = gc->GetGC();
+        std::shared_ptr<GC> _gc = gc->GetGC();
         gc->Add(list);
         _gc->Watch(list);
         return list;
@@ -165,7 +165,7 @@ namespace Tesses::CrossLang {
     TList* TList::Create(GCList& gc)
     {
         TList* list=new TList();
-        GC* _gc = gc.GetGC();
+        std::shared_ptr<GC> _gc = gc.GetGC();
         gc.Add(list);
         _gc->Watch(list);
         return list;

@@ -308,7 +308,7 @@ namespace Tesses::CrossLang
     {
         
     }
-    Parser::Parser(std::vector<LexToken> tokens, GC* gc, TRootEnvironment* env)
+    Parser::Parser(std::vector<LexToken> tokens, std::shared_ptr<GC> gc, TRootEnvironment* env)
     {
         this->i = 0;
         this->tokens = tokens;

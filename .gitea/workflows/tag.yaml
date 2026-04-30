@@ -5,68 +5,70 @@ on:
       - 'v*'
 
 env:
-  GITEA_AUTH: ${{ secrets.MY_GITEA_AUTH }}
+  PACKAGE_AND_BREW: ${{ secrets.PACKAGE_AND_BREW }} 
+  VERSION: ${{ gitea.ref_name }}
+  RESULT_IMAGE_NAME: tesses50/crosslang
+  GITEA_DOMAIN: git.tesses.org
+  GITEA_REGISTRY_USER: tesses50
 
 jobs:
   build-arch:
     runs-on: arch-builder
     steps:
       - uses: actions/checkout@v4
-      - run: wget -O /root/repository.key https://git.tesseslanguage.com/api/packages/tesses50/arch/repository.key
+      - run: wget -O /root/repository.key https://git.tesses.org/api/packages/tesses50/arch/repository.key
       - run: pacman-key --add /root/repository.key
       - run: pacman-key --config /opt/cross/ppc/pacman.conf --add /root/repository.key
-      - run: printf "[tesses50.git.tesseslanguage.com]\nSigLevel = Optional TrustAll\nServer = https://git.tesseslanguage.com/api/packages/tesses50/arch/core/\$arch\n" >> /etc/pacman.conf
-      - run: printf "[tesses50.git.tesseslanguage.com]\nSigLevel = Optional TrustAll\nServer = https://git.tesseslanguage.com/api/packages/tesses50/arch/core/\$arch\n" >> /opt/cross/ppc/pacman.conf
-      - run: pacman --noconfirm -Sy mbedtls curl tesses-framework
-      - run: pacman --config /opt/cross/ppc/pacman.conf --noconfirm -Sy mbedtls tesses-framework
+      - run: printf "[tesses50.git.tesses.org]\nSigLevel = Optional TrustAll\nServer = https://git.tesses.org/api/packages/tesses50/arch/core/\$arch\n" >> /etc/pacman.conf
+      - run: printf "[tesses50.git.tesses.org]\nSigLevel = Optional TrustAll\nServer = https://git.tesses.org/api/packages/tesses50/arch/core/\$arch\n" >> /opt/cross/ppc/pacman.conf
+      - run: pacman --noconfirm -Sy mbedtls curl tessesframework zip zig ninja
+      - run: pacman --config /opt/cross/ppc/pacman.conf --noconfirm -Sy mbedtls tessesframework
       - run: cp Packaging/Linux/PKGBUILD /home/build/PKGBUILD
       - run: cp Packaging/Linux/build-arch.sh /home/build/build-arch.sh
       - run: chmod 755 /home/build/build-arch.sh
       - run: chown build:build /home/build/PKGBUILD
       - run: chown build:build /home/build/build-arch.sh
       - run: su build -c /home/build/build-arch.sh
-  build-jammy:
-    runs-on: deb-builder-jammy
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build for jammy, noble
-        run: |
-          mkdir ../../artifacts
-          apt update -y
-          apt install -y pkg-config git
-          bash build-ubuntu-jammy.sh
-          bash push-ubuntu-jammy.sh
-          bash build-tars.sh
-        working-directory: ./Packaging/Linux
+      - run: env -C Packaging/Slim bash build.sh
       - uses: akkuman/gitea-release-action@v1
-        prerelease: true
         env:
           NODE_OPTIONS: '--experimental-fetch' # if nodejs < 18
         with:
+          prerelease: true
           files: |-
-            artifacts/**
-  build-plucky:
-    runs-on: deb-builder-plucky
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build for plucky, resolute
-        run: |
-          mkdir ../../artifacts
-          apt update -y
-          apt install -y pkg-config git gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 gcc-mingw-w64-i686 g++-mingw-w64-i686 nsis
-          bash build-ubuntu-plucky.sh
-          bash push-ubuntu-plucky.sh
-          bash build-slims.sh
-        working-directory: ./Packaging/Linux
-      
-      - name: Build for windows
-        run: bash build.sh
+            artifacts/** 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GITEA_DOMAIN }}
+          username: ${{ env.GITEA_REGISTRY_USER }}
+          password: ${{ secrets.PACKAGE_AND_BREW }}
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          image: ${{ env.GITEA_DOMAIN }}/${{ env.RESULT_IMAGE_NAME }}
+          tags: ${{ env.VERSION }}, latest
           
-        working-directory: ./Packaging/Windows
-      - uses: akkuman/gitea-release-action@v1
-        prerelease: true
-        env:
-          NODE_OPTIONS: '--experimental-fetch' # if nodejs < 18
+  update-tap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          files: |-
-            artifacts/**
+          ref: "master"
+          path: "tapdir"
+          repository: "tesses50/tesses-tap.git"
+          token: ${{ env.PACKAGE_AND_BREW }}
+      - run: |
+          cd tapdir
+          bash ../Packaging/edit-formula.sh
+          git config user.name "Tesses Gitea Bot"
+          git config user.email "noreply@tesses.net"
+          git add .
+          git commit -m "Push crosslang=${{ env.VERSION }}"
+          git push

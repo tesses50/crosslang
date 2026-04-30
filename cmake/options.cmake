@@ -15,4 +15,4 @@ option(CROSSLANG_CUSTOM_CONSOLE "Enable custom Console" OFF)
 
 
 
-set(CROSSLANG_OFFLINE_SHELL_PACKAGE "" CACHE FILEPATH "Path to the shell package generated from https://onedev.site.tesses.net/CrossLang/CrossLangExtras")
+set(CROSSLANG_OFFLINE_SHELL_PACKAGE "" CACHE FILEPATH "Path to the shell package generated from https://git.tesses.org/crosslangextras")

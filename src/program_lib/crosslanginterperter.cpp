@@ -9,7 +9,7 @@ using namespace Tesses::Framework::Filesystem;
 namespace Tesses::CrossLang::Programs {
 TObject CrossLangInterperter(GCList& ls,TRootEnvironment* env,std::vector<std::string>& argv)
 {
-    GC* gc = ls.GetGC();    
+    std::shared_ptr<GC> gc = ls.GetGC();    
     if(argv.size() > 1)
     {
         std::ifstream strm(argv[1],std::ios_base::in|std::ios_base::binary);

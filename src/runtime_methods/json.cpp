@@ -186,7 +186,7 @@ namespace Tesses::CrossLang
     {
         return JsonDeserialize(ls,Json::DocDecode(str));
     }
-    void TStd::RegisterJson(GC* gc,TRootEnvironment* env)
+    void TStd::RegisterJson(std::shared_ptr<GC> gc,TRootEnvironment* env)
     {
 
         env->permissions.canRegisterJSON=true;

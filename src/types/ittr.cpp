@@ -2,7 +2,7 @@
 
 namespace Tesses::CrossLang
 {
-    bool TYieldEnumerator::MoveNext(GC* ls)
+    bool TYieldEnumerator::MoveNext(std::shared_ptr<GC> ls)
     {
         CallStackEntry* ent;
         GCList ls2(ls);
@@ -56,7 +56,7 @@ namespace Tesses::CrossLang
         yieldEnum->hasStarted=false;
         yieldEnum->enumerator = v;
         
-        GC* _gc = ls.GetGC();
+        std::shared_ptr<GC> _gc = ls.GetGC();
         ls.Add(yieldEnum);
         _gc->Watch(yieldEnum);
         return yieldEnum;
@@ -69,13 +69,13 @@ namespace Tesses::CrossLang
         yieldEnum->hasStarted=false;
         yieldEnum->enumerator = v;
         
-        GC* _gc = ls->GetGC();
+        std::shared_ptr<GC> _gc = ls->GetGC();
         ls->Add(yieldEnum);
         _gc->Watch(yieldEnum);
         return yieldEnum;
     }
     
-    bool TCustomEnumerator::MoveNext(GC* ls)
+    bool TCustomEnumerator::MoveNext(std::shared_ptr<GC> ls)
     {   
         GCList ls2(ls);
         auto res = this->dict->CallMethod(ls2,"MoveNext",{});
@@ -110,7 +110,7 @@ namespace Tesses::CrossLang
     {
         TCustomEnumerator* customEnum = new TCustomEnumerator();
         customEnum->dict = dict;
-        GC* _gc = ls->GetGC();
+        std::shared_ptr<GC> _gc = ls->GetGC();
         ls->Add(customEnum);
         _gc->Watch(customEnum);
         return customEnum;
@@ -119,7 +119,7 @@ namespace Tesses::CrossLang
     {
         TCustomEnumerator* customEnum = new TCustomEnumerator();
         customEnum->dict = dict;
-        GC* _gc = ls.GetGC();
+        std::shared_ptr<GC> _gc = ls.GetGC();
         ls.Add(customEnum);
         _gc->Watch(customEnum);
         return customEnum;
@@ -162,7 +162,7 @@ namespace Tesses::CrossLang
     {
         TVFSPathEnumerator* vfspathe = new TVFSPathEnumerator();
         vfspathe->enumerator = enumerator;
-        GC* _gc = ls.GetGC();
+        std::shared_ptr<GC> _gc = ls.GetGC();
         ls.Add(vfspathe);
         _gc->Watch(vfspathe);
         return vfspathe;
@@ -171,12 +171,12 @@ namespace Tesses::CrossLang
     {
         TVFSPathEnumerator* vfspathe = new TVFSPathEnumerator();
         vfspathe->enumerator = enumerator;
-        GC* _gc = ls->GetGC();
+        std::shared_ptr<GC> _gc = ls->GetGC();
         ls->Add(vfspathe);
         _gc->Watch(vfspathe);
         return vfspathe;
     }
-    bool TVFSPathEnumerator::MoveNext(GC* ls)
+    bool TVFSPathEnumerator::MoveNext(std::shared_ptr<GC> ls)
     {
         return enumerator.MoveNext();
     }
@@ -189,7 +189,7 @@ namespace Tesses::CrossLang
         TDictionaryEnumerator* dicte=new TDictionaryEnumerator();
         dicte->dict = dict;
         dicte->hasStarted=false;
-        GC* _gc = ls.GetGC();
+        std::shared_ptr<GC> _gc = ls.GetGC();
         ls.Add(dicte);
         _gc->Watch(dicte);
         return dicte;
@@ -199,13 +199,13 @@ namespace Tesses::CrossLang
         TDictionaryEnumerator* dicte=new TDictionaryEnumerator();
         dicte->dict = dict;
         dicte->hasStarted=false;
-        GC* _gc = ls->GetGC();
+        std::shared_ptr<GC> _gc = ls->GetGC();
         ls->Add(dicte);
         _gc->Watch(dicte);
         return dicte;
     }
     
-    bool TDictionaryEnumerator::MoveNext(GC* ls)
+    bool TDictionaryEnumerator::MoveNext(std::shared_ptr<GC> ls)
     {
         if(!this->hasStarted)
         {
@@ -248,7 +248,7 @@ namespace Tesses::CrossLang
         TListEnumerator* liste=new TListEnumerator();
         liste->ls = list;
         liste->index = -1;
-        GC* _gc = ls.GetGC();
+        std::shared_ptr<GC> _gc = ls.GetGC();
         ls.Add(liste);
         _gc->Watch(liste);
         return liste;
@@ -258,12 +258,12 @@ namespace Tesses::CrossLang
         TListEnumerator* liste=new TListEnumerator();
         liste->ls = list;
         liste->index = -1;
-        GC* _gc = ls->GetGC();
+        std::shared_ptr<GC> _gc = ls->GetGC();
         ls->Add(liste);
         _gc->Watch(liste);
         return liste;
     }
-    bool TListEnumerator::MoveNext(GC* ls)
+    bool TListEnumerator::MoveNext(std::shared_ptr<GC> ls)
     {
         this->index++;
         return this->index >= 0 && this->index < this->ls->Count();
@@ -291,7 +291,7 @@ namespace Tesses::CrossLang
         TAssociativeArrayEnumerator* liste=new TAssociativeArrayEnumerator();
         liste->ls = list;
         liste->index = -1;
-        GC* _gc = ls.GetGC();
+        std::shared_ptr<GC> _gc = ls.GetGC();
         ls.Add(liste);
         _gc->Watch(liste);
         return liste;
@@ -301,12 +301,12 @@ namespace Tesses::CrossLang
         TAssociativeArrayEnumerator* liste=new TAssociativeArrayEnumerator();
         liste->ls = list;
         liste->index = -1;
-        GC* _gc = ls->GetGC();
+        std::shared_ptr<GC> _gc = ls->GetGC();
         ls->Add(liste);
         _gc->Watch(liste);
         return liste;
     }
-    bool TAssociativeArrayEnumerator::MoveNext(GC* ls)
+    bool TAssociativeArrayEnumerator::MoveNext(std::shared_ptr<GC> ls)
     {
         this->index++;
         return this->index >= 0 && this->index < this->ls->Count();
@@ -338,7 +338,7 @@ namespace Tesses::CrossLang
         TDynamicListEnumerator* liste=new TDynamicListEnumerator();
         liste->ls = list;
         liste->index = -1;
-        GC* _gc = ls.GetGC();
+        std::shared_ptr<GC> _gc = ls.GetGC();
         ls.Add(liste);
         _gc->Watch(liste);
         return liste;
@@ -348,12 +348,12 @@ namespace Tesses::CrossLang
         TDynamicListEnumerator* liste=new TDynamicListEnumerator();
         liste->ls = list;
         liste->index = -1;
-        GC* _gc = ls->GetGC();
+        std::shared_ptr<GC> _gc = ls->GetGC();
         ls->Add(liste);
         _gc->Watch(liste);
         return liste;
     }
-    bool TDynamicListEnumerator::MoveNext(GC* ls)
+    bool TDynamicListEnumerator::MoveNext(std::shared_ptr<GC> ls)
     {
         this->index++;
         GCList ls2(ls);
@@ -384,7 +384,7 @@ namespace Tesses::CrossLang
         TStringEnumerator* stre=new TStringEnumerator();
         stre->str = str;
         stre->hasStarted=false;
-        GC* _gc = ls.GetGC();
+        std::shared_ptr<GC> _gc = ls.GetGC();
         ls.Add(stre);
         _gc->Watch(stre);
         return stre;
@@ -394,12 +394,12 @@ namespace Tesses::CrossLang
         TStringEnumerator* stre=new TStringEnumerator();
         stre->str = str;
         stre->hasStarted=false;
-        GC* _gc = ls->GetGC();
+        std::shared_ptr<GC> _gc = ls->GetGC();
         ls->Add(stre);
         _gc->Watch(stre);
         return stre;
     }
-    bool TStringEnumerator::MoveNext(GC* ls)
+    bool TStringEnumerator::MoveNext(std::shared_ptr<GC> ls)
     {
         if(!this->hasStarted)
         {

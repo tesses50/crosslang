@@ -43,7 +43,7 @@ namespace Tesses::CrossLang
     {
         return true;
     }
-    bool TNativeObject::Equals(GC* gc, TObject right)
+    bool TNativeObject::Equals(std::shared_ptr<GC> gc, TObject right)
     {
         if(std::holds_alternative<THeapObjectHolder>(right))
         {
@@ -54,7 +54,7 @@ namespace Tesses::CrossLang
     TNative* TNative::Create(GCList& ls, void* ptr,std::function<void(void*)> destroy)
     {
         TNative* native = new TNative(ptr,destroy);
-        GC* gc = ls.GetGC();
+        std::shared_ptr<GC> gc = ls.GetGC();
         ls.Add(native);
         gc->Watch(native);
         return native;
@@ -62,7 +62,7 @@ namespace Tesses::CrossLang
     TNative* TNative::Create(GCList* ls, void* ptr,std::function<void(void*)> destroy)
     {
         TNative* native = new TNative(ptr,destroy);
-        GC* gc = ls->GetGC();
+        std::shared_ptr<GC> gc = ls->GetGC();
         ls->Add(native);
         gc->Watch(native);
         return native;

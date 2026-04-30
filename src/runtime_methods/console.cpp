@@ -280,7 +280,7 @@ namespace Tesses::CrossLang {
 
         return dict;
     }
-    void TStd::RegisterConsole(GC* gc,TRootEnvironment* env)
+    void TStd::RegisterConsole(std::shared_ptr<GC> gc,TRootEnvironment* env)
     {
          env->permissions.canRegisterConsole=true;
         if(env->permissions.customConsole != nullptr)

@@ -44,6 +44,9 @@ namespace Tesses::CrossLang
                         }
                             
                         break;
+                    default:
+                        //DO NOTHING
+                        break;
                 }
                 return &item;
             }

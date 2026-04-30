@@ -8,8 +8,8 @@ int main(int argc, char** argv)
     TF_InitWithConsole();
     if(argc > 0)
         TF_AllowPortable(argv[0]);
-    GC gc;
-    gc.Start();
+    std::shared_ptr<GC> gc= std::make_shared<GC>();
+    gc->Start();
     GCList ls(gc);
     
 

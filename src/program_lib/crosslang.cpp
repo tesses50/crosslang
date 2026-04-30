@@ -15,7 +15,8 @@ static bool Download(Tesses::Framework::Filesystem::VFSPath filename,std::shared
     if(inContainer && (*inContainer=="1" || *inContainer=="y" || *inContainer=="Y"))
     {
         HttpRequest req;
-        req.url = "https://downloads.tesses.net/ShellPackage.crvm";
+        req.followRedirects=true;
+        req.url = "https://redirect.tesses.net/crosslang-shell";
         req.method = "GET";
         HttpResponse resp(req);
         if(resp.statusCode == StatusCode::OK)
@@ -34,13 +35,14 @@ static bool Download(Tesses::Framework::Filesystem::VFSPath filename,std::shared
 
     while(true)
     {
-        std::cout << "File " << filename.ToString() << " not found, do you want to download the installer from: https://downloads.tesses.net/ShellPackage.crvm (this may install other stuff as well) (Y/n)? ";
+        std::cout << "File " << filename.ToString() << " not found, do you want to download the installer from: https://redirect.tesses.net/crosslang-shell (this may install other stuff as well) (Y/n)? ";
         std::string line;
         std::getline(std::cin,line);
         if(line == "Y" || line == "y")
         {
             HttpRequest req;
-            req.url = "https://downloads.tesses.net/ShellPackage.crvm";
+            req.followRedirects = true;
+            req.url = "https://redirect.tesses.net/crosslang-shell";
             req.method = "GET";
             HttpResponse resp(req);
             if(resp.statusCode == StatusCode::OK)
@@ -89,7 +91,8 @@ TObject CrossLangShell(GCList& ls, std::vector<std::string>& argv)
 
         auto subdir = std::make_shared<Tesses::Framework::Filesystem::SubdirFilesystem>(Tesses::Framework::Filesystem::LocalFS,dir);
         HttpRequest req;
-            req.url = "https://downloads.tesses.net/ShellPackage.crvm";
+        req.followRedirects=true;
+            req.url = "https://redirect.tesses.net/crosslang-shell";
             req.method = "GET";
             HttpResponse resp(req);
             if(resp.statusCode == StatusCode::OK)

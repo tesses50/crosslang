@@ -4,7 +4,7 @@ namespace Tesses::CrossLang {
     {
         TArgWrapper* argWrapper = new TArgWrapper();
         argWrapper->callable = callable;
-        GC* gc = ls.GetGC();
+        std::shared_ptr<GC> gc = ls.GetGC();
         ls.Add(argWrapper);
         gc->Watch(argWrapper);
         return argWrapper;
@@ -13,7 +13,7 @@ namespace Tesses::CrossLang {
     {
         TArgWrapper* argWrapper = new TArgWrapper();
         argWrapper->callable = callable;
-        GC* gc = ls->GetGC();
+        std::shared_ptr<GC> gc = ls->GetGC();
         ls->Add(argWrapper);
         gc->Watch(argWrapper);
         return argWrapper;
@@ -54,7 +54,7 @@ namespace Tesses::CrossLang {
         TClosure* closure = new TClosure();
         closure->className="";
         closure->ownScope=ownScope;
-        GC* _gc = ls.GetGC();
+        std::shared_ptr<GC> _gc = ls.GetGC();
         ls.Add(closure);
         _gc->Watch(closure);
         closure->chunkId = chunkId;
@@ -71,7 +71,7 @@ namespace Tesses::CrossLang {
         TClosure* closure = new TClosure();
         closure->className="";
         closure->ownScope=ownScope;
-        GC* _gc = ls->GetGC();
+        std::shared_ptr<GC> _gc = ls->GetGC();
         ls->Add(closure);
         _gc->Watch(closure);
         closure->chunkId = chunkId;

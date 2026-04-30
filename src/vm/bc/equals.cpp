@@ -13,7 +13,7 @@
 
 namespace Tesses::CrossLang {
 
-    bool Equals(GC* gc, TObject left, TObject right)
+    bool Equals(std::shared_ptr<GC> gc, TObject left, TObject right)
     {
         GCList ls(gc);
         if(std::holds_alternative<std::nullptr_t>(left) && std::holds_alternative<std::nullptr_t>(right))

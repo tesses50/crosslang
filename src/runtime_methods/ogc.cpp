@@ -46,7 +46,7 @@ namespace Tesses::CrossLang
     }
     #endif
     #endif
-    void TStd::RegisterOGC(GC* gc, TRootEnvironment* env)
+    void TStd::RegisterOGC(std::shared_ptr<GC> gc, TRootEnvironment* env)
     {
         GCList ls(gc);
         #if defined(GEKKO)

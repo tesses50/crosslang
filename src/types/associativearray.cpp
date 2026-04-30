@@ -6,7 +6,7 @@ namespace Tesses::CrossLang
     TAssociativeArray* TAssociativeArray::Create(GCList& ls)
     {
         TAssociativeArray* list=new TAssociativeArray();
-        GC* _gc = ls.GetGC();
+        std::shared_ptr<GC> _gc = ls.GetGC();
         ls.Add(list);
         _gc->Watch(list);
         return list;
@@ -14,12 +14,12 @@ namespace Tesses::CrossLang
     TAssociativeArray* TAssociativeArray::Create(GCList* ls)
     {
         TAssociativeArray* list=new TAssociativeArray();
-        GC* _gc = ls->GetGC();
+        std::shared_ptr<GC> _gc = ls->GetGC();
         ls->Add(list);
         _gc->Watch(list);
         return list;
     }
-    void TAssociativeArray::Set(GC* gc, TObject key, TObject value)
+    void TAssociativeArray::Set(std::shared_ptr<GC> gc, TObject key, TObject value)
     {
          if(std::holds_alternative<Undefined>(key)) return;
         gc->BarrierBegin();
@@ -46,7 +46,7 @@ namespace Tesses::CrossLang
         this->items.push_back(std::pair<TObject,TObject>(key,value));
         gc->BarrierEnd();
     }
-    TObject TAssociativeArray::Get(GC* gc, TObject key)
+    TObject TAssociativeArray::Get(std::shared_ptr<GC> gc, TObject key)
     {
         if(std::holds_alternative<Undefined>(key)) return Undefined();
         gc->BarrierBegin();

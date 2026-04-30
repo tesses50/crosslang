@@ -379,6 +379,56 @@ namespace Tesses::CrossLang
                         ctx->WithLastModified(*da);
                     return this;
                 }
+                else if(key == "WithDebug")
+                {
+                    bool debug=true;
+                    GetArgument(args,0,debug);
+
+                    ctx->WithDebug(debug);
+
+                    return this;
+                }
+
+                else if(key == "getDebug")
+                {
+                    return ctx->Debug();
+                }
+                else if(key == "SendServerSentEvents")
+                {
+                    if(!args.empty() && std::holds_alternative<std::shared_ptr<Tesses::Framework::Http::ServerSentEvents>>(args[0]))
+                    {
+                        ctx->SendServerSentEvents(std::get<std::shared_ptr<Tesses::Framework::Http::ServerSentEvents>>(args[0]));
+                    }
+                    
+                }
+                else if(key == "WithHeaderIntercepter")
+                {
+                    TCallable* callable;
+                    if(GetArgumentHeap(args, 0, callable))
+                    {
+                        auto marked = CreateMarkedTObject(ls.GetGC(),callable);
+                        ctx->WithHeaderIntercepter([marked](ServerContext& ctx)->bool {
+                            auto obj = marked->GetObject();
+                            TCallable* callable;
+                            if(GetObjectHeap(obj, callable))
+                            {
+                                GCList ls(marked->GetGC());
+
+                                auto ptr=TNativeObject::Create<TServerContext>(ls, &ctx);
+
+                                auto res = callable->Call(ls, {ptr});
+                                ptr->Finish();
+                                bool r0;
+                                if(GetObject(res, r0)) return r0;
+
+
+                            }
+
+                            return false;
+                        });
+                    }
+                    return this;
+                }
                 else if(key == "WithContentDisposition")
                 {
                     std::string filename;
@@ -589,7 +639,7 @@ namespace Tesses::CrossLang
             }
     };
    
-    TObjectHttpServer::TObjectHttpServer(GC* gc,TObject obj)
+    TObjectHttpServer::TObjectHttpServer(std::shared_ptr<GC> gc,TObject obj)
     {
         this->ls=new GCList(gc);
         this->ls->Add(obj);
@@ -598,10 +648,10 @@ namespace Tesses::CrossLang
  
     class TDictionaryHttpRequestBody : public HttpRequestBody
     {
-        GC* gc;
+        std::shared_ptr<GC> gc;
         TDictionary* req;
         public:
-            TDictionaryHttpRequestBody(GC* gc,TDictionary* req)
+            TDictionaryHttpRequestBody(std::shared_ptr<GC> gc,TDictionary* req)
             {
                 this->gc = gc;
                 this->req = req;
@@ -790,7 +840,7 @@ namespace Tesses::CrossLang
             
         }
 
-        if(GetArgument(args,1,pathStr) && env->permissions.canRegisterLocalFS)
+        if(GetArgument(args,1,pathStr) && env->permissions.localfs)
         {
             std::shared_ptr<IHttpServer> httpSvr = ToHttpServer(ls.GetGC(),args[0]);
             
@@ -979,7 +1029,7 @@ namespace Tesses::CrossLang
                 GetObject(_obj,req.followRedirects);
                 _obj = options->GetValue("TrustedRootCertBundle");
                 GetObject(_obj,req.trusted_root_cert_bundle);
-                if(env->permissions.canRegisterLocalFS)
+                if(env->permissions.localfs)
                 {
                     _obj = options->GetValue("UnixSocket");
                     GetObject(_obj,req.unixSocket);
@@ -1403,7 +1453,7 @@ namespace Tesses::CrossLang
         return false;
     }
 
-    std::shared_ptr<IHttpServer> ToHttpServer(GC* gc, TObject obj)
+    std::shared_ptr<IHttpServer> ToHttpServer(std::shared_ptr<GC> gc, TObject obj)
     {
         if(std::holds_alternative<std::shared_ptr<IHttpServer>>(obj)) return std::get<std::shared_ptr<IHttpServer>>(obj);
         TDictionary* dict;
@@ -1522,8 +1572,13 @@ namespace Tesses::CrossLang
         return nullptr;
         
     }
+
+    static TObject New_ServerSentEvents(GCList& ls, std::vector<TObject> args)
+    {
+        return std::make_shared<Tesses::Framework::Http::ServerSentEvents>();
+    }
     
-    void TStd::RegisterNet(GC* gc, TRootEnvironment* env)
+    void TStd::RegisterNet(std::shared_ptr<GC> gc, TRootEnvironment* env)
     {
 
         env->permissions.canRegisterNet=true;
@@ -1545,6 +1600,7 @@ namespace Tesses::CrossLang
         _new->DeclareFunction(gc, "MountableServer","Create a server you can mount to, must mount parents before child",{"root"}, New_MountableServer);
         _new->DeclareFunction(gc, "NetworkStream","Create a network stream",{"ipv6","datagram"},New_NetworkStream);
         
+        _new->DeclareFunction(gc, "ServerSentEvents", "Create server sent events object",{""},New_ServerSentEvents);
         
 
         TDictionary* http = TDictionary::Create(ls);
@@ -1617,7 +1673,7 @@ namespace Tesses::CrossLang
         gc->BarrierEnd();
     }
 
-    Tesses::Framework::Http::ServerRequestHandler TCallable::ToRouteServerRequestHandler(GC* gc)
+    Tesses::Framework::Http::ServerRequestHandler TCallable::ToRouteServerRequestHandler(std::shared_ptr<GC> gc)
     {
         auto value = CreateMarkedTObject(gc,this);
         return [value,this](ServerContext& ctx)->bool {

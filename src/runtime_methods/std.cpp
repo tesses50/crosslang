@@ -376,7 +376,7 @@ namespace Tesses::CrossLang
     
     
 
-    void RegisterFFI(GC* gc, TDictionary* dict)
+    void RegisterFFI(std::shared_ptr<GC> gc, TDictionary* dict)
     {
         dict->SetValue("SizeOfChar",(int64_t)sizeof(char));
         dict->SetValue("SizeOfShort",(int64_t)sizeof(short));
@@ -485,14 +485,14 @@ namespace Tesses::CrossLang
     }
 
 
-    void LoadPlugin(GC* gc, TRootEnvironment* env, Tesses::Framework::Filesystem::VFSPath sharedObjectPath)
+    void LoadPlugin(std::shared_ptr<GC> gc, TRootEnvironment* env, Tesses::Framework::Filesystem::VFSPath sharedObjectPath)
     {
         
         #if defined(CROSSLANG_ENABLE_SHARED)
         auto ptr = std::make_shared<DL>(GetPluginPath(sharedObjectPath));
         auto cb = ptr->Resolve<PluginFunction>("CrossLangPluginInit");
         if(cb == nullptr) return;
-        gc->RegisterEverythingCallback([ptr,cb](GC* gc, TRootEnvironment* env)-> void{
+        gc->RegisterEverythingCallback([ptr,cb](std::shared_ptr<GC> gc, TRootEnvironment* env)-> void{
             cb(gc,env);
         });
         cb(gc,env);
@@ -747,6 +747,9 @@ namespace Tesses::CrossLang
    
     std::string GetObjectTypeString(TObject _obj)
     {
+        if(std::holds_alternative<std::shared_ptr<Tesses::Framework::TF_Timer_Handle>>(_obj)) return "Timer";
+
+        if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Http::ServerSentEvents>>(_obj)) return "ServerSentEvents";
         if(std::holds_alternative<std::regex>(_obj)) return "Regex";
         if(std::holds_alternative<Undefined>(_obj)) return "Undefined";
         if(std::holds_alternative<std::nullptr_t>(_obj)) return "Null";
@@ -861,11 +864,20 @@ namespace Tesses::CrossLang
             auto vfs = std::get<std::shared_ptr<Tesses::Framework::Filesystem::VFS>>(_obj);
             if(vfs != nullptr)
             {
+                auto rfs = std::dynamic_pointer_cast<RelativeFilesystem>(vfs);
                 auto localVFS = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::LocalFilesystem>(vfs);
                 auto mountableVFS = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::MountableFilesystem>(vfs);
                 auto subFS = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::SubdirFilesystem>(vfs);
                 auto tempFS = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::TempFS>(vfs);
-
+                if(rfs)
+                {
+                    auto fs=rfs->GetVFS();
+                    if(fs)
+                    {
+                        return GetObjectTypeString(fs);
+                    }
+                    return "RelativeFilesystem";
+                }
                 if(localVFS != nullptr) return "LocalFilesystem";
                 if(subFS != nullptr) return "SubdirFilesystem";
                 if(mountableVFS != nullptr) return "MountableFilesystem";
@@ -897,6 +909,7 @@ namespace Tesses::CrossLang
             auto natObj = dynamic_cast<TNativeObject*>(obj);
             auto cobj = dynamic_cast<TClassObject*>(obj);
             auto aarray = dynamic_cast<TAssociativeArray*>(obj);
+            auto file = dynamic_cast<TFile*>(obj);
 
             if(rootEnv != nullptr) return "RootEnvironment";
             if(subEnv != nullptr) return "SubEnvironment";
@@ -917,6 +930,7 @@ namespace Tesses::CrossLang
             if(byteArray != nullptr) return "ByteArray";
             if(native != nullptr) return "Native";
             if(any != nullptr) return "Any";
+            if(file != nullptr) return "File";
 
             return "HeapObject";
         }
@@ -1013,7 +1027,6 @@ namespace Tesses::CrossLang
         this->canRegisterEnv=false;
         this->canRegisterIO=false;
         this->canRegisterJSON=false;
-        this->canRegisterLocalFS=false;
         this->canRegisterNet=false;
         this->canRegisterOGC=false;
         this->canRegisterPath=false;
@@ -1261,8 +1274,34 @@ namespace Tesses::CrossLang
             return std::make_shared<Tesses::Framework::Streams::ByteWriter>(strm);
         return nullptr;
     }
+    static void empty(){}
+    static TObject New_Timer(GCList& ls, std::vector<TObject> args)
+    {
+        TCallable* callable;
+        if(GetArgumentHeap(args, 0, callable))
+        {
+            int64_t interval = 1000;
+            bool enabled=true;
+            GetArgument(args,1, interval);
+            GetArgument(args,2,enabled);
 
-    void TStd::RegisterRoot(GC* gc, TRootEnvironment* env)
+            auto obj = CreateMarkedTObject(ls.GetGC(), callable);
+
+            return Tesses::Framework::TF_Timer([obj]()->void {
+                TCallable* callable;
+                if(GetObjectHeap(obj->GetObject(), callable))
+                {
+                    GCList ls(obj->GetGC());
+                    callable->Call(ls,{});
+                }
+            }, interval , enabled);
+        }
+        
+
+        return Tesses::Framework::TF_Timer(empty, 1000L, false);
+    }
+
+    void TStd::RegisterRoot(std::shared_ptr<GC> gc, TRootEnvironment* env)
     {
         GCList ls(gc);      
         
@@ -1325,8 +1364,9 @@ namespace Tesses::CrossLang
         newTypes->DeclareFunction(gc, "MemoryStream","Create a memory stream",{"writable"}, New_MemoryStream);
         newTypes->DeclareFunction(gc, "Filesystem","Create filesystem", {"fs"},New_Filesystem);
         newTypes->DeclareFunction(gc, "TempFS","Create a temp directory",{"",""}, New_TempFS);
+        newTypes->DeclareFunction(gc, "Timer", "Create a timer",{"$cb","$interval","$enabled"}, New_Timer);
         newTypes->DeclareFunction(gc, "Stream","Create stream", {"strm"},New_Stream);
-        
+
     
         newTypes->DeclareFunction(gc,"Version","Create a version object",{"$major","$minor","$patch","$build","$stage"},[](GCList& ls, std::vector<TObject> args)->TObject{
             int64_t major=1;
@@ -1477,14 +1517,18 @@ namespace Tesses::CrossLang
         
         gc->BarrierEnd();
     }
-    void TStd::RegisterStd(GC* gc, TRootEnvironment* env)
+    void TStd::RegisterStd(std::shared_ptr<GC> gc, TRootEnvironment* env)
+    {
+        RegisterStd(gc, env, std::make_shared<RelativeFilesystem>(Tesses::Framework::Filesystem::LocalFS, Tesses::Framework::Filesystem::VFSPath::GetAbsoluteCurrentDirectory()));
+    }
+    void TStd::RegisterStd(std::shared_ptr<GC> gc, TRootEnvironment* env,std::shared_ptr<RelativeFilesystem> localfs)
     {
         env->permissions.canRegisterEverything=true;
         RegisterEnv(gc, env);
         RegisterRoot(gc,env);
         RegisterPath(gc,env);
         RegisterConsole(gc, env);
-        RegisterIO(gc, env);
+        RegisterIO(gc, env, localfs);
         RegisterNet(gc, env);
         RegisterSqlite(gc, env);
         RegisterVM(gc, env);

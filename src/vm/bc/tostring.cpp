@@ -10,7 +10,7 @@
 #include <sstream>
 #include <variant>
 namespace Tesses::CrossLang {
-     std::string ToString(GC* gc, TObject o)
+     std::string ToString(std::shared_ptr<GC> gc, TObject o)
     {
         if(std::holds_alternative<Tesses::Framework::Filesystem::VFSPath>(o))
         {

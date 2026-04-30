@@ -180,7 +180,7 @@ namespace Tesses::CrossLang  {
     {
         auto dict=TDictionary::Create(gc);
         TSubEnvironment* sEnv = this->GetSubEnvironment(dict);
-        GC* _gc = gc->GetGC();
+        std::shared_ptr<GC> _gc = gc->GetGC();
         gc->Add(sEnv);
         _gc->Watch(sEnv);
         return sEnv;
@@ -189,7 +189,7 @@ namespace Tesses::CrossLang  {
     {
         auto dict=TDictionary::Create(gc);
         TSubEnvironment* sEnv = this->GetSubEnvironment(dict);
-        GC* _gc = gc.GetGC();
+        std::shared_ptr<GC> _gc = gc.GetGC();
         gc.Add(sEnv);
         _gc->Watch(sEnv);
         return sEnv;
@@ -197,7 +197,7 @@ namespace Tesses::CrossLang  {
     TSubEnvironment* TSubEnvironment::Create(GCList* gc, TEnvironment* env, TDictionary* dict)
     {
         TSubEnvironment* senv = new TSubEnvironment(env,dict);
-        GC* _gc = gc->GetGC();
+        std::shared_ptr<GC> _gc = gc->GetGC();
         gc->Add(senv);
         _gc->Watch(senv);
         return senv;
@@ -205,7 +205,7 @@ namespace Tesses::CrossLang  {
     TSubEnvironment* TSubEnvironment::Create(GCList& gc, TEnvironment* env, TDictionary* dict)
     {
         TSubEnvironment* senv = new TSubEnvironment(env,dict);
-        GC* _gc = gc.GetGC();
+        std::shared_ptr<GC> _gc = gc.GetGC();
         gc.Add(senv);
         _gc->Watch(senv);
         return senv;
@@ -227,32 +227,20 @@ namespace Tesses::CrossLang  {
         this->env->Mark();
         for(auto defer : defers) defer->Mark();
     }
-    void TEnvironment::DeclareFunction(GC* gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb)
+    void TEnvironment::DeclareFunction(std::shared_ptr<GC> gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb)
     {
         gc->BarrierBegin();
         GCList ls(gc);
         this->DeclareVariable(key, TExternalMethod::Create(ls,documentation,argNames,cb));
         gc->BarrierEnd();
     }
-    void TEnvironment::DeclareFunction(GC& gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb)
-    {
-        gc.BarrierBegin();
-        GCList ls(gc);
-        this->DeclareVariable(key, TExternalMethod::Create(ls,documentation,argNames,cb));
-        gc.BarrierEnd();
-    }
-    void TEnvironment::DeclareFunction(GC* gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb,std::function<void()> destroy)
+    
+    void TEnvironment::DeclareFunction(std::shared_ptr<GC> gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb,std::function<void()> destroy)
     {
         gc->BarrierBegin();
         GCList ls(gc);
         this->DeclareVariable(key, TExternalMethod::Create(ls,documentation,argNames,cb,destroy));
         gc->BarrierEnd();
     }
-    void TEnvironment::DeclareFunction(GC& gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb,std::function<void()> destroy)
-    {
-        gc.BarrierBegin();
-        GCList ls(gc);
-        this->DeclareVariable(key, TExternalMethod::Create(ls,documentation,argNames,cb,destroy));
-        gc.BarrierEnd();
-    }
+    
 };

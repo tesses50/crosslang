@@ -10,7 +10,7 @@
 #include <sstream>
 #include <variant>
 namespace Tesses::CrossLang {
-    bool InterperterThread::GetField(GC* gc)
+    bool InterperterThread::GetField(std::shared_ptr<GC> gc)
     {
         std::vector<CallStackEntry*>& cse=this->call_stack_entries;
 
@@ -43,6 +43,25 @@ namespace Tesses::CrossLang {
 
                     cse.back()->Push(gc, len);
                     return false;
+                }
+                cse.back()->Push(gc, Undefined());
+                return false;
+            }
+            if(std::holds_alternative<std::shared_ptr<Tesses::Framework::TF_Timer_Handle>>(instance))
+            {
+                auto timer = std::get<std::shared_ptr<Tesses::Framework::TF_Timer_Handle>>(instance);
+                if(timer)
+                {
+                    if(key == "Interval")
+                    {
+                        cse.back()->Push(gc, timer->GetIntervalMilliseconds());
+                        return false;
+                    }    
+                    if(key == "Enabled")
+                    {
+                        cse.back()->Push(gc, timer->GetEnabled());
+                        return false;
+                    }   
                 }
                 cse.back()->Push(gc, Undefined());
                 return false;

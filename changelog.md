@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.4
+Rework for git.tesses.org, GC* is std::shared_ptr maybe will fix crash during exit
+
 ## 0.0.3
 Fixed cmake, unnecessary itteration on dictionary, and a crosslang binary bug when shell is not installed
 

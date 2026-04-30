@@ -150,7 +150,7 @@ namespace Tesses::CrossLang {
     }
     
     #endif
-    void TStd::RegisterSqlite(GC* gc,TRootEnvironment* env)
+    void TStd::RegisterSqlite(std::shared_ptr<GC> gc,TRootEnvironment* env)
     {
 
         env->permissions.canRegisterSqlite=true;

@@ -13,7 +13,7 @@ namespace Tesses::CrossLang {
         
         TClassEnvironment* env2=new TClassEnvironment(env,obj);
         
-        GC* _gc = gc->GetGC();
+        std::shared_ptr<GC> _gc = gc->GetGC();
         gc->Add(env2);
         _gc->Watch(env2);
         return env2;
@@ -23,7 +23,7 @@ namespace Tesses::CrossLang {
 
         TClassEnvironment* env2=new TClassEnvironment(env,obj);
         
-        GC* _gc = gc.GetGC();
+        std::shared_ptr<GC> _gc = gc.GetGC();
         gc.Add(env2);
         _gc->Watch(env2);
         return env2;

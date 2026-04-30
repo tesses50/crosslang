@@ -26,18 +26,19 @@ int main(int argc, char** argv)
         args[i] = argv[i];
         if(programName == "crossint")
         {
-            GC gc;
-            gc.Start();
+           
             int64_t myi64=0;
-            {
+            
+            std::shared_ptr<GC> gc= std::make_shared<GC>();
+            gc->Start();
             GCList ls(gc);
             TRootEnvironment* env = TRootEnvironment::Create(ls, TDictionary::Create(ls));
-            TStd::RegisterStd(&gc,env);
+            TStd::RegisterStd(gc,env);
             auto res= Programs::CrossLangInterperter(ls, env, args);
 
                 GetObject(res,myi64);
 
-            }
+            
             return (int)myi64;
         }
         else if(programName == "crossc")
@@ -74,17 +75,17 @@ int main(int argc, char** argv)
         }
         else if(programName == "crossvm")
         {
-            GC gc;
-            gc.Start();
+            std::shared_ptr<GC> gc= std::make_shared<GC>();
+            gc->Start();
             int64_t myi64=0;
 
-            {
+            
             GCList ls(gc);
             TRootEnvironment* env = TRootEnvironment::Create(ls, TDictionary::Create(ls));
-            TStd::RegisterStd(&gc,env);
+            TStd::RegisterStd(gc,env);
             auto res= Programs::CrossLangVM(ls, env, args);
             GetObject(res,myi64);
-            }
+            
                 return (int)myi64;
 
     }
@@ -95,16 +96,15 @@ int main(int argc, char** argv)
         {
             int64_t myi64=0;
             args.erase(args.begin());
-            GC gc;
-            gc.Start();
-            {
+            std::shared_ptr<GC> gc= std::make_shared<GC>();
+            gc->Start();
             GCList ls(gc);
             TRootEnvironment* env = TRootEnvironment::Create(ls, TDictionary::Create(ls));
-            TStd::RegisterStd(&gc,env);
+            TStd::RegisterStd(gc,env);
             auto res= Programs::CrossLangInterperter(ls, env, args);
 
                 GetObject(res,myi64);
-            }
+            
             return (int)myi64;
 
         }
@@ -148,33 +148,29 @@ int main(int argc, char** argv)
             int64_t myi64=0;
 
             args.erase(args.begin());
-            GC gc;
-
-            gc.Start();
-            {
+            std::shared_ptr<GC> gc= std::make_shared<GC>();
+            gc->Start();
             GCList ls(gc);
             TRootEnvironment* env = TRootEnvironment::Create(ls, TDictionary::Create(ls));
-            TStd::RegisterStd(&gc,env);
+            TStd::RegisterStd(gc,env);
             auto res= Programs::CrossLangVM(ls, env, args);
                 GetObject(res,myi64);
-            }
+            
 
             return (int)myi64;
         }
     }
     {
          int64_t myi64=0;
-        GC gc;
-
-        gc.Start();
-        {
+        std::shared_ptr<GC> gc= std::make_shared<GC>();
+        gc->Start();
             GCList ls(gc);
             auto res= Programs::CrossLangShell(ls, args);
 
             GetObject(res,myi64);
 
 
-        }
+        
         return (int)myi64;
     }
 }

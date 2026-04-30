@@ -40,6 +40,53 @@ namespace Tesses::CrossLang {
     using BitConverter = Tesses::Framework::Serialization::BitConverter;
     constexpr std::string_view VMName = "CrossLangVM";
     constexpr std::string_view VMHowToGet = "https://crosslang.tesseslanguage.com/";
+
+    class RelativeFilesystem : public Tesses::Framework::Filesystem::VFS
+    {
+        private:
+            std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+            Tesses::Framework::Filesystem::VFSPath path;
+            Tesses::Framework::Threading::Mutex mtx;
+
+        public:
+            RelativeFilesystem(std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, Tesses::Framework::Filesystem::VFSPath working);
+            std::shared_ptr<Tesses::Framework::Streams::Stream> OpenFile(Tesses::Framework::Filesystem::VFSPath path, std::string mode);
+
+            void CreateDirectory(Tesses::Framework::Filesystem::VFSPath path);
+            void DeleteDirectory(Tesses::Framework::Filesystem::VFSPath path);
+
+
+            void DeleteFile(Tesses::Framework::Filesystem::VFSPath path);
+            void CreateSymlink(Tesses::Framework::Filesystem::VFSPath existingFile, Tesses::Framework::Filesystem::VFSPath symlinkFile);
+            Tesses::Framework::Filesystem::VFSPathEnumerator EnumeratePaths(Tesses::Framework::Filesystem::VFSPath path);
+            void CreateHardlink(Tesses::Framework::Filesystem::VFSPath existingFile, Tesses::Framework::Filesystem::VFSPath newName);
+
+            void MoveFile(Tesses::Framework::Filesystem::VFSPath src, Tesses::Framework::Filesystem::VFSPath dest);
+
+            void MoveDirectory(Tesses::Framework::Filesystem::VFSPath src, Tesses::Framework::Filesystem::VFSPath dest);
+            Tesses::Framework::Filesystem::VFSPath ReadLink(Tesses::Framework::Filesystem::VFSPath path);
+            std::string VFSPathToSystem(Tesses::Framework::Filesystem::VFSPath path);
+            Tesses::Framework::Filesystem::VFSPath SystemToVFSPath(std::string path);
+
+            void SetDate(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Date::DateTime lastWrite, Tesses::Framework::Date::DateTime lastAccess);
+            bool Stat(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Filesystem::StatData& stat);
+            bool StatVFS(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Filesystem::StatVFSData& vfsData);
+
+            void Chmod(Tesses::Framework::Filesystem::VFSPath path, uint32_t mode);
+            void Chown(Tesses::Framework::Filesystem::VFSPath path, uint32_t uid, uint32_t gid);
+
+            void Lock(Tesses::Framework::Filesystem::VFSPath path);
+            void Unlock(Tesses::Framework::Filesystem::VFSPath path);
+
+            Tesses::Framework::Filesystem::FIFOCreationResult CreateFIFO(Tesses::Framework::Filesystem::VFSPath path, uint32_t mod);
+            Tesses::Framework::Filesystem::VFSPath GetWorking();
+            void SetWorking(Tesses::Framework::Filesystem::VFSPath working);
+            std::shared_ptr<Tesses::Framework::Filesystem::VFS> GetVFS();
+            protected:
+            std::shared_ptr<Tesses::Framework::Filesystem::FSWatcher> CreateWatcher(std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, Tesses::Framework::Filesystem::VFSPath path);
+            
+    };
+
     /**
      * @brief Escape a crosslang string (for generating source code)
      *
@@ -1328,7 +1375,7 @@ class Parser {
     SyntaxNode ParseUnary();
     SyntaxNode ParseNullCoalescing();
     void ParseHtml(std::vector<SyntaxNode>& nodes,std::string var);
-    GC* gc;
+    std::shared_ptr<GC> gc;
     TRootEnvironment* env;
     int lastLine=-1;
     std::string lastFile="";
@@ -1341,7 +1388,7 @@ class Parser {
          * @param tokens the tokens from lexer
          */
         Parser(std::vector<LexToken> tokens);
-        Parser(std::vector<LexToken> tokens, GC* gc, TRootEnvironment* env);
+        Parser(std::vector<LexToken> tokens, std::shared_ptr<GC> gc, TRootEnvironment* env);
         /**
          * @brief Turn tokens into abstract syntax tree
          *
@@ -1405,11 +1452,11 @@ class TContinue {
      *
      */
 
-using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder,TVMVersion,std::shared_ptr<Tesses::Framework::Date::DateTime>,std::shared_ptr<Tesses::Framework::Date::TimeSpan>,TBreak,TContinue,std::shared_ptr<Tesses::Framework::Streams::Stream>,std::shared_ptr<Tesses::Framework::Filesystem::VFS>,std::shared_ptr<Tesses::Framework::Http::IHttpServer>,std::shared_ptr<Tesses::Framework::Http::HttpRequestBody>,std::shared_ptr<Tesses::Framework::TextStreams::TextReader>,std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>,std::shared_ptr<Tesses::Framework::Streams::ByteReader>,std::shared_ptr<Tesses::Framework::Streams::ByteWriter>, Tesses::Framework::Uuid>;
+using TObject = std::variant<int64_t,double,char,bool,std::string,std::regex,Tesses::Framework::Filesystem::VFSPath,std::nullptr_t,Undefined,MethodInvoker,THeapObjectHolder,TVMVersion,std::shared_ptr<Tesses::Framework::Date::DateTime>,std::shared_ptr<Tesses::Framework::Date::TimeSpan>,TBreak,TContinue,std::shared_ptr<Tesses::Framework::Streams::Stream>,std::shared_ptr<Tesses::Framework::Filesystem::VFS>,std::shared_ptr<Tesses::Framework::Http::IHttpServer>,std::shared_ptr<Tesses::Framework::Http::HttpRequestBody>,std::shared_ptr<Tesses::Framework::TextStreams::TextReader>,std::shared_ptr<Tesses::Framework::TextStreams::TextWriter>,std::shared_ptr<Tesses::Framework::Streams::ByteReader>,std::shared_ptr<Tesses::Framework::Streams::ByteWriter>,std::shared_ptr<Tesses::Framework::Http::ServerSentEvents>, std::shared_ptr<Tesses::Framework::TF_Timer_Handle>, Tesses::Framework::Uuid>;
 
 class TRootEnvironment;
-class GC;
-class GC {
+
+class GC : public std::enable_shared_from_this<GC> {
     Tesses::Framework::Threading::Thread* thrd;
     Tesses::Framework::Threading::Mutex* mtx;
     volatile std::atomic<bool> running;
@@ -1417,7 +1464,7 @@ class GC {
     std::vector<THeapObject*> objects;
 
     Tesses::Framework::Lazy<Tesses::Framework::Threading::ThreadPool*>* tpool;
-    std::vector<std::function<void(GC* gc, TRootEnvironment* env)>> register_everything;
+    std::vector<std::function<void(std::shared_ptr<GC> gc, TRootEnvironment* env)>> register_everything;
     public:
         Tesses::Framework::Threading::ThreadPool* GetPool();
         bool UsingNullThreads();
@@ -1432,23 +1479,22 @@ class GC {
         void SetRoot(TObject obj);
         void UnsetRoot(TObject obj);
         static void Mark(TObject obj);
-        void RegisterEverythingCallback(std::function<void(GC* gc, TRootEnvironment* env)> cb);
+        void RegisterEverythingCallback(std::function<void(std::shared_ptr<GC> gc, TRootEnvironment* env)> cb);
         void RegisterEverything(TRootEnvironment* env);
         ~GC();
 };
 
     std::string GetObjectTypeString(TObject obj);
-    std::string ToString(GC* gc, TObject obj);
+    std::string ToString(std::shared_ptr<GC> gc, TObject obj);
 
     class GCList : public THeapObject
     {
         std::vector<THeapObject*> items;
 
-        GC* gc;
+        std::shared_ptr<GC> gc;
         public:
-            GCList(GC* gc);
-            GCList(GC& gc);
-            GC* GetGC();
+            GCList(std::shared_ptr<GC> gc);
+            std::shared_ptr<GC> GetGC();
             void Add(TObject v);
             void Remove(TObject v);
             void Mark();
@@ -1545,7 +1591,7 @@ class GC {
             std::string info;
             int32_t icon;
 
-            void Load(GC* gc, std::shared_ptr<Tesses::Framework::Streams::Stream> strm);
+            void Load(std::shared_ptr<GC> gc, std::shared_ptr<Tesses::Framework::Streams::Stream> strm);
             void Skip(std::shared_ptr<Tesses::Framework::Streams::Stream> strm,size_t len);
             void Ensure(std::shared_ptr<Tesses::Framework::Streams::Stream> strm,uint8_t* buffer, size_t len);
             uint32_t EnsureInt(std::shared_ptr<Tesses::Framework::Streams::Stream> strm);
@@ -1564,8 +1610,8 @@ class GC {
             std::vector<std::pair<TObject,TObject>> items;
             static TAssociativeArray* Create(GCList& ls);
             static TAssociativeArray* Create(GCList* ls);
-            void Set(GC* gc, TObject key, TObject value);
-            TObject Get(GC* gc, TObject key);
+            void Set(std::shared_ptr<GC> gc, TObject key, TObject value);
+            TObject Get(std::shared_ptr<GC> gc, TObject key);
             TObject GetKey(int64_t index);
             TObject GetValue(int64_t index);
             void SetKey(int64_t index, TObject key);
@@ -1659,10 +1705,8 @@ class GC {
             virtual TObject GetValue(std::string key);
             virtual void SetValue(std::string key, TObject value);
             virtual void Mark();
-            void DeclareFunction(GC* gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb);
-            void DeclareFunction(GC& gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb);
-            void DeclareFunction(GC* gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb,std::function<void()> destroy);
-            void DeclareFunction(GC& gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb,std::function<void()> destroy);
+            void DeclareFunction(std::shared_ptr<GC> gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb);
+            void DeclareFunction(std::shared_ptr<GC> gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb,std::function<void()> destroy);
             TObject CallMethod(GCList& ls, std::string key, std::vector<TObject> args);
             TObject CallMethodWithFatalError(GCList& ls, std::string key, std::vector<TObject> args);
     };
@@ -1681,7 +1725,7 @@ class GC {
             TObject CallWithFatalError(GCList& ls, std::vector<TObject> args);
             virtual void Mark();
 
-            Tesses::Framework::Http::ServerRequestHandler ToRouteServerRequestHandler(GC* gc);
+            Tesses::Framework::Http::ServerRequestHandler ToRouteServerRequestHandler(std::shared_ptr<GC> gc);
     };
 
     void ThrowFatalError(std::exception& ex);
@@ -1692,7 +1736,7 @@ class GC {
         std::vector<std::string> consts;
         public:
             std::vector<TCallable*> defers;
-            TObject LoadFile(GC* gc, TFile* f);
+            TObject LoadFile(std::shared_ptr<GC> gc, TFile* f);
             TObject Eval(GCList& ls,std::string code);
             virtual bool HasVariable(std::string key)=0;
             virtual bool HasVariableRecurse(std::string key)=0;
@@ -1705,22 +1749,20 @@ class GC {
             virtual TObject SetVariable(GCList& ls, std::string key, TObject v)=0;
 
             virtual void SetVariable(std::string key, TObject value)=0;
-            TDictionary* EnsureDictionary(GC* gc, std::string key);
+            TDictionary* EnsureDictionary(std::shared_ptr<GC> gc, std::string key);
             virtual void DeclareVariable(std::string key, TObject value)=0;
             void DeclareConstVariable(std::string key, TObject value);
             bool HasConstForDeclare(std::string key);
             virtual bool HasConstForSet(std::string key);
-            void DeclareVariable(GC* gc,std::vector<std::string> key, TObject value);
+            void DeclareVariable(std::shared_ptr<GC> gc,std::vector<std::string> key, TObject value);
             virtual TRootEnvironment* GetRootEnvironment()=0;
             virtual TEnvironment* GetParentEnvironment()=0;
             virtual TSubEnvironment* GetSubEnvironment(TDictionary* dict);
             TSubEnvironment* GetSubEnvironment(GCList* gc);
             TSubEnvironment* GetSubEnvironment(GCList& gc);
 
-            void DeclareFunction(GC* gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb);
-            void DeclareFunction(GC& gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb);
-            void DeclareFunction(GC* gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb,std::function<void()> destroy);
-            void DeclareFunction(GC& gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb,std::function<void()> destroy);
+            void DeclareFunction(std::shared_ptr<GC> gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb);
+           void DeclareFunction(std::shared_ptr<GC> gc,std::string key,std::string documentation, std::vector<std::string> argNames, std::function<TObject(GCList& ls, std::vector<TObject> args)> cb,std::function<void()> destroy);
             TObject CallFunction(GCList& ls, std::string key, std::vector<TObject> args);
             TObject CallFunctionWithFatalError(GCList& ls, std::string key, std::vector<TObject> args);
     };
@@ -1780,10 +1822,10 @@ class GC {
         public:
             EnvironmentPermissions();
             Tesses::Framework::Filesystem::VFSPath sqliteOffsetPath;
+            std::shared_ptr<RelativeFilesystem> localfs;
             bool canRegisterEverything;
             bool canRegisterConsole;
             bool canRegisterIO;
-            bool canRegisterLocalFS;
             bool canRegisterNet;
             bool canRegisterSqlite;
             bool canRegisterVM;
@@ -1806,7 +1848,7 @@ class GC {
         TDictionary* dict;
         TCallable* error=nullptr;
 
-        void LoadDependency(GC* gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, std::pair<std::string,TVMVersion> dep);
+        void LoadDependency(std::shared_ptr<GC> gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, std::pair<std::string,TVMVersion> dep);
         public:
             EnvironmentPermissions permissions;
 
@@ -1815,8 +1857,8 @@ class GC {
 
             bool TryFindClass(std::vector<std::string>& name, size_t& index);
 
-            void LoadFileWithDependencies(GC* gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, TFile* f);
-            void LoadFileWithDependencies(GC* gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, Tesses::Framework::Filesystem::VFSPath path);
+            void LoadFileWithDependencies(std::shared_ptr<GC> gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, TFile* f);
+            void LoadFileWithDependencies(std::shared_ptr<GC> gc,std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, Tesses::Framework::Filesystem::VFSPath path);
 
             TDictionary* GetDictionary();
             static TRootEnvironment* Create(GCList* gc,TDictionary* dict);
@@ -1835,30 +1877,32 @@ class GC {
             TRootEnvironment* GetRootEnvironment();
             TEnvironment* GetParentEnvironment();
             void RegisterOnError(TCallable* callable);
-            bool HandleException(GC* gc,TEnvironment* env, TObject err);
-            bool HandleBreakpoint(GC* gc,TEnvironment* env, TObject err);
+            bool HandleException(std::shared_ptr<GC> gc,TEnvironment* env, TObject err);
+            bool HandleBreakpoint(std::shared_ptr<GC> gc,TEnvironment* env, TObject err);
             void Mark();
     };
     class TStd {
         private:
-            static void RegisterHelpers(GC* gc, TRootEnvironment* env);
-            static void RegisterUuid(GC* gc, TRootEnvironment* env);
+            static void RegisterHelpers(std::shared_ptr<GC> gc, TRootEnvironment* env);
+            static void RegisterUuid(std::shared_ptr<GC> gc, TRootEnvironment* env);
         public:
-            static void RegisterStd(GC* gc, TRootEnvironment* env);
-            static void RegisterConsole(GC* gc,TRootEnvironment* env);
-            static void RegisterIO(GC* gc,TRootEnvironment* env, bool enableLocalFilesystem=true);
-            static void RegisterNet(GC* gc, TRootEnvironment* env);
-            static void RegisterSqlite(GC* gc,TRootEnvironment* env);
-            static void RegisterVM(GC* gc,TRootEnvironment* env);
-            static void RegisterDictionary(GC* gc, TRootEnvironment* env);
-            static void RegisterJson(GC* gc, TRootEnvironment* env);
-            static void RegisterCrypto(GC* gc,TRootEnvironment* env);
-            static void RegisterRoot(GC* gc, TRootEnvironment* env);
-            static void RegisterPath(GC* gc, TRootEnvironment* env);
-            static void RegisterOGC(GC* gc, TRootEnvironment* env);
-            static void RegisterEnv(GC* gc, TRootEnvironment* env);
-            static void RegisterProcess(GC* gc, TRootEnvironment* env);
-            static void RegisterClass(GC* gc, TRootEnvironment* env);
+            static void RegisterStd(std::shared_ptr<GC> gc, TRootEnvironment* env, std::shared_ptr<RelativeFilesystem> localfs);
+            static void RegisterStd(std::shared_ptr<GC> gc, TRootEnvironment* env);
+            static void RegisterConsole(std::shared_ptr<GC> gc,TRootEnvironment* env);
+            static void RegisterIO(std::shared_ptr<GC> gc,TRootEnvironment* env, std::shared_ptr<RelativeFilesystem> local);
+            static void RegisterIO(std::shared_ptr<GC> gc,TRootEnvironment* env, bool enableLocalFS=true);
+            static void RegisterNet(std::shared_ptr<GC> gc, TRootEnvironment* env);
+            static void RegisterSqlite(std::shared_ptr<GC> gc,TRootEnvironment* env);
+            static void RegisterVM(std::shared_ptr<GC> gc,TRootEnvironment* env);
+            static void RegisterDictionary(std::shared_ptr<GC> gc, TRootEnvironment* env);
+            static void RegisterJson(std::shared_ptr<GC> gc, TRootEnvironment* env);
+            static void RegisterCrypto(std::shared_ptr<GC> gc,TRootEnvironment* env);
+            static void RegisterRoot(std::shared_ptr<GC> gc, TRootEnvironment* env);
+            static void RegisterPath(std::shared_ptr<GC> gc, TRootEnvironment* env);
+            static void RegisterOGC(std::shared_ptr<GC> gc, TRootEnvironment* env);
+            static void RegisterEnv(std::shared_ptr<GC> gc, TRootEnvironment* env);
+            static void RegisterProcess(std::shared_ptr<GC> gc, TRootEnvironment* env);
+            static void RegisterClass(std::shared_ptr<GC> gc, TRootEnvironment* env);
 
     };
 
@@ -1931,7 +1975,7 @@ class GC {
     class TEnumerator : public THeapObject
     {
         public:
-            virtual bool MoveNext(GC* ls)=0;
+            virtual bool MoveNext(std::shared_ptr<GC> ls)=0;
             virtual TObject GetCurrent(GCList& ls)=0;
             static TEnumerator* CreateFromObject(GCList& ls, TObject obj);
     };
@@ -1942,7 +1986,7 @@ class GC {
         public:
             static TAssociativeArrayEnumerator* Create(GCList& ls, TAssociativeArray* list);
             static TAssociativeArrayEnumerator* Create(GCList* ls, TAssociativeArray* list);
-            bool MoveNext(GC* ls);
+            bool MoveNext(std::shared_ptr<GC> ls);
             TObject GetCurrent(GCList& ls);
             void Mark();
     };
@@ -1950,7 +1994,7 @@ class GC {
     class TCustomEnumerator : public TEnumerator {
         public:
             TDictionary* dict;
-            bool MoveNext(GC* ls);
+            bool MoveNext(std::shared_ptr<GC> ls);
             TObject GetCurrent(GCList& ls);
             void Mark();
             static TCustomEnumerator* Create(GCList& ls,TDictionary* dict);
@@ -1964,7 +2008,7 @@ class GC {
         TObject enumerator;
         TObject current;
         public:
-            bool MoveNext(GC* ls);
+            bool MoveNext(std::shared_ptr<GC> ls);
             TObject GetCurrent(GCList& ls);
             void Mark();
             static TYieldEnumerator* Create(GCList& ls,TObject v);
@@ -1980,7 +2024,7 @@ class GC {
         public:
             static TStringEnumerator* Create(GCList& ls,std::string str);
             static TStringEnumerator* Create(GCList* ls,std::string str);
-            bool MoveNext(GC* ls);
+            bool MoveNext(std::shared_ptr<GC> ls);
             TObject GetCurrent(GCList& ls);
     };
 
@@ -1991,7 +2035,7 @@ class GC {
         public:
             static TListEnumerator* Create(GCList& ls, TList* list);
             static TListEnumerator* Create(GCList* ls, TList* list);
-            bool MoveNext(GC* ls);
+            bool MoveNext(std::shared_ptr<GC> ls);
             TObject GetCurrent(GCList& ls);
             void Mark();
     };
@@ -2004,7 +2048,7 @@ class GC {
         public:
             static TDynamicListEnumerator* Create(GCList& ls, TDynamicList* list);
             static TDynamicListEnumerator* Create(GCList* ls, TDynamicList* list);
-            bool MoveNext(GC* ls);
+            bool MoveNext(std::shared_ptr<GC> ls);
             TObject GetCurrent(GCList& ls);
             void Mark();
     };
@@ -2014,7 +2058,7 @@ class GC {
         public:
             static TVFSPathEnumerator* Create(GCList& ls, Tesses::Framework::Filesystem::VFSPathEnumerator list);
             static TVFSPathEnumerator* Create(GCList* ls, Tesses::Framework::Filesystem::VFSPathEnumerator list);
-            bool MoveNext(GC* ls);
+            bool MoveNext(std::shared_ptr<GC> ls);
             TObject GetCurrent(GCList& ls);
 
     };
@@ -2026,7 +2070,7 @@ class GC {
         public:
             TObject obj;
             GCList* ls;
-            TObjectVFS(GC* gc, TObject obj);
+            TObjectVFS(std::shared_ptr<GC> gc, TObject obj);
             std::shared_ptr<Tesses::Framework::Streams::Stream> OpenFile(Tesses::Framework::Filesystem::VFSPath path, std::string mode);
             Tesses::Framework::Filesystem::FIFOCreationResult CreateFIFO(Tesses::Framework::Filesystem::VFSPath path);
             void CreateDirectory(Tesses::Framework::Filesystem::VFSPath path);
@@ -2061,7 +2105,7 @@ class GC {
         public:
             TObject obj;
             GCList* ls;
-            TObjectStream(GC* gc, TObject obj);
+            TObjectStream(std::shared_ptr<GC> gc, TObject obj);
             bool EndOfStream();
             size_t Read(uint8_t* buff, size_t sz);
             size_t Write(const uint8_t* buff, size_t sz);
@@ -2083,7 +2127,7 @@ class GC {
         public:
             TObject obj;
             GCList* ls;
-            TObjectHttpServer(GC* gc,TObject obj);
+            TObjectHttpServer(std::shared_ptr<GC> gc,TObject obj);
             bool Handle(Tesses::Framework::Http::ServerContext& ctx);
             ~TObjectHttpServer();
     };
@@ -2097,7 +2141,7 @@ class GC {
         public:
             static TDictionaryEnumerator* Create(GCList& ls, TDictionary* dict);
             static TDictionaryEnumerator* Create(GCList* ls, TDictionary* dict);
-            bool MoveNext(GC* ls);
+            bool MoveNext(std::shared_ptr<GC> ls);
             TObject GetCurrent(GCList& ls);
             void Mark();
     };
@@ -2182,7 +2226,7 @@ class GC {
             bool mustReturn;
 
             void Mark();
-            void Push(GC* gc,TObject v);
+            void Push(std::shared_ptr<GC> gc,TObject v);
             TObject Pop(GCList& gcl);
 
             TObject Resume(GCList& ls);
@@ -2191,10 +2235,10 @@ class GC {
     {
         TCallable* cont=nullptr;
         std::exception_ptr ex=nullptr;
-        GC* gc;
+        std::shared_ptr<GC> gc;
         TObject obj=Undefined();
         bool isCompleted=false;
-        TTask(GC* gc);
+        TTask(std::shared_ptr<GC> gc);
         public:
             static TTask* Create(GCList& ls);
             bool IsCompleted();
@@ -2225,84 +2269,84 @@ class GC {
             bool InvokeTwo(GCList& ls,TObject fn, TObject left, TObject right);
             bool InvokeOne(GCList& ls,TObject fn, TObject arg);
             bool InvokeMethod(GCList& ls, TObject fn, TObject instance, std::vector<TObject> args);
-            bool ExecuteMethod2(GC* gc, TObject instance, std::string key, std::vector<TObject> args);
+            bool ExecuteMethod2(std::shared_ptr<GC> gc, TObject instance, std::string key, std::vector<TObject> args);
         protected:
             static void* ThreadCallback(void* ptr);
-            bool JumpIfDefined(GC* gc);
-            bool Add(GC* gc);
-            bool Sub(GC* gc);
-            bool Times(GC* gc);
-            bool Divide(GC* gc);
-            bool Mod(GC* gc);
-            bool Neg(GC* gc);
-            bool Lt(GC* gc);
-            bool Gt(GC* gc);
-            bool Lte(GC* gc);
-            bool Gte(GC* gc);
-            bool Eq(GC* gc);
-            bool NEq(GC* gc);
-            bool LShift(GC* gc);
-            bool RShift(GC* gc);
-            bool BOr(GC* gc);
-            bool XOr(GC* gc);
-            bool LNot(GC* gc);
-            bool BNot(GC* gc);
-            bool BAnd(GC* gc);
-            bool ExecuteFunction(GC* gc);
-            bool ExecuteMethod(GC* gc);
-            bool GetVariable(GC* gc);
-            bool SetVariable(GC* gc);
-            bool GetField(GC* gc);
-            bool SetField(GC* gc);
-            bool GetArray(GC* gc);
-            bool SetArray(GC* gc);
-            bool DeclareVariable(GC* gc);
-            bool DeclareConstVariable(GC* gc);
-            bool PushLong(GC* gc);
-            bool PushDouble(GC* gc);
-            bool PushChar(GC* gc);
-            bool PushString(GC* gc);
-            bool PushClosure(GC* gc);
-            bool PushScopelessClosure(GC* gc);
-            bool PushResource(GC* gc);
-            bool Illegal(GC* gc);
-            bool Throw(GC* gc);
-            bool Yield(GC* gc);
-            bool Jump(GC* gc);
-            bool JumpConditional(GC* gc);
-            bool JumpUndefined(GC* gc);
-            bool Defer(GC* gc);
-            bool TryCatch(GC* gc);
-            bool Return(GC* gc);
-            bool ScopeBegin(GC* gc);
-            bool ScopeEnd(GC* gc);
-            bool ScopeEndTimes(GC* gc);
-            bool PushTrue(GC* gc);
-            bool PushFalse(GC* gc);
-            bool PushNull(GC* gc);
-            bool PushUndefined(GC* gc);
-            bool CreateDictionary(GC* gc);
-            bool CreateArray(GC* gc);
-            bool AppendList(GC* gc);
-            bool AppendDictionary(GC* gc);
-            bool PushRootPath(GC* gc);
-            bool PushRelativePath(GC* gc);
-            bool Pop(GC* gc);
-            bool Dup(GC* gc);
-            bool Nop(GC* gc);
-            bool Breakpoint(GC* gc);
-            bool PushBreak(GC* gc);
-            bool PushContinue(GC* gc);
-            bool JumpIfBreak(GC* gc);
-            bool JumpIfContinue(GC* gc);
-            bool LineInfo(GC* gc);
-            bool PushResourceStream(GC* gc);
-            bool PushResourceDirectory(GC* gc);
+            bool JumpIfDefined(std::shared_ptr<GC> gc);
+            bool Add(std::shared_ptr<GC> gc);
+            bool Sub(std::shared_ptr<GC> gc);
+            bool Times(std::shared_ptr<GC> gc);
+            bool Divide(std::shared_ptr<GC> gc);
+            bool Mod(std::shared_ptr<GC> gc);
+            bool Neg(std::shared_ptr<GC> gc);
+            bool Lt(std::shared_ptr<GC> gc);
+            bool Gt(std::shared_ptr<GC> gc);
+            bool Lte(std::shared_ptr<GC> gc);
+            bool Gte(std::shared_ptr<GC> gc);
+            bool Eq(std::shared_ptr<GC> gc);
+            bool NEq(std::shared_ptr<GC> gc);
+            bool LShift(std::shared_ptr<GC> gc);
+            bool RShift(std::shared_ptr<GC> gc);
+            bool BOr(std::shared_ptr<GC> gc);
+            bool XOr(std::shared_ptr<GC> gc);
+            bool LNot(std::shared_ptr<GC> gc);
+            bool BNot(std::shared_ptr<GC> gc);
+            bool BAnd(std::shared_ptr<GC> gc);
+            bool ExecuteFunction(std::shared_ptr<GC> gc);
+            bool ExecuteMethod(std::shared_ptr<GC> gc);
+            bool GetVariable(std::shared_ptr<GC> gc);
+            bool SetVariable(std::shared_ptr<GC> gc);
+            bool GetField(std::shared_ptr<GC> gc);
+            bool SetField(std::shared_ptr<GC> gc);
+            bool GetArray(std::shared_ptr<GC> gc);
+            bool SetArray(std::shared_ptr<GC> gc);
+            bool DeclareVariable(std::shared_ptr<GC> gc);
+            bool DeclareConstVariable(std::shared_ptr<GC> gc);
+            bool PushLong(std::shared_ptr<GC> gc);
+            bool PushDouble(std::shared_ptr<GC> gc);
+            bool PushChar(std::shared_ptr<GC> gc);
+            bool PushString(std::shared_ptr<GC> gc);
+            bool PushClosure(std::shared_ptr<GC> gc);
+            bool PushScopelessClosure(std::shared_ptr<GC> gc);
+            bool PushResource(std::shared_ptr<GC> gc);
+            bool Illegal(std::shared_ptr<GC> gc);
+            bool Throw(std::shared_ptr<GC> gc);
+            bool Yield(std::shared_ptr<GC> gc);
+            bool Jump(std::shared_ptr<GC> gc);
+            bool JumpConditional(std::shared_ptr<GC> gc);
+            bool JumpUndefined(std::shared_ptr<GC> gc);
+            bool Defer(std::shared_ptr<GC> gc);
+            bool TryCatch(std::shared_ptr<GC> gc);
+            bool Return(std::shared_ptr<GC> gc);
+            bool ScopeBegin(std::shared_ptr<GC> gc);
+            bool ScopeEnd(std::shared_ptr<GC> gc);
+            bool ScopeEndTimes(std::shared_ptr<GC> gc);
+            bool PushTrue(std::shared_ptr<GC> gc);
+            bool PushFalse(std::shared_ptr<GC> gc);
+            bool PushNull(std::shared_ptr<GC> gc);
+            bool PushUndefined(std::shared_ptr<GC> gc);
+            bool CreateDictionary(std::shared_ptr<GC> gc);
+            bool CreateArray(std::shared_ptr<GC> gc);
+            bool AppendList(std::shared_ptr<GC> gc);
+            bool AppendDictionary(std::shared_ptr<GC> gc);
+            bool PushRootPath(std::shared_ptr<GC> gc);
+            bool PushRelativePath(std::shared_ptr<GC> gc);
+            bool Pop(std::shared_ptr<GC> gc);
+            bool Dup(std::shared_ptr<GC> gc);
+            bool Nop(std::shared_ptr<GC> gc);
+            bool Breakpoint(std::shared_ptr<GC> gc);
+            bool PushBreak(std::shared_ptr<GC> gc);
+            bool PushContinue(std::shared_ptr<GC> gc);
+            bool JumpIfBreak(std::shared_ptr<GC> gc);
+            bool JumpIfContinue(std::shared_ptr<GC> gc);
+            bool LineInfo(std::shared_ptr<GC> gc);
+            bool PushResourceStream(std::shared_ptr<GC> gc);
+            bool PushResourceDirectory(std::shared_ptr<GC> gc);
         public:
             static InterperterThread* Create(GCList* ls);
             static InterperterThread* Create(GCList& ls);
             std::vector<CallStackEntry*> call_stack_entries;
-            virtual void Execute(GC* gc);
+            virtual void Execute(std::shared_ptr<GC> gc);
             void AddCallStackEntry(GCList& ls,TClosure* closure, std::vector<TObject> args);
             void Mark();
     };
@@ -2344,7 +2388,7 @@ class GC {
         static T* Create(GCList& ls,TArgs... args)
         {
             T* obj = new T(args...);
-            GC* gc = ls.GetGC();
+            std::shared_ptr<GC> gc = ls.GetGC();
             ls.Add(obj);
             gc->Watch(obj);
             return obj;
@@ -2353,7 +2397,7 @@ class GC {
         static T* Create(GCList* ls,TArgs... args)
         {
             T* obj = new T(args...);
-            GC* gc = ls->GetGC();
+            std::shared_ptr<GC> gc = ls->GetGC();
             ls->Add(obj);
             gc->Watch(obj);
             return obj;
@@ -2362,7 +2406,7 @@ class GC {
         virtual TObject CallMethod(GCList& ls,std::string name, std::vector<TObject> args)=0;
         virtual std::string TypeName()=0;
         virtual bool ToBool();
-        virtual bool Equals(GC* gc, TObject right);
+        virtual bool Equals(std::shared_ptr<GC> gc, TObject right);
         virtual ~TNativeObject();
     };
     class TRandom : public TNativeObject
@@ -2402,7 +2446,7 @@ class GC {
             std::atomic<bool> detached;
             TCallable* callable;
             TObject returnValue;
-            GC* gc;
+            std::shared_ptr<GC> gc;
 
 
             void Mark()
@@ -2440,7 +2484,7 @@ class GC {
             {
             }
 
-            VMByteCodeException(GC* gc,TObject obj, CallStackEntry* ent)
+            VMByteCodeException(std::shared_ptr<GC> gc,TObject obj, CallStackEntry* ent)
             {
                 gcList = std::make_shared<GCList>(gc);
                 gcList->Add(obj);
@@ -2533,16 +2577,16 @@ class GC {
     bool GetObjectAsPath(TObject& obj, Tesses::Framework::Filesystem::VFSPath& path, bool allowString=true);
     bool GetArgumentAsPath(std::vector<TObject>& args, size_t index, Tesses::Framework::Filesystem::VFSPath& path,bool allowString=true);
     bool ToBool(TObject obj);
-    bool Equals(GC* gc, TObject left, TObject right);
-    typedef void (*PluginFunction)(GC* gc,TRootEnvironment* env);
+    bool Equals(std::shared_ptr<GC> gc, TObject left, TObject right);
+    typedef void (*PluginFunction)(std::shared_ptr<GC> gc,TRootEnvironment* env);
     #if !defined(_WIN32)
     #define DLLEXPORT
     #else
     #define DLLEXPORT __declspec(dllexport)
     #endif
-    #define CROSSLANG_PLUGIN(plugin) DLLEXPORT extern "C" void CrossLangPluginInit(GC* gc, TRootEnvironment* env) { plugin(gc,env); }
+    #define CROSSLANG_PLUGIN(plugin) DLLEXPORT extern "C" void CrossLangPluginInit(std::shared_ptr<GC> gc, TRootEnvironment* env) { plugin(gc,env); }
 
-    void LoadPlugin(GC* gc, TRootEnvironment* env, Tesses::Framework::Filesystem::VFSPath sharedObjectPath);
+    void LoadPlugin(std::shared_ptr<GC> gc, TRootEnvironment* env, Tesses::Framework::Filesystem::VFSPath sharedObjectPath);
     std::string Json_Encode(TObject o,bool indent=false);
     TObject Json_Decode(GCList ls,std::string str);
     std::string Json_DocEncode(TObject o,bool indent);
@@ -2552,15 +2596,14 @@ class GC {
         GCList* ls;
         TObject o;
         public:
-            SharedPtrTObject(GC* gc, TObject o);
+            SharedPtrTObject(std::shared_ptr<GC> gc, TObject o);
             TObject& GetObject();
-            GC* GetGC();
+            std::shared_ptr<GC> GetGC();
             ~SharedPtrTObject();
     };
     using MarkedTObject = std::shared_ptr<SharedPtrTObject>;
 
-    MarkedTObject CreateMarkedTObject(GC* gc, TObject o);
-    MarkedTObject CreateMarkedTObject(GC& gc, TObject o);
+    MarkedTObject CreateMarkedTObject(std::shared_ptr<GC> gc, TObject o);
     MarkedTObject CreateMarkedTObject(GCList* gc, TObject o);
     MarkedTObject CreateMarkedTObject(GCList& gc, TObject o);
     std::string JoinPeriod(std::vector<std::string>& p);
@@ -2573,7 +2616,7 @@ class GC {
     Tesses::Framework::Filesystem::VFSPath Merge(std::shared_ptr<Tesses::Framework::Filesystem::VFS> srcFS, Tesses::Framework::Filesystem::VFSPath sourcePath, std::shared_ptr<Tesses::Framework::Filesystem::VFS> destFS);
 
 
-    std::shared_ptr<Tesses::Framework::Http::IHttpServer> ToHttpServer(GC* gc,TObject obj);
+    std::shared_ptr<Tesses::Framework::Http::IHttpServer> ToHttpServer(std::shared_ptr<GC> gc,TObject obj);
 
     class EmbedStream : public Tesses::Framework::Streams::Stream
     {
@@ -2582,7 +2625,7 @@ class GC {
         uint32_t resource;
 
         public:
-            EmbedStream(GC* gc, TFile* file, uint32_t resource);
+            EmbedStream(std::shared_ptr<GC> gc, TFile* file, uint32_t resource);
             bool CanRead();
             bool CanSeek();
             bool EndOfStream();
@@ -2597,18 +2640,16 @@ class GC {
         MarkedTObject dir;
         TObject getEntry(Tesses::Framework::Filesystem::VFSPath path);
         public:
-            EmbedDirectory(GC* gc, TDictionary* dict);
+            EmbedDirectory(std::shared_ptr<GC> gc, TDictionary* dict);
             std::shared_ptr<Tesses::Framework::Streams::Stream> OpenFile(Tesses::Framework::Filesystem::VFSPath path, std::string mode);
-            void CreateDirectory(Tesses::Framework::Filesystem::VFSPath path);
-            void DeleteDirectory(Tesses::Framework::Filesystem::VFSPath path);
-            bool RegularFileExists(Tesses::Framework::Filesystem::VFSPath path);
-            bool DirectoryExists(Tesses::Framework::Filesystem::VFSPath path);
-            void DeleteFile(Tesses::Framework::Filesystem::VFSPath path);
+            
             Tesses::Framework::Filesystem::VFSPathEnumerator EnumeratePaths(Tesses::Framework::Filesystem::VFSPath path);
-            void MoveFile(Tesses::Framework::Filesystem::VFSPath src, Tesses::Framework::Filesystem::VFSPath dest);
             std::string VFSPathToSystem(Tesses::Framework::Filesystem::VFSPath path);
             Tesses::Framework::Filesystem::VFSPath SystemToVFSPath(std::string path);
+
+            bool Stat(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Filesystem::StatData& data);
     };
+    
 
     namespace Programs {
         int64_t CrossArchiveCreate(std::vector<std::string>& argv);

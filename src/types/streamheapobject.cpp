@@ -6,7 +6,7 @@ namespace Tesses::CrossLang
     {
         return Tesses::Framework::Streams::Stream::GetLength();
     }
-    TObjectStream::TObjectStream(GC* gc, TObject obj)
+    TObjectStream::TObjectStream(std::shared_ptr<GC> gc, TObject obj)
     {
         this->ls = new GCList(gc);
         this->ls->Add(obj);

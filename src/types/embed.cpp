@@ -2,7 +2,7 @@
 
 namespace Tesses::CrossLang {
 
-    EmbedStream::EmbedStream(GC* gc, TFile* file, uint32_t resource)
+    EmbedStream::EmbedStream(std::shared_ptr<GC> gc, TFile* file, uint32_t resource)
     {
         this->offset = 0;
         this->resource = resource;
@@ -124,17 +124,58 @@ namespace Tesses::CrossLang {
         }
         return nullptr;
 	}
-	bool EmbedDirectory::RegularFileExists(Tesses::Framework::Filesystem::VFSPath path)
+	
+    bool EmbedDirectory::Stat(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Filesystem::StatData& data)
 	{
 		auto ent = getEntry(path);
-		TCallable* call;
-		return GetObjectHeap(ent,call);
-	}
-    bool EmbedDirectory::DirectoryExists(Tesses::Framework::Filesystem::VFSPath path)
-	{
-		auto ent = getEntry(path);
+
+
 		TDictionary* dict;
-		return GetObjectHeap(ent,dict);
+		if(GetObjectHeap(ent,dict))
+        {
+            data.Size = 0;
+            data.Mode = Tesses::Framework::Filesystem::MODE_DIRECTORY | 0755;
+            data.BlockCount = 0;
+            data.BlockSize = 0;
+            data.Device = 0;
+            data.DeviceId = 0;
+            data.GroupId = 0;
+            data.HardLinks = 1;
+            data.Inode = 0;
+            data.LastAccess = Tesses::Framework::Date::DateTime(0);
+            data.LastModified = Tesses::Framework::Date::DateTime(0);
+            data.LastStatus = Tesses::Framework::Date::DateTime(0);
+            data.UserId = 0;
+            
+            return true;
+        }
+        TCallable* cal;
+        if(GetObjectHeap(ent, cal))
+        {
+            GCList ls(this->dir->GetGC());
+            auto fileO= cal->Call(ls, {});
+            std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
+            if(GetObject(fileO,strm)) {
+
+            data.Size = (uint64_t)strm->GetLength();
+            data.Mode = Tesses::Framework::Filesystem::MODE_REGULAR | 0755; 
+            data.BlockSize = 512;
+            data.BlockCount = data.Size / data.BlockSize;
+           
+            data.Device = 0;
+            data.DeviceId = 0;
+            data.GroupId = 0;
+            data.HardLinks = 1;
+            data.Inode = 0;
+            data.LastAccess = Tesses::Framework::Date::DateTime(0);
+            data.LastModified = Tesses::Framework::Date::DateTime(0);
+            data.LastStatus = Tesses::Framework::Date::DateTime(0);
+            data.UserId = 0;
+            
+            return true;
+            }
+        }
+        return false;
 	}
 
     class DICT_DIRENUM
@@ -148,7 +189,7 @@ namespace Tesses::CrossLang {
             {
                 return this->current->first;
             }
-            DICT_DIRENUM(GC* gc, TDictionary* dict) : ls(gc), dict(dict)
+            DICT_DIRENUM(std::shared_ptr<GC> gc, TDictionary* dict) : ls(gc), dict(dict)
             {
                 ls.Add(dict);
             }
@@ -197,26 +238,11 @@ namespace Tesses::CrossLang {
         return Tesses::Framework::Filesystem::VFSPathEnumerator();
     }
 
-    EmbedDirectory::EmbedDirectory(GC* gc, TDictionary* dict)
+    EmbedDirectory::EmbedDirectory(std::shared_ptr<GC> gc, TDictionary* dict)
     {
         this->dir = CreateMarkedTObject(gc, dict);
     }
-    void EmbedDirectory::CreateDirectory(Tesses::Framework::Filesystem::VFSPath path)
-    {
-        //DO NOTHING
-    }
-    void EmbedDirectory::DeleteDirectory(Tesses::Framework::Filesystem::VFSPath path)
-    {
-
-    }
-    void EmbedDirectory::DeleteFile(Tesses::Framework::Filesystem::VFSPath path)
-    {
-
-    }
-    void EmbedDirectory::MoveFile(Tesses::Framework::Filesystem::VFSPath src, Tesses::Framework::Filesystem::VFSPath dest)
-    {
-
-    }
+    
     std::string EmbedDirectory::VFSPathToSystem(Tesses::Framework::Filesystem::VFSPath path)
     {
         return path.ToString();

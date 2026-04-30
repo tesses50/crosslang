@@ -71,7 +71,7 @@ namespace Tesses::CrossLang
 
         ls.GetGC()->BarrierEnd();
         th->thrd =new Thread([th]()->void {
-            GC* gc=th->gc;
+            std::shared_ptr<GC> gc=th->gc;
             GCList ls(gc);
             ls.Add(th);
             th->hasInit=true;
@@ -241,14 +241,14 @@ namespace Tesses::CrossLang
         delete this->mtx;
     }
 
-    void GC::RegisterEverythingCallback(std::function<void(GC* gc, TRootEnvironment* env)> cb)
+    void GC::RegisterEverythingCallback(std::function<void(std::shared_ptr<GC> gc, TRootEnvironment* env)> cb)
     {
         this->register_everything.push_back(cb);
     }
     void GC::RegisterEverything(TRootEnvironment* env)
     {
         for(auto item : this->register_everything)
-            item(this,env);
+            item(this->shared_from_this(),env);
     }
     void GC::Collect()
     {

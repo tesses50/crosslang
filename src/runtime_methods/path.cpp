@@ -65,7 +65,7 @@ namespace Tesses::CrossLang
 
         return nullptr;
     }
-    void TStd::RegisterPath(GC* gc,TRootEnvironment* env)
+    void TStd::RegisterPath(std::shared_ptr<GC> gc,TRootEnvironment* env)
     {
 
         env->permissions.canRegisterPath=true;

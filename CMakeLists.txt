@@ -39,7 +39,7 @@ endif()
 include(FetchContent)
 FetchContent_Declare(
     TessesFramework
-    GIT_REPOSITORY https://onedev.site.tesses.net/tesses-framework.git
+    GIT_REPOSITORY https://git.tesses.org/tesses50/tessesframework.git
 )
 FetchContent_MakeAvailable(TessesFramework)
 list(APPEND TessesCrossLangLibs ${TessesFrameworkTargets})
