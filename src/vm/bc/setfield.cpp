@@ -116,6 +116,34 @@ namespace Tesses::CrossLang {
                 cse.back()->Push(gc,Undefined());
                 return false;
             }
+            if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Filesystem::VFS>>(instance))
+            {
+
+                auto vfs = std::get<std::shared_ptr<Tesses::Framework::Filesystem::VFS>>(instance);
+                auto relative = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::RelativeFilesystem>(vfs);
+                
+                if(relative)
+                {
+                    if(key == "Working")
+                    {
+                        Tesses::Framework::Filesystem::VFSPath path;
+                        if(GetObjectAsPath(value,path))
+                        {
+                            if(path.relative)
+                            {
+                                relative->SetWorking(path.MakeAbsolute(relative->GetWorking()));
+                            }
+                            else {
+                                relative->SetWorking(path);
+                            }
+                        }
+                    }
+                }
+
+
+                cse.back()->Push(gc,Undefined());
+                return false;
+            }
             if(std::holds_alternative<std::shared_ptr<Tesses::Framework::Http::IHttpServer>>(instance))
             {
                 auto svr = std::get<std::shared_ptr<Tesses::Framework::Http::IHttpServer>>(instance);

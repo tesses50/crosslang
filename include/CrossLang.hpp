@@ -41,52 +41,7 @@ namespace Tesses::CrossLang {
     constexpr std::string_view VMName = "CrossLangVM";
     constexpr std::string_view VMHowToGet = "https://crosslang.tesseslanguage.com/";
 
-    class RelativeFilesystem : public Tesses::Framework::Filesystem::VFS
-    {
-        private:
-            std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
-            Tesses::Framework::Filesystem::VFSPath path;
-            Tesses::Framework::Threading::Mutex mtx;
-
-        public:
-            RelativeFilesystem(std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, Tesses::Framework::Filesystem::VFSPath working);
-            std::shared_ptr<Tesses::Framework::Streams::Stream> OpenFile(Tesses::Framework::Filesystem::VFSPath path, std::string mode);
-
-            void CreateDirectory(Tesses::Framework::Filesystem::VFSPath path);
-            void DeleteDirectory(Tesses::Framework::Filesystem::VFSPath path);
-
-
-            void DeleteFile(Tesses::Framework::Filesystem::VFSPath path);
-            void CreateSymlink(Tesses::Framework::Filesystem::VFSPath existingFile, Tesses::Framework::Filesystem::VFSPath symlinkFile);
-            Tesses::Framework::Filesystem::VFSPathEnumerator EnumeratePaths(Tesses::Framework::Filesystem::VFSPath path);
-            void CreateHardlink(Tesses::Framework::Filesystem::VFSPath existingFile, Tesses::Framework::Filesystem::VFSPath newName);
-
-            void MoveFile(Tesses::Framework::Filesystem::VFSPath src, Tesses::Framework::Filesystem::VFSPath dest);
-
-            void MoveDirectory(Tesses::Framework::Filesystem::VFSPath src, Tesses::Framework::Filesystem::VFSPath dest);
-            Tesses::Framework::Filesystem::VFSPath ReadLink(Tesses::Framework::Filesystem::VFSPath path);
-            std::string VFSPathToSystem(Tesses::Framework::Filesystem::VFSPath path);
-            Tesses::Framework::Filesystem::VFSPath SystemToVFSPath(std::string path);
-
-            void SetDate(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Date::DateTime lastWrite, Tesses::Framework::Date::DateTime lastAccess);
-            bool Stat(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Filesystem::StatData& stat);
-            bool StatVFS(Tesses::Framework::Filesystem::VFSPath path, Tesses::Framework::Filesystem::StatVFSData& vfsData);
-
-            void Chmod(Tesses::Framework::Filesystem::VFSPath path, uint32_t mode);
-            void Chown(Tesses::Framework::Filesystem::VFSPath path, uint32_t uid, uint32_t gid);
-
-            void Lock(Tesses::Framework::Filesystem::VFSPath path);
-            void Unlock(Tesses::Framework::Filesystem::VFSPath path);
-
-            Tesses::Framework::Filesystem::FIFOCreationResult CreateFIFO(Tesses::Framework::Filesystem::VFSPath path, uint32_t mod);
-            Tesses::Framework::Filesystem::VFSPath GetWorking();
-            void SetWorking(Tesses::Framework::Filesystem::VFSPath working);
-            std::shared_ptr<Tesses::Framework::Filesystem::VFS> GetVFS();
-            protected:
-            std::shared_ptr<Tesses::Framework::Filesystem::FSWatcher> CreateWatcher(std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs, Tesses::Framework::Filesystem::VFSPath path);
-            
-    };
-
+    
     /**
      * @brief Escape a crosslang string (for generating source code)
      *
@@ -1822,7 +1777,7 @@ class GC : public std::enable_shared_from_this<GC> {
         public:
             EnvironmentPermissions();
             Tesses::Framework::Filesystem::VFSPath sqliteOffsetPath;
-            std::shared_ptr<RelativeFilesystem> localfs;
+            std::shared_ptr<Tesses::Framework::Filesystem::RelativeFilesystem> localfs;
             bool canRegisterEverything;
             bool canRegisterConsole;
             bool canRegisterIO;
@@ -1886,10 +1841,10 @@ class GC : public std::enable_shared_from_this<GC> {
             static void RegisterHelpers(std::shared_ptr<GC> gc, TRootEnvironment* env);
             static void RegisterUuid(std::shared_ptr<GC> gc, TRootEnvironment* env);
         public:
-            static void RegisterStd(std::shared_ptr<GC> gc, TRootEnvironment* env, std::shared_ptr<RelativeFilesystem> localfs);
+            static void RegisterStd(std::shared_ptr<GC> gc, TRootEnvironment* env, std::shared_ptr<Tesses::Framework::Filesystem::RelativeFilesystem> localfs);
             static void RegisterStd(std::shared_ptr<GC> gc, TRootEnvironment* env);
             static void RegisterConsole(std::shared_ptr<GC> gc,TRootEnvironment* env);
-            static void RegisterIO(std::shared_ptr<GC> gc,TRootEnvironment* env, std::shared_ptr<RelativeFilesystem> local);
+            static void RegisterIO(std::shared_ptr<GC> gc,TRootEnvironment* env, std::shared_ptr<Tesses::Framework::Filesystem::RelativeFilesystem> local);
             static void RegisterIO(std::shared_ptr<GC> gc,TRootEnvironment* env, bool enableLocalFS=true);
             static void RegisterNet(std::shared_ptr<GC> gc, TRootEnvironment* env);
             static void RegisterSqlite(std::shared_ptr<GC> gc,TRootEnvironment* env);

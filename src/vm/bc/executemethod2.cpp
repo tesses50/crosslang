@@ -1677,6 +1677,8 @@ namespace Tesses::CrossLang {
                     auto myvfs = std::dynamic_pointer_cast<TObjectVFS>(vfs);
 
                     auto mountable = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::MountableFilesystem>(vfs);
+
+                   
                     if(myvfs != nullptr)
                     {
                         TDictionary* dict2;
@@ -2284,10 +2286,36 @@ namespace Tesses::CrossLang {
                     }
                     if(key == "RegisterEverything")
                     {
-                        if(myEnv->permissions.canRegisterEverything && myEnv->permissions.localfs)
+                        if(rootEnv->permissions.locked)
                         {
-                            TStd::RegisterStd(gc, rootEnv, std::make_shared<RelativeFilesystem>(myEnv->permissions.localfs->GetVFS(),myEnv->permissions.localfs->GetWorking()));
+                            cse.back()->Push(gc,nullptr);
+                            return false;
+                        }
+
+                        if(myEnv->permissions.canRegisterEverything)
+                        {
+                            std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+                            if(GetArgument(args,0, vfs))
+                            {
+
+                                auto rfs = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::RelativeFilesystem>(vfs);
+                                if(rfs)
+                                {
+                                    TStd::RegisterStd(gc,rootEnv, rfs);
+                                    cse.back()->Push(gc,nullptr);
+                                    return false;
+                                }
+                            }
                             
+                            if(myEnv->permissions.localfs)
+                                TStd::RegisterStd(gc, rootEnv, std::make_shared<Tesses::Framework::Filesystem::RelativeFilesystem>(myEnv->permissions.localfs->GetVFS(),myEnv->permissions.localfs->GetWorking()));
+                            else
+                                TStd::RegisterStd(gc, rootEnv, nullptr);
+                            
+                            
+
+                            cse.back()->Push(gc,nullptr);
+                            return false;
                         } 
                         else
                         {
@@ -2308,7 +2336,7 @@ namespace Tesses::CrossLang {
                         {
                             if(myEnv->permissions.localfs)
                             {
-                                TStd::RegisterIO(gc, rootEnv, std::make_shared<RelativeFilesystem>(myEnv->permissions.localfs->GetVFS(),myEnv->permissions.localfs->GetWorking()));
+                                TStd::RegisterIO(gc, rootEnv, std::make_shared<Tesses::Framework::Filesystem::RelativeFilesystem>(myEnv->permissions.localfs->GetVFS(),myEnv->permissions.localfs->GetWorking()));
                             }
                             else {
                                 TStd::RegisterIO(gc, rootEnv, nullptr);
@@ -2388,6 +2416,8 @@ namespace Tesses::CrossLang {
                     }
                     if(key == "RegisterIO")
                     {
+                        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+                        
                         bool r;
                         if(GetArgument(args,0,r))
                         {
@@ -2395,11 +2425,19 @@ namespace Tesses::CrossLang {
                             {
                                 if(myEnv->permissions.localfs)
                                 {
-                                    TStd::RegisterIO(gc, rootEnv, std::make_shared<RelativeFilesystem>(myEnv->permissions.localfs->GetVFS(),myEnv->permissions.localfs->GetWorking()));
+                                    TStd::RegisterIO(gc, rootEnv, std::make_shared<Tesses::Framework::Filesystem::RelativeFilesystem>(myEnv->permissions.localfs->GetVFS(),myEnv->permissions.localfs->GetWorking()));
                                 }
                                 else {
                                     TStd::RegisterIO(gc, rootEnv, nullptr);
                                 }
+                            }
+                        }
+                        if(GetArgument(args,0,vfs))
+                        {
+                            auto rfs = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::RelativeFilesystem>(vfs);
+                            if(rfs && (myEnv->permissions.canRegisterEverything || myEnv->permissions.canRegisterIO) && !rootEnv->permissions.locked)
+                            {
+                                TStd::RegisterIO(gc, rootEnv, rfs);
                             }
                         }
                         cse.back()->Push(gc,nullptr);

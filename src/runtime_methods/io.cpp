@@ -264,14 +264,14 @@ namespace Tesses::CrossLang
     {
         if(enable)
         {
-            RegisterIO(gc,env,std::make_shared<RelativeFilesystem>(Tesses::Framework::Filesystem::LocalFS, Tesses::Framework::Filesystem::VFSPath::GetAbsoluteCurrentDirectory()));
+            RegisterIO(gc,env,std::make_shared<Tesses::Framework::Filesystem::RelativeFilesystem>(Tesses::Framework::Filesystem::LocalFS, Tesses::Framework::Filesystem::VFSPath::GetAbsoluteCurrentDirectory()));
         }
         else
         {
             RegisterIO(gc,env,nullptr);
         }
     }
-    void TStd::RegisterIO(std::shared_ptr<GC> gc,TRootEnvironment* env,std::shared_ptr<RelativeFilesystem> fs)
+    void TStd::RegisterIO(std::shared_ptr<GC> gc,TRootEnvironment* env,std::shared_ptr<Tesses::Framework::Filesystem::RelativeFilesystem> fs)
     {
 
         env->permissions.canRegisterIO=true;
@@ -332,7 +332,13 @@ namespace Tesses::CrossLang
                 Tesses::Framework::Filesystem::VFSPath path;
                 if(GetArgumentAsPath(args,0,path))
                 {
-                    fs->SetWorking(path);
+                    if(path.relative)
+                            {
+                                fs->SetWorking(path.MakeAbsolute(fs->GetWorking()));
+                            }
+                            else {
+                                fs->SetWorking(path);
+                            }
                 }
                 return path;
             });

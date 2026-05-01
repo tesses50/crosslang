@@ -864,20 +864,12 @@ namespace Tesses::CrossLang
             auto vfs = std::get<std::shared_ptr<Tesses::Framework::Filesystem::VFS>>(_obj);
             if(vfs != nullptr)
             {
-                auto rfs = std::dynamic_pointer_cast<RelativeFilesystem>(vfs);
+                auto rfs = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::RelativeFilesystem>(vfs);
                 auto localVFS = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::LocalFilesystem>(vfs);
                 auto mountableVFS = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::MountableFilesystem>(vfs);
                 auto subFS = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::SubdirFilesystem>(vfs);
                 auto tempFS = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::TempFS>(vfs);
-                if(rfs)
-                {
-                    auto fs=rfs->GetVFS();
-                    if(fs)
-                    {
-                        return GetObjectTypeString(fs);
-                    }
-                    return "RelativeFilesystem";
-                }
+                if(rfs) return "RelativeFilesystem";
                 if(localVFS != nullptr) return "LocalFilesystem";
                 if(subFS != nullptr) return "SubdirFilesystem";
                 if(mountableVFS != nullptr) return "MountableFilesystem";
@@ -1301,6 +1293,17 @@ namespace Tesses::CrossLang
         return Tesses::Framework::TF_Timer(empty, 1000L, false);
     }
 
+    static TObject New_RelativeFilesystem(GCList& ls, std::vector<TObject> args)
+    {
+        std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
+        Tesses::Framework::Filesystem::VFSPath path;
+        if(GetArgument(args,0,vfs) && GetArgumentAsPath(args,1,path) && !path.relative)
+        {
+            return std::make_shared<Tesses::Framework::Filesystem::RelativeFilesystem>(vfs,path);
+        }
+        return nullptr;
+    }
+
     void TStd::RegisterRoot(std::shared_ptr<GC> gc, TRootEnvironment* env)
     {
         GCList ls(gc);      
@@ -1363,6 +1366,7 @@ namespace Tesses::CrossLang
         newTypes->DeclareFunction(gc, "SubdirFilesystem","Create a subdir filesystem",{"fs","subdir"}, New_SubdirFilesystem);
         newTypes->DeclareFunction(gc, "MemoryStream","Create a memory stream",{"writable"}, New_MemoryStream);
         newTypes->DeclareFunction(gc, "Filesystem","Create filesystem", {"fs"},New_Filesystem);
+        newTypes->DeclareFunction(gc, "RelativeFilesystem", "Create relativefs",{"parent", "absoluteDir"}, New_RelativeFilesystem);
         newTypes->DeclareFunction(gc, "TempFS","Create a temp directory",{"",""}, New_TempFS);
         newTypes->DeclareFunction(gc, "Timer", "Create a timer",{"$cb","$interval","$enabled"}, New_Timer);
         newTypes->DeclareFunction(gc, "Stream","Create stream", {"strm"},New_Stream);
@@ -1519,14 +1523,15 @@ namespace Tesses::CrossLang
     }
     void TStd::RegisterStd(std::shared_ptr<GC> gc, TRootEnvironment* env)
     {
-        RegisterStd(gc, env, std::make_shared<RelativeFilesystem>(Tesses::Framework::Filesystem::LocalFS, Tesses::Framework::Filesystem::VFSPath::GetAbsoluteCurrentDirectory()));
+        RegisterStd(gc, env, std::make_shared<Tesses::Framework::Filesystem::RelativeFilesystem>(Tesses::Framework::Filesystem::LocalFS, Tesses::Framework::Filesystem::VFSPath::GetAbsoluteCurrentDirectory()));
     }
-    void TStd::RegisterStd(std::shared_ptr<GC> gc, TRootEnvironment* env,std::shared_ptr<RelativeFilesystem> localfs)
+    void TStd::RegisterStd(std::shared_ptr<GC> gc, TRootEnvironment* env,std::shared_ptr<Tesses::Framework::Filesystem::RelativeFilesystem> localfs)
     {
         env->permissions.canRegisterEverything=true;
         RegisterEnv(gc, env);
         RegisterRoot(gc,env);
         RegisterPath(gc,env);
+        
         RegisterConsole(gc, env);
         RegisterIO(gc, env, localfs);
         RegisterNet(gc, env);

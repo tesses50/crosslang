@@ -70,6 +70,29 @@ namespace Tesses::CrossLang {
             {
                 auto vfs = std::get<std::shared_ptr<Tesses::Framework::Filesystem::VFS>>(instance);
                 auto tmpFS=std::dynamic_pointer_cast<Tesses::Framework::Filesystem::TempFS>(vfs);
+                auto relative = std::dynamic_pointer_cast<Tesses::Framework::Filesystem::RelativeFilesystem>(vfs);
+                auto myFS = std::dynamic_pointer_cast<TObjectVFS>(vfs);
+                if(relative)
+                {
+                    if(key == "Working")
+                    {
+                        cse.back()->Push(gc, relative->GetWorking());
+                        return false;
+                    }
+                    if(key == "Filesystem")
+                    {
+                        cse.back()->Push(gc, relative->GetVFS());
+                        return false;
+                    }
+                }
+                if(myFS)
+                {
+                    if(key == "Inner")
+                    {
+                        cse.back()->Push(gc, myFS->obj);
+                        return false;
+                    }
+                }
                 if(tmpFS)
                 {
                     if(key == "TempDirectoryName")
