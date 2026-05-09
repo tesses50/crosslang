@@ -5,7 +5,7 @@
 namespace Tesses::CrossLang {
     #if defined(TESSESFRAMEWORK_ENABLE_SQLITE)
     using namespace Tesses::Framework::Serialization;
-     TObject Sqlite_Escape(GCList& ls, std::vector<TObject> args)
+    TObject Sqlite_Escape(GCList& ls, std::vector<TObject> args)
     {
         int64_t n;
         double d;
@@ -33,6 +33,58 @@ namespace Tesses::CrossLang {
         return "NULL";
     }
     
+    TObject Sqlite_Prepare(GCList& ls, std::vector<TObject> args)
+    {
+        std::string str;
+        TList* list;
+
+        std::string newStr = "";
+        if(GetArgument(args,0,str) && GetArgumentHeap(args,1,list))
+        {
+            int64_t item = 0;
+
+
+            for(size_t i = 0; i < str.size(); i++)
+            {
+                if(str[i] == '@' && (i+1>=str.size() || str[i+1] != '@'))
+                {
+                    auto v = list->Get(item);
+                    int64_t n;
+                    double d;
+                    bool b;
+
+
+                    std::string str;
+                    if(GetObject(v,str))
+                    {
+                        newStr+= SQLiteDatabase::Escape(str);
+                    }
+                    else if(GetObject(v,n))
+                    {
+                        newStr+= std::to_string(n);
+                    }
+                    else if(GetObject(v,b))
+                    {
+                        newStr+= (b ? "1" : "0");
+                    }
+                    else if(GetObject(v,d))
+                    {
+                        newStr+= std::to_string(d);
+                    }
+                    else {
+
+                    newStr+= "NULL";
+                    }
+                }
+                else {
+                    newStr+=str[i];
+                }
+            }
+
+            
+        }
+        return newStr;
+    }
      
     class SQLiteObject : public TNativeObject
     {   
@@ -64,6 +116,9 @@ namespace Tesses::CrossLang {
                 if(name == "Close") this->Close();
                 if(name == "Escape") {
                     return Sqlite_Escape(ls,args);
+                }
+                if(name == "Prepare") {
+                    return Sqlite_Prepare(ls,args);
                 }
                 if(name == "Exec")
                 {
@@ -104,6 +159,7 @@ namespace Tesses::CrossLang {
                     delete this->db;
             }
     };
+
 
     TObject Sqlite_Open(GCList& ls, std::vector<TObject> args,TRootEnvironment* env)
     {
@@ -148,6 +204,7 @@ namespace Tesses::CrossLang {
         }
         return Undefined();
     }
+
     
     #endif
     void TStd::RegisterSqlite(std::shared_ptr<GC> gc,TRootEnvironment* env)
@@ -163,6 +220,7 @@ namespace Tesses::CrossLang {
         dict->DeclareFunction(gc,"Exec","Execute sql (returns dictionary of columns key=value, an error message as string or undefined)",{"handle","sql"},Sqlite_Exec);
         dict->DeclareFunction(gc,"Close","Close sql database",{"handle"},Sqlite_Close);
         dict->DeclareFunction(gc,"Escape","Escape sql text",{"text"},Sqlite_Escape);
+        dict->DeclareFunction(gc,"Prepare", "Prepare sql",{"sql","items"}, Sqlite_Prepare);
        
         gc->BarrierBegin();
         env->DeclareVariable("Sqlite", dict);

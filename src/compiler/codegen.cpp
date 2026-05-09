@@ -1383,6 +1383,104 @@ namespace Tesses::CrossLang
                 instructions.push_back(new LabelInstruction(ifIdEnd));
 
             }
+            else if(adv.nodeName == UsingStatement && adv.nodes.size() == 2)
+            {
+                //using(EXPRESSION) {}
+                //using(EXPRESSION) STATEMENT;
+
+                //{ __compGen = EXPRESSION; defer { __compGen.Dispose(); } {}(unrolled) OR STATEMENT;  }
+
+                if(std::holds_alternative<AdvancedSyntaxNode>(adv.nodes[1]))
+                {
+                    auto asn2 = std::get<AdvancedSyntaxNode>(adv.nodes[1]);
+                    if(asn2.nodeName == ScopeNode)
+                    {
+                        scope++;
+                        instructions.push_back(new SimpleInstruction(SCOPEBEGIN));
+
+                        uint32_t exprId = NewId();
+                        std::string exprStr = "__compGenUsing";
+                        exprStr.append(std::to_string(exprId));
+                        
+                        auto _assign=AdvancedSyntaxNode::Create(AssignExpression,true,{
+                            AdvancedSyntaxNode::Create(DeclareExpression,true,{exprStr}),
+                            adv.nodes[0]
+                        });
+
+                        GenNode(instructions,_assign,scope,contscope,brkscope,contI,brkI);
+                        GenPop(instructions,_assign);
+
+
+                        auto _defer=AdvancedSyntaxNode::Create(DeferStatement,false,{
+                            AdvancedSyntaxNode::Create(ReturnStatement,false,{
+                                AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                                    AdvancedSyntaxNode::Create(GetFieldExpression,true,{
+                                        AdvancedSyntaxNode::Create(GetVariableExpression, true, {
+                                            exprStr
+                                        }),
+                                        "Dispose"
+                                    })
+                                })
+                            })
+                        });
+
+
+                        GenNode(instructions,_defer,scope,contscope,brkscope,contI,brkI);
+
+                        for(size_t i = 0; i < asn2.nodes.size(); i++)
+                        {
+                            GenNode(instructions,asn2.nodes[i],scope,contscope,brkscope,contI,brkI);
+                            if(!asn2.isExpression || i < asn2.nodes.size()-1)
+                                GenPop(instructions,asn2.nodes[i]);
+                        }
+                        instructions.push_back(new SimpleInstruction(SCOPEEND));
+                        scope--;
+                        return;
+                    }
+                }
+
+                {
+                    scope++;
+                        instructions.push_back(new SimpleInstruction(SCOPEBEGIN));
+
+                        uint32_t exprId = NewId();
+                        std::string exprStr = "__compGenUsing";
+                        exprStr.append(std::to_string(exprId));
+                        
+                        auto _assign=AdvancedSyntaxNode::Create(AssignExpression,true,{
+                            AdvancedSyntaxNode::Create(DeclareExpression,true,{exprStr}),
+                            adv.nodes[0]
+                        });
+
+                        GenNode(instructions,_assign,scope,contscope,brkscope,contI,brkI);
+                        GenPop(instructions,_assign);
+
+
+                        auto _defer=AdvancedSyntaxNode::Create(DeferStatement,false,{
+                            AdvancedSyntaxNode::Create(ReturnStatement,false,{
+                                AdvancedSyntaxNode::Create(FunctionCallExpression,true,{
+                                    AdvancedSyntaxNode::Create(GetFieldExpression,true,{
+                                        AdvancedSyntaxNode::Create(GetVariableExpression, true, {
+                                            exprStr
+                                        }),
+                                        "Dispose"
+                                    })
+                                })
+                            })
+                        });
+
+
+                        GenNode(instructions,_defer,scope,contscope,brkscope,contI,brkI);
+
+                        
+                        GenNode(instructions,adv.nodes[1],scope,contscope,brkscope,contI,brkI);
+                        if(!adv.isExpression)
+                            GenPop(instructions,adv.nodes[1]);
+                    
+                        instructions.push_back(new SimpleInstruction(SCOPEEND));
+                        scope--;
+                }
+            }
             else if(adv.nodeName == WhileStatement && adv.nodes.size() == 2)
             {
                 auto old_contI = contI;

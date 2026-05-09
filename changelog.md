@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.5
+Fix crosslang Stat, StatVFS for custom crosslang filesystems and add queryable
+
 ## 0.0.4
 Rework for git.tesses.org, GC* is std::shared_ptr maybe will fix crash during exit
 

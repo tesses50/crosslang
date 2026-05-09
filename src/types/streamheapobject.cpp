@@ -205,7 +205,7 @@ namespace Tesses::CrossLang
         TDictionary* dict;
         if(GetObjectHeap(this->obj, dict))
         {
-            dict->CallMethod(*ls,"Close",{});
+            dict->CallMethod(*ls,"Dispose",{});
         }
     }
     TObjectStream::~TObjectStream()
@@ -213,7 +213,7 @@ namespace Tesses::CrossLang
         TDictionary* dict;
         if(GetObjectHeap(this->obj, dict))
         {
-            dict->CallMethod(*ls,"Close",{});
+            dict->CallMethod(*ls,"Dispose",{});
         }
         delete this->ls;
     }

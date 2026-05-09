@@ -132,6 +132,7 @@ namespace Tesses::CrossLang
         TDynamicDictionary* dynDict;
         TDictionary* dict;
         TEnumerator* enumerator;
+        TQueryable* q;
         if(GetObject(obj,str))
         {
             return TStringEnumerator::Create(ls, str);
@@ -155,6 +156,14 @@ namespace Tesses::CrossLang
             {
                 return enumerator;
             }
+        }
+        else if(GetObjectHeap(obj, q))
+        {
+            return q->GetEnumerator(ls);
+        }
+        else if(GetObjectHeap(obj, enumerator))
+        {
+            return enumerator;
         }
         return nullptr;
     }

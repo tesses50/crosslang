@@ -281,45 +281,45 @@ namespace Tesses::CrossLang {
             if(GetObjectHeap(res,_dict))
             {
                 this->ls->GetGC()->BarrierBegin();
-                _o = dict->GetValue("BlockSize");
+                _o = _dict->GetValue("BlockSize");
                 if(GetObject(_o,_num)) data.BlockSize = (uint64_t)_num;
 
-                _o = dict->GetValue("BlockCount");
+                _o = _dict->GetValue("BlockCount");
                 if(GetObject(_o,_num)) data.BlockCount = (uint64_t)_num;
                 
-                _o = dict->GetValue("Device");
+                _o = _dict->GetValue("Device");
                 if(GetObject(_o,_num)) data.Device = (uint64_t)_num;
                 
-                _o = dict->GetValue("DeviceId");
+                _o = _dict->GetValue("DeviceId");
                 if(GetObject(_o,_num)) data.DeviceId = (uint64_t)_num;
                 
-                _o = dict->GetValue("GroupId");
+                _o = _dict->GetValue("GroupId");
                 if(GetObject(_o,_num)) data.GroupId = (uint32_t)_num;
                 
-                _o = dict->GetValue("HardLinks");
+                _o = _dict->GetValue("HardLinks");
                 if(GetObject(_o,_num)) data.HardLinks = (uint64_t)_num;
                 std::shared_ptr<Tesses::Framework::Date::DateTime> dt;
-                _o = dict->GetValue("LastAccess");
+                _o = _dict->GetValue("LastAccess");
                 if(GetObject(_o,dt)) data.LastAccess = dt ? *dt : Tesses::Framework::Date::DateTime(0);
                 
 
-                _o = dict->GetValue("LastModified");
+                _o = _dict->GetValue("LastModified");
                 if(GetObject(_o,dt)) data.LastModified = dt ? *dt : Tesses::Framework::Date::DateTime(0);
                 
                 
 
-                _o = dict->GetValue("LastStatus");
+                _o = _dict->GetValue("LastStatus");
                 if(GetObject(_o,dt)) data.LastStatus = dt ? *dt : Tesses::Framework::Date::DateTime(0);
                 
 
 
-                _o = dict->GetValue("Mode");
+                _o = _dict->GetValue("Mode");
                 if(GetObject(_o,_num)) data.Mode = (uint32_t)_num;
                 
-                _o = dict->GetValue("Size");
+                _o = _dict->GetValue("Size");
                 if(GetObject(_o,_num)) data.Size = (uint64_t)_num;
                 
-                _o = dict->GetValue("UserId");
+                _o = _dict->GetValue("UserId");
                 if(GetObject(_o,_num)) data.UserId = (uint32_t)_num;
 
 
@@ -344,28 +344,28 @@ namespace Tesses::CrossLang {
             if(GetObjectHeap(res,_dict))
             {
                 this->ls->GetGC()->BarrierBegin();
-                _o = dict->GetValue("BlockSize");
+                _o = _dict->GetValue("BlockSize");
                 if(GetObject(_o,_num)) data.BlockSize = (uint64_t)_num;
 
-                _o = dict->GetValue("FragmentSize");
+                _o = _dict->GetValue("FragmentSize");
                 if(GetObject(_o,_num)) data.FragmentSize = (uint64_t)_num;
-                _o = dict->GetValue("Blocks");
+                _o = _dict->GetValue("Blocks");
                 if(GetObject(_o,_num)) data.Blocks = (uint64_t)_num;
-                _o = dict->GetValue("BlocksFree");
+                _o = _dict->GetValue("BlocksFree");
                 if(GetObject(_o,_num)) data.BlocksFree = (uint64_t)_num;
-                _o = dict->GetValue("BlocksAvailable");
+                _o = _dict->GetValue("BlocksAvailable");
                 if(GetObject(_o,_num)) data.BlocksAvailable = (uint64_t)_num;
-                _o = dict->GetValue("TotalInodes");
+                _o = _dict->GetValue("TotalInodes");
                 if(GetObject(_o,_num)) data.TotalInodes = (uint64_t)_num;
-                _o = dict->GetValue("FreeInodes");
+                _o = _dict->GetValue("FreeInodes");
                 if(GetObject(_o,_num)) data.FreeInodes = (uint64_t)_num;
-                _o = dict->GetValue("AvailableInodes");
+                _o = _dict->GetValue("AvailableInodes");
                 if(GetObject(_o,_num)) data.AvailableInodes = (uint64_t)_num;
-                _o = dict->GetValue("Id");
+                _o = _dict->GetValue("Id");
                 if(GetObject(_o,_num)) data.Id = (uint64_t)_num;
-                _o = dict->GetValue("Flags");
+                _o = _dict->GetValue("Flags");
                 if(GetObject(_o,_num)) data.Flags = (uint64_t)_num;
-                _o = dict->GetValue("MaxNameLength");
+                _o = _dict->GetValue("MaxNameLength");
                 if(GetObject(_o,_num)) data.MaxNameLength = (uint64_t)_num;
                 
                 
@@ -386,7 +386,7 @@ namespace Tesses::CrossLang {
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
-            dict->CallMethod(ls,"Close",{});
+            dict->CallMethod(ls,"Dispose",{});
         }
     }
     TObjectVFS::~TObjectVFS()
@@ -395,7 +395,7 @@ namespace Tesses::CrossLang {
         if(GetObjectHeap(this->obj, dict))
         {
             GCList ls(this->ls->GetGC());
-            dict->CallMethod(ls,"Close",{});
+            dict->CallMethod(ls,"Dispose",{});
         }
         delete this->ls;
     }

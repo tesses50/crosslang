@@ -1031,6 +1031,11 @@ constexpr std::string_view ForStatement = "forStatement";
  */
 constexpr std::string_view WhileStatement = "whileStatement";
 /**
+ * @brief using statement using(EXPR)
+ *
+ */
+constexpr std::string_view UsingStatement = "usingStatement";
+/**
  * @brief Do statement do(COND)
  *
  */
@@ -2616,5 +2621,48 @@ class GC : public std::enable_shared_from_this<GC> {
 
         void CrossLangDump(std::shared_ptr<Tesses::Framework::Streams::Stream> strm);
         void CrossLangCompiler(std::vector<std::string>& argv);
-    }
+    }   
+
+    enum class TQueryableMode {
+        Passthrough,
+        Skip,
+        SkipWhile,
+        Take,
+        TakeWhile,
+        Select,
+        Where
+    };
+
+    class TQueryable : public THeapObject {
+        
+
+        TObject parent;
+        TQueryableMode mode;
+        std::vector<TObject> args;
+            TQueryable(TObject parent);
+            TQueryable(TObject parent, TQueryableMode mode, std::vector<TObject> args);
+
+        public:
+
+            static TQueryable* Create(GCList& ls, TObject parent);
+            static TQueryable* Create(GCList& ls, TObject parent, TQueryableMode mode, std::vector<TObject> args);
+            
+            TQueryable* Skip(GCList& ls,int64_t no);
+            TQueryable* SkipWhile(GCList& ls, TCallable* call);
+            TQueryable* Take(GCList& ls, int64_t no);
+            TQueryable* TakeWhile(GCList& ls, TCallable* call);
+            TQueryable* Select(GCList& ls, TCallable* call);
+            TQueryable* Where(GCList& ls, TCallable* call);
+            void ForEach(std::shared_ptr<GC> gc, TCallable* call);
+            int64_t Count(std::shared_ptr<GC> gc, TCallable* call);
+            int64_t Count(std::shared_ptr<GC> gc);
+            bool Contains(std::shared_ptr<GC>, TObject value);
+            bool Any(std::shared_ptr<GC> gc, TCallable* call);
+            bool All(std::shared_ptr<GC> gc, TCallable* call);
+
+            TList* ToList(GCList& ls);
+            TEnumerator* GetEnumerator(GCList& ls);
+
+            void Mark();
+    };
 };

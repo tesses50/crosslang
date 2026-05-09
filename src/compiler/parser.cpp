@@ -615,7 +615,7 @@ namespace Tesses::CrossLang
                     EnsureSymbol("(");
                     SyntaxNode list = ParseExpression();
                     SyntaxNode body = nullptr;
-                    if(IsSymbol(":"))
+                    if(IsSymbol(":") || IsIdentifier("in"))
                     {
                         item = list;
                         list = ParseExpression();
@@ -1405,6 +1405,20 @@ namespace Tesses::CrossLang
                 body = ParseNode();
             }
             return AdvancedSyntaxNode::Create(WhileStatement,false,{cond,body});
+        }
+        if(IsIdentifier("using"))
+        {
+            EnsureSymbol("(");
+            SyntaxNode expr = ParseExpression();
+            EnsureSymbol(")");
+
+            SyntaxNode body = nullptr;
+            if(!IsSymbol(";"))
+            {
+                body = ParseNode();
+            }
+
+            return AdvancedSyntaxNode::Create(UsingStatement, false, {expr,body});
         }
         if(IsIdentifier("do"))
         {

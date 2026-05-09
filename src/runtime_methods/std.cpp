@@ -610,6 +610,12 @@ namespace Tesses::CrossLang
         std::shared_ptr<Tesses::Framework::Date::TimeSpan> dt;
         return GetArgument(args,0,dt);
     }
+    static TObject TypeIsQueryable(GCList& ls, std::vector<TObject> args)
+    {
+        if(args.empty()) return nullptr;
+        TQueryable* queryable;
+        return GetArgumentHeap(args,0,queryable);
+    }
     static TObject New_SubdirFilesystem(GCList& ls, std::vector<TObject> args)
     {
         std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
@@ -902,6 +908,7 @@ namespace Tesses::CrossLang
             auto cobj = dynamic_cast<TClassObject*>(obj);
             auto aarray = dynamic_cast<TAssociativeArray*>(obj);
             auto file = dynamic_cast<TFile*>(obj);
+            auto queryable = dynamic_cast<TQueryable*>(obj);
 
             if(rootEnv != nullptr) return "RootEnvironment";
             if(subEnv != nullptr) return "SubEnvironment";
@@ -923,6 +930,7 @@ namespace Tesses::CrossLang
             if(native != nullptr) return "Native";
             if(any != nullptr) return "Any";
             if(file != nullptr) return "File";
+            if(queryable != nullptr) return "Queryable";
 
             return "HeapObject";
         }
@@ -1304,6 +1312,16 @@ namespace Tesses::CrossLang
         return nullptr;
     }
 
+    static TObject New_Queryable(GCList& ls, std::vector<TObject> args)
+    {
+        if(!args.empty())
+        {
+            return TQueryable::Create(ls, args.front());
+        }
+        return nullptr;
+    }
+   
+
     void TStd::RegisterRoot(std::shared_ptr<GC> gc, TRootEnvironment* env)
     {
         GCList ls(gc);      
@@ -1430,7 +1448,7 @@ namespace Tesses::CrossLang
         env->DeclareFunction(gc, "TypeIsByteReader","Get whether object is a ByteReader",{"object"},TypeIsByteReader);
         env->DeclareFunction(gc, "TypeIsByteWriter","Get whether object is a ByteWriter",{"object"},TypeIsByteWriter);
         env->DeclareFunction(gc, "TypeIsUuid","Get whether object is a Uuid",{"object"},TypeIsUuid);
-        
+        env->DeclareFunction(gc, "TypeIsQueryable","Get whether object is a Queryable",{"object"},TypeIsQueryable);
         
         newTypes->DeclareFunction(gc, "Regex", "Create regex object",{"regex"},[](GCList& ls,std::vector<TObject> args)->TObject {
             std::string str;
@@ -1476,6 +1494,7 @@ namespace Tesses::CrossLang
             return TAssociativeArray::Create(ls);
         });
         newTypes->DeclareFunction(gc,"ByteArray","Create bytearray, with optional either size (to size it) or string argument (to fill byte array)",{"$data"},ByteArray);
+        newTypes->DeclareFunction(gc, "Queryable", "Create a queryable", {"enumerable"}, New_Queryable);
         
         env->DeclareVariable("Version", TDictionary::Create(ls,{
             TDItem("Parse",TExternalMethod::Create(ls,"Parse version from string",{"versionStr"},[](GCList& ls, std::vector<TObject> args)->TObject{

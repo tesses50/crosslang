@@ -668,7 +668,8 @@ namespace Tesses::CrossLang {
                         {
                             if(str[i] != c) break;
                         }
-                         cse.back()->Push(gc,str.substr(i));
+
+                         cse.back()->Push(gc,(!str.empty() && i < str.size()) ? str.substr(i) : "");
                          return false;
                     }
                 }
@@ -682,7 +683,8 @@ namespace Tesses::CrossLang {
                         {
                             if(str[i] != c) break;
                         }
-                         cse.back()->Push(gc,str.substr(0,i+1));
+
+                         cse.back()->Push(gc, (!str.empty() && i < str.size())  ? str.substr(0,i+1) : "");
                          return false;
                     }
                 }
@@ -2167,6 +2169,136 @@ namespace Tesses::CrossLang {
                 auto aArray=dynamic_cast<TAssociativeArray*>(obj);
                 auto ttask = dynamic_cast<TTask*>(obj);
                 auto file = dynamic_cast<TFile*>(obj);
+
+                auto queryable = dynamic_cast<TQueryable*>(obj);
+
+                if(queryable != nullptr)
+                {
+                    if(key == "Skip")
+                    {
+                        int64_t count;
+                        if(GetArgument(args,0,count))
+                        {
+                            cse.back()->Push(gc, queryable->Skip(ls,count));
+                            return false;
+                        }
+                    }
+                    if(key == "Take")
+                    {
+                        int64_t count;
+                        if(GetArgument(args,0,count))
+                        {
+                            cse.back()->Push(gc, queryable->Take(ls,count));
+                            return false;
+                        }
+                    }
+                    if(key == "SkipWhile")
+                    {
+                        TCallable* callable;
+                        if(GetArgumentHeap(args, 0, callable))
+                        {
+                            cse.back()->Push(gc, queryable->SkipWhile(ls,callable));
+                            return false;
+                        }
+                    }
+                    if(key == "TakeWhile")
+                    {
+                        TCallable* callable;
+                        if(GetArgumentHeap(args, 0, callable))
+                        {
+                            cse.back()->Push(gc, queryable->TakeWhile(ls,callable));
+                            return false;
+                        }
+                    }
+                    if(key == "Select")
+                    {
+                        TCallable* callable;
+                        if(GetArgumentHeap(args, 0, callable))
+                        {
+                            cse.back()->Push(gc, queryable->Select(ls,callable));
+                            return false;
+                        }
+                    }
+                    if(key == "Where")
+                    {
+                        TCallable* callable;
+                        if(GetArgumentHeap(args, 0, callable))
+                        {
+                            cse.back()->Push(gc, queryable->Where(ls,callable));
+                            return false;
+                        }
+                    }
+                    if(key == "ToList")
+                    {
+                        cse.back()->Push(gc, queryable->ToList(ls));
+                        return false;
+                    }
+
+                    
+
+                    if(key == "ForEach")
+                    {
+                        TCallable* call;
+                        if(GetArgumentHeap(args,0,call))
+                        {
+                            queryable->ForEach(gc, call);
+                        }
+
+                        cse.back()->Push(gc, Undefined());
+                        return false;
+                    }
+
+                   
+
+                    if(key == "Count")
+                    {
+                        TCallable* call;
+                        if(GetArgumentHeap(args,0,call))
+                        {
+                            cse.back()->Push(gc, queryable->Count(gc, call));
+                            return false;
+                        }
+                        else {
+                            cse.back()->Push(gc, queryable->Count(gc));
+                            return false;
+                        }
+                    }
+                    if(key == "Contains")
+                    {
+                        if(!args.empty())
+                        {
+                            cse.back()->Push(gc, queryable->Contains(gc, args[0]));
+                            return false;
+                        }
+                    }
+                    if(key == "All")
+                    {
+                        TCallable* call;
+                        if(GetArgumentHeap(args,0,call))
+                        {
+                            cse.back()->Push(gc, queryable->All(gc, call));
+                            return false;
+                        }
+                    }
+                    if(key == "Any")
+                    {
+                        TCallable* call;
+                        if(GetArgumentHeap(args,0,call))
+                        {
+                            cse.back()->Push(gc, queryable->Any(gc, call));
+                            return false;
+                        }
+                    }
+
+                    if(key == "GetEnumerator")
+                    {
+                        cse.back()->Push(gc, queryable->GetEnumerator(ls));
+                        return false;
+                    }
+
+                    cse.back()->Push(gc, Undefined());
+                    return false;
+                }
 
                 if(file != nullptr)
                 {
