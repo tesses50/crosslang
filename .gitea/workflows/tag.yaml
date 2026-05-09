@@ -21,7 +21,7 @@ jobs:
       - run: pacman-key --config /opt/cross/ppc/pacman.conf --add /root/repository.key
       - run: printf "[tesses50.git.tesses.org]\nSigLevel = Optional TrustAll\nServer = https://git.tesses.org/api/packages/tesses50/arch/core/\$arch\n" >> /etc/pacman.conf
       - run: printf "[tesses50.git.tesses.org]\nSigLevel = Optional TrustAll\nServer = https://git.tesses.org/api/packages/tesses50/arch/core/\$arch\n" >> /opt/cross/ppc/pacman.conf
-      - run: pacman --noconfirm -Sy mbedtls curl tessesframework zip zig ninja
+      - run: pacman --noconfirm -Sy mbedtls tessesframework zip zig ninja
       - run: pacman --config /opt/cross/ppc/pacman.conf --noconfirm -Sy mbedtls tessesframework
       - run: cp Packaging/Linux/PKGBUILD /home/build/PKGBUILD
       - run: cp Packaging/Linux/build-arch.sh /home/build/build-arch.sh
