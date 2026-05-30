@@ -30,14 +30,14 @@ prepare() {
 build() {
 	cd "$srcdir/${pkgname}"
 	mkdir build
+	cd build
 
 	if [[ -z "$CMAKE_TOOLCHAIN" ]]; then
- 	cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr -DCROSSLANG_FETCHCONTENT=OFF -DCMAKE_BUILD_TYPE=Release
+ 	cmake -S .. -B . -DCMAKE_INSTALL_PREFIX=/usr -DCROSSLANG_FETCHCONTENT=OFF -DCMAKE_BUILD_TYPE=Release
   	else
-	cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/usr -DCROSSLANG_FETCHCONTENT=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$CMAKE_TOOLCHAIN"
+	cmake -S .. -B . -DCMAKE_INSTALL_PREFIX=/usr -DCROSSLANG_FETCHCONTENT=OFF -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="$CMAKE_TOOLCHAIN"
 	fi
 
-	cd build
 	make -j`nproc`
 
 }
