@@ -33,7 +33,6 @@ int main(int argc, char **argv) {
             args.insert(args.begin() + 1, crvmFile.ToString());
             int64_t myi64 = 0;
 
-            args.erase(args.begin());
             std::shared_ptr<GC> gc = std::make_shared<GC>();
             gc->Start();
             GCList ls(gc);
