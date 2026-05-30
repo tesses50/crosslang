@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.6
+Fix bug with classes, use slim exclusively, add package private data and change rehaul cmake configs
+
 ## 0.0.5
 Fix crosslang Stat, StatVFS for custom crosslang filesystems and add queryable
 

@@ -88,7 +88,8 @@
     "clangd.fallbackFlags": [
         "-I${workspaceFolder}/include",
         "-I/home/mike/tmp-crosslang/usr/local/include/"
-    ]
+    ],
+    "editor.formatOnSave": true
 
 
 }

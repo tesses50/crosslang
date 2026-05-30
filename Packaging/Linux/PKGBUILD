@@ -1,13 +1,13 @@
 # Maintainer: Mike Nolan <tesses@tesses.net>
 pkgname=crosslang # '-bzr', '-git', '-hg' or '-svn'
-pkgver=0.0.5
+pkgver=0.0.6
 pkgrel=1
 pkgdesc=""
 arch=('x86_64' 'powerpc')
 url="https://git.tesses.org/tesses50/crosslang"
 license=('GPLv3')
 groups=()
-depends=('mbedtls' 'tessesframework=0.0.3')
+depends=('mbedtls' 'tessesframework=0.0.4')
 makedepends=('git' 'cmake' 'make' 'base-devel' 'wget') # 'bzr', 'git', 'mercurial' or 'subversion'
 install=
 source=('crosslang::git+https://git.tesses.org/tesses50/crosslang')

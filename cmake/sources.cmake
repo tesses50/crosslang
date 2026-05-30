@@ -9,9 +9,6 @@ src/vm/bc/invokemethod.cpp
 src/vm/bc/executemethod2.cpp
 src/vm/bc/invoketwo.cpp
 src/vm/bc/tobool.cpp
-src/assembler/asm.cpp
-src/assembler/disasm.cpp
-src/assembler/merge.cpp
 src/compiler/codegen.cpp
 src/compiler/lexer.cpp
 src/compiler/parser.cpp

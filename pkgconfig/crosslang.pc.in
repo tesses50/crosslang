@@ -11,4 +11,4 @@ Version: @PROJECT_VERSION@
 Requires: tessesframework
 
 Cflags: -I"${includedir}"
-Libs: -L"${libdir}" -lcrosslang_shared
+Libs: -L"${libdir}" -lcrosslang

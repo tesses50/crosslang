@@ -10,16 +10,8 @@ else()
 set(PKGCONFIG_DEPS "")
 endif()
 
-if(CROSSLANG_ENABLE_STATIC)
-configure_file(crosslang_static.pc.in crosslang_static.pc @ONLY)
-install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/crosslang_static.pc
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
-endif()
 
-if(CROSSLANG_ENABLE_SHARED)
 configure_file(crosslang.pc.in crosslang.pc @ONLY)
 install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/crosslang.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
-endif()

@@ -1,4 +1,4 @@
 [Thumbnailer Entry]
-TryExec=crossthumbnailer
-Exec=crossthumbnailer %i %o
+TryExec=crosslang
+Exec=crosslang thumbnailer %i %o
 MimeType=application/crvm;

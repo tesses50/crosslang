@@ -29,7 +29,6 @@ jobs:
       - run: chown build:build /home/build/PKGBUILD
       - run: chown build:build /home/build/build-arch.sh
       - run: su build -c /home/build/build-arch.sh
-      - run: env -C Packaging/Slim bash build.sh
       - uses: akkuman/gitea-release-action@v1
         env:
           NODE_OPTIONS: '--experimental-fetch' # if nodejs < 18
@@ -39,9 +38,20 @@ jobs:
             artifacts/** 
           
   update-tap:
-    runs-on: ubuntu-latest
+    runs-on: global-container-mingw
     steps:
       - uses: actions/checkout@v4
+      - run: |
+          mkdir -p artifacts
+          env -C Packaging/Windows bash build.sh
+      - uses: akkuman/gitea-release-action@v1
+        env:
+          NODE_OPTIONS: '--experimental-fetch' # if nodejs < 18
+        with:
+          prerelease: true
+          files: |-
+            artifacts/** 
+            
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Log in to registry

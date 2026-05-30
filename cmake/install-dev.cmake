@@ -1,34 +1,28 @@
 if(CROSSLANG_INSTALL_DEVELOPMENT)
-install(TARGETS ${TessesCrossLangLibs}
-    EXPORT TessesCrossLangTargets
+install(TARGETS ${CrossLangLibs}
+    EXPORT CrossLangTargets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-install(FILES include/CrossLang.hpp DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/CrossLangVersion.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(EXPORT TessesCrossLangTargets
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/include/CrossLang.hpp" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/CrossLangVersion.h" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+
+install(EXPORT CrossLangTargets
     FILE TessesCrossLangTargets.cmake
     NAMESPACE TessesCrossLang::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/TessesCrossLang
 )
 
+
+include(CMakePackageConfigHelpers)
 configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/TessesCrossLangConfig.cmake"
 INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/TessesCrossLang)
 
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/TessesCrossLangConfig.cmake"
 DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/TessesCrossLang)
-else()
 
-if(CROSSLANG_ENABLE_SHARED)
-install(TARGETS crosslang_shared
-    EXPORT TessesCrossLangTargets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
-
-endif()
 endif()
