@@ -4,6 +4,7 @@ include(cmake/version.cmake)
 project(TessesCrossLang VERSION ${CROSSLANG_MAJOR_VERSION}.${CROSSLANG_MINOR_VERSION}.${CROSSLANG_PATCH_VERSION})
 
 set(CMAKE_CXX_STANDARD 17)
+include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 include(CheckLibraryExists)
 include(FetchContent)
