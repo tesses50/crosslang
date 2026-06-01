@@ -3,7 +3,17 @@
 #include <iostream>
 
 namespace Tesses::CrossLang {
-
+TObject Console_setInvertedColors(GCList &ls, std::vector<TObject> args) {
+    bool inverted;
+    if (GetArgument(args, 0, inverted)) {
+        Tesses::Framework::Console::SetInvertedColors(inverted);
+    }
+    return Undefined();
+}
+TObject Console_Reset(GCList &ls, std::vector<TObject> args) {
+    Tesses::Framework::Console::Reset();
+    return Undefined();
+}
 TObject Console_getIsTTY(GCList &ls, std::vector<TObject> args) {
 
     return Tesses::Framework::Console::IsTTY();

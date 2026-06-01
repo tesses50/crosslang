@@ -280,6 +280,16 @@ void TStd::RegisterProcess(std::shared_ptr<GC> gc, TRootEnvironment *env) {
             }
             return Undefined();
         });
+
+    process->DeclareFunction(
+        gc, "ShellFileOrUrl", "Launch file or url in shell", {"urlOrFilename"},
+        [](GCList &ls, std::vector<TObject> args) -> TObject {
+            std::string fileOrUrl;
+            if (GetArgument(args, 0, fileOrUrl))
+                Tesses::Framework::Platform::ShellFileOrUrl(fileOrUrl);
+
+            return Undefined();
+        });
     gc->BarrierEnd();
 }
 } // namespace Tesses::CrossLang

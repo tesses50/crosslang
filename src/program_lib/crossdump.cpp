@@ -94,7 +94,7 @@ void CrossLangDump(std::shared_ptr<Tesses::Framework::Streams::Stream> strm) {
 
                 uint32_t ents = EnsureInt(strm);
 
-                for (uint8_t k = 0; k < ents; k++) {
+                for (uint32_t k = 0; k < ents; k++) {
                     Ensure(strm, main_header, 1);
                     uint8_t flags = main_header[0];
                     std::cout << "\t\t/^" << strs.at(EnsureInt(strm)) << "^/"

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.7
+Fix a security vulerability in crossdump that is supposed to use uint32_t but accidently used uint8_t, set to tessesframework=0.0.5
+
 ## 0.0.6
 Fix bug with classes, use slim exclusively, add package private data and change rehaul cmake configs
 
