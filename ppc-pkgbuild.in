@@ -7,7 +7,7 @@ arch=('powerpc')
 url="https://git.tesses.org/tesses50/crosslang"
 license=('GPLv3')
 groups=()
-depends=('tessesframework>=@CROSSLANG_TF_VERSION@')
+depends=('tessesframework=@CROSSLANG_TF_VERSION@-1')
 makedepends=('git' 'cmake' 'make' 'base-devel' 'wget') # 'bzr', 'git', 'mercurial' or 'subversion'
 install=
 source=()
