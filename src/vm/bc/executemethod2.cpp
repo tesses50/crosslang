@@ -3195,7 +3195,7 @@ bool InterperterThread::ExecuteMethod2(std::shared_ptr<GC> gc, TObject instance,
                     if (GetArgument(args, 0, index) &&
                         (size_t)index < bArray->data.size() &&
                         (size_t)index + 8 <= bArray->data.size()) {
-                        uint64_t value = BitConverter::ToDoubleLE(
+                        double value = BitConverter::ToDoubleLE(
                             bArray->data[(size_t)index]);
 
                         cse.back()->Push(gc, value);
@@ -3218,7 +3218,7 @@ bool InterperterThread::ExecuteMethod2(std::shared_ptr<GC> gc, TObject instance,
                     if (GetArgument(args, 0, index) &&
                         (size_t)index < bArray->data.size() &&
                         (size_t)index + 8 <= bArray->data.size()) {
-                        uint64_t value = BitConverter::ToDoubleBE(
+                        double value = BitConverter::ToDoubleBE(
                             bArray->data[(size_t)index]);
 
                         cse.back()->Push(gc, value);

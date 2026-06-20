@@ -16,8 +16,12 @@ TObject TRandom::CallMethod(GCList &ls, std::string name,
 
             return (int64_t)random.Next((uint32_t)first);
         }
-
-        return random.Next();
+        {
+            uint64_t num = random.Next();
+            int64_t val2 = 0;
+            memcpy(&val2, &num, sizeof(int64_t));
+            return val2;
+        }
     }
 
     if (name == "NextByte") {

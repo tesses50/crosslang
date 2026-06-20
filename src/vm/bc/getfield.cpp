@@ -188,7 +188,7 @@ bool InterperterThread::GetField(std::shared_ptr<GC> gc) {
 
                 if (netStrm != nullptr) {
                     if (key == "Port") {
-                        cse.back()->Push(gc, netStrm->GetPort());
+                        cse.back()->Push(gc, (int64_t)netStrm->GetPort());
                         return false;
                     }
                 }

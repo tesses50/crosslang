@@ -5,6 +5,7 @@ on:
       - 'v*'
 
 env:
+  TF_VERSION: 0.0.6
   PACKAGE_AND_BREW: ${{ secrets.PACKAGE_AND_BREW }} 
   VERSION: ${{ gitea.ref_name }}
   RESULT_IMAGE_NAME: tesses50/crosslang
@@ -12,23 +13,14 @@ env:
   GITEA_REGISTRY_USER: tesses50
 
 jobs:
-  build-arch:
-    runs-on: arch-builder
+  build-ppc:
+    name: "🔨 Build for PowerPC"
+    runs-on: ubuntu-latest
+    container: 
+      image: git.tesses.org/tesses50/linux-ppc:latest
     steps:
       - uses: actions/checkout@v4
-      - run: wget -O /root/repository.key https://git.tesses.org/api/packages/tesses50/arch/repository.key
-      - run: pacman-key --add /root/repository.key
-      - run: pacman-key --config /opt/cross/ppc/pacman.conf --add /root/repository.key
-      - run: printf "[tesses50.git.tesses.org]\nSigLevel = Optional TrustAll\nServer = https://git.tesses.org/api/packages/tesses50/arch/core/\$arch\n" >> /etc/pacman.conf
-      - run: printf "[tesses50.git.tesses.org]\nSigLevel = Optional TrustAll\nServer = https://git.tesses.org/api/packages/tesses50/arch/core/\$arch\n" >> /opt/cross/ppc/pacman.conf
-      - run: pacman --noconfirm -Sy mbedtls tessesframework zip zig ninja
-      - run: pacman --config /opt/cross/ppc/pacman.conf --noconfirm -Sy mbedtls tessesframework
-      - run: cp Packaging/Linux/PKGBUILD /home/build/PKGBUILD
-      - run: cp Packaging/Linux/build-arch.sh /home/build/build-arch.sh
-      - run: chmod 755 /home/build/build-arch.sh
-      - run: chown build:build /home/build/PKGBUILD
-      - run: chown build:build /home/build/build-arch.sh
-      - run: su build -c /home/build/build-arch.sh
+      - run: bash build-for-ppc.sh
       - uses: akkuman/gitea-release-action@v1
         env:
           NODE_OPTIONS: '--experimental-fetch' # if nodejs < 18
@@ -36,6 +28,43 @@ jobs:
           prerelease: true
           files: |-
             artifacts/** 
+
+  build-packages:
+    name: "🔨 Build for everything else"
+    runs-on: fw13-ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - container: "git.tesses.org/tesses50/linux-x64:latest"
+            nfpmName: "amd64"
+            debianName: "x86_64-linux-gnu"
+          - container: "git.tesses.org/tesses50/linux-x86:latest"
+            nfpmName: "386"
+            debianName: "i386-linux-gnu"
+          - container: "git.tesses.org/tesses50/linux-arm:latest"
+            nfpmName: "arm7"
+            debianName: "arm-linux-gnueabihf"
+          - container: "git.tesses.org/tesses50/linux-arm64:latest"
+            nfpmName: "arm64"
+            debianName: "aarch64-linux-gnu"
+          - container: "git.tesses.org/tesses50/linux-riscv64:latest"
+            nfpmName: "riscv64"
+            debianName: "riscv64-linux-gnu"
+            
+    container: 
+      image: ${{ matrix.container }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash build-for-nfpm.sh ${{ matrix.nfpmName }} ${{ matrix.debianName }}
+      - uses: akkuman/gitea-release-action@v1
+        env:
+          NODE_OPTIONS: '--experimental-fetch' # if nodejs < 18
+        with:
+          prerelease: true
+          files: |-
+            artifacts/** 
+  
           
   update-tap:
     runs-on: global-container-mingw

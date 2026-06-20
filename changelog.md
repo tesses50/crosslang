@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.8
+Use new build setup
+
 ## 0.0.7
 Fix a security vulerability in crossdump that is supposed to use uint32_t but accidently used uint8_t, set to tessesframework=0.0.5
 

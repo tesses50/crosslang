@@ -7,7 +7,7 @@ TObject CrossLangVM(GCList &ls, TRootEnvironment *env,
         std::cout << "USAGE: "
                   << (argv.empty() ? (std::string) "crossvm" : argv[0])
                   << " <filename.crvm> <args...>" << std::endl;
-        return 1;
+        return (int64_t)1;
     }
 
     env->LoadFileWithDependencies(
@@ -33,7 +33,7 @@ TObject CrossLangVM(GCList &ls, TRootEnvironment *env,
         auto res = env->CallFunctionWithFatalError(ls, "WebAppMain", {args2});
         auto svr2 = Tesses::CrossLang::ToHttpServer(ls.GetGC(), res);
         if (svr2 == nullptr)
-            return 1;
+            return (int64_t)1;
         Tesses::Framework::Http::HttpServer svr(port, svr2);
         svr.StartAccepting();
         TF_RunEventLoop();
@@ -46,7 +46,7 @@ TObject CrossLangVM(GCList &ls, TRootEnvironment *env,
             _co->CallMethod(ls, "", "Close", {});
         }
         TF_Quit();
-        return 0;
+        return (int64_t)0;
     } else {
         TList *args = TList::Create(ls);
         for (size_t arg = 1; arg < argv.size(); arg++)

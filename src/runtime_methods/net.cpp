@@ -215,7 +215,7 @@ class TServerContext : public TNativeObjectThatReturnsHttpDictionary {
         else if (key == "getIP")
             return ctx->ip;
         else if (key == "getPort")
-            return ctx->port;
+            return (int64_t)ctx->port;
         else if (key == "getOriginalPath")
             return ctx->originalPath;
         else if (key == "getPath")
@@ -235,7 +235,7 @@ class TServerContext : public TNativeObjectThatReturnsHttpDictionary {
                 return sc;
             }
         } else if (key == "getStatusCode")
-            return ctx->statusCode;
+            return (int64_t)ctx->statusCode;
         else if (key == "getQueryParams")
             return TNativeObject::Create<THttpDictionary>(ls, &ctx->queryParams,
                                                           this);

@@ -79,11 +79,14 @@ TObject Console_Fatal(GCList &ls, std::vector<TObject> args) {
     exit(1);
 }
 TObject Console_WriteLine(GCList &ls, std::vector<TObject> args) {
+
     if (args.size() < 1) {
         Tesses::Framework::Console::WriteLineView("");
         return Undefined();
     }
-    Tesses::Framework::Console::WriteLine(ToString(ls.GetGC(), args[0]));
+    std::string text = ToString(ls.GetGC(), args[0]);
+
+    Tesses::Framework::Console::WriteLine(text);
 
     return Undefined();
 }
@@ -153,7 +156,7 @@ TObject Console_List(GCList &ls, std::vector<TObject> args) {
 
         return (int64_t)Tesses::Framework::Console::List(items);
     }
-    return 0;
+    return (int64_t)0;
 }
 void TStd::RegisterConsole(std::shared_ptr<GC> gc, TRootEnvironment *env) {
     env->permissions.canRegisterConsole = true;

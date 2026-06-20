@@ -1,0 +1,21 @@
+# Maintainer: Mike Nolan <tesses@tesses.net>
+pkgname=crosslang # '-bzr', '-git', '-hg' or '-svn'
+pkgver=@CROSSLANG_MAJOR_VERSION@.@CROSSLANG_MINOR_VERSION@.@CROSSLANG_PATCH_VERSION@
+pkgrel=1
+pkgdesc=""
+arch=('powerpc')
+url="https://git.tesses.org/tesses50/crosslang"
+license=('GPLv3')
+groups=()
+depends=('tessesframework>=@CROSSLANG_TF_VERSION@')
+makedepends=('git' 'cmake' 'make' 'base-devel' 'wget') # 'bzr', 'git', 'mercurial' or 'subversion'
+install=
+source=()
+noextract=()
+sha256sums=()
+options=(!buildflags !strip)
+
+
+package() {
+    cp -r "${srcdir}/"* "${pkgdir}/"
+}

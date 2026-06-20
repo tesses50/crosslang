@@ -85,7 +85,7 @@ TObject CrossLangShell(GCList &ls, std::vector<std::string> &argv) {
         "Tesses.CrossLang.ShellPackage-1.0.0.0-prod.crvm";
     if (argv.size() == 2 && argv[1] == "configdir") {
         std::cout << dir.ToString() << std::endl;
-        return 0;
+        return (int64_t)0;
     }
     if (argv.size() > 1 && argv[1] == "update-shell") {
 
@@ -101,15 +101,15 @@ TObject CrossLangShell(GCList &ls, std::vector<std::string> &argv) {
             auto strm = resp.ReadAsStream();
             CrossLang::CrossArchiveExtract(strm, subdir);
 
-            return 0;
+            return (int64_t)0;
         } else {
             std::cout << "Error when fetching the script error: "
                       << std::to_string(resp.statusCode) << " "
                       << HttpUtils::StatusCodeString(resp.statusCode)
                       << std::endl;
-            return 1;
+            return (int64_t)1;
         }
-        return 0;
+        return (int64_t)0;
     }
 
     if (!Tesses::Framework::Filesystem::LocalFS->RegularFileExists(filename)) {
@@ -125,12 +125,12 @@ TObject CrossLangShell(GCList &ls, std::vector<std::string> &argv) {
                 CrossLang::CrossArchiveExtract(strm, subdir);
 
             } else {
-                return 1;
+                return (int64_t)1;
             }
         } else {
             if (!Download(filename, subdir))
-                return 1;
-            return 0;
+                return (int64_t)1;
+            return (int64_t)0;
         }
     }
 
