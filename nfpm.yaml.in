@@ -106,8 +106,7 @@ license: GPLv3
 
 # Disables globbing for files, config_files, etc.
 # disable_globbing: false
-depends:
-  - tessesframework (= @CROSSLANG_TF_VERSION@-1)
+
 
 # Packages it replaces. (overridable)
 # This will expand any env var you set in the field, e.g. ${REPLACE_BLA}
@@ -172,3 +171,13 @@ contents:
 # Default: 0o002 (will remove world-writable permissions)
 umask: 0o002
 
+overrides:
+  deb:
+    depends:
+      - "tessesframework (= @CROSSLANG_TF_VERSION@-1)"
+  rpm:
+    depends:
+      - "tessesframework = @CROSSLANG_TF_VERSION@-1"
+  archlinux:
+    depends:
+      - "tessesframework=@CROSSLANG_TF_VERSION@-1"
