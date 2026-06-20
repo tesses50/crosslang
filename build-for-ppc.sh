@@ -2,7 +2,7 @@ curl https://git.tesses.org/tesses50/tessesframework/releases/download/v$TF_VERS
     
 mkdir -p build
 pushd build
-cmake-cross -S .. -B . -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release -DCROSSLANG_FETCHCONTENT=OFF
+cmake-cross -S .. -B . -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE=Release -DCROSSLANG_FETCHCONTENT=OFF -DCROSSLANG_TF_VERSION=$TF_VERSION
 make -j`nproc`
 mkdir -p /home/build/cl
 chown build:build -R /home/build

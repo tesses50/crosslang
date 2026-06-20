@@ -6,7 +6,7 @@ else
     curl https://git.tesses.org/tesses50/tessesframework/releases/download/v$TF_VERSION/tessesframework-v$TF_VERSION-$1.tar.gz | tar xz -C /opt/cross/staging
     mkdir -p build
     cd build
-    cmake-cross -S .. -B . -DCROSSLANG_NFPM_ARCH=$1 -DCMAKE_INSTALL_LIBDIR=lib/$2 -DCMAKE_BUILD_TYPE=Release -DCROSSLANG_FETCHCONTENT=OFF
+    cmake-cross -S .. -B . -DCROSSLANG_NFPM_ARCH=$1 -DCMAKE_INSTALL_LIBDIR=lib/$2 -DCMAKE_BUILD_TYPE=Release -DCROSSLANG_FETCHCONTENT=OFF -DCROSSLANG_TF_VERSION=$TF_VERSION
     make -j`nproc`
     make install DESTDIR=debian
     cd debian
@@ -37,5 +37,5 @@ else
      --upload-file *.pkg.tar.zst \
      https://git.tesses.org/api/packages/tesses50/arch/core
     mkdir -p ../../artifacts
-    tar --owner=1000 --group=1000 czf ../../artifacts/crosslang-$VERSION\-$1\.tar.gz -C usr/ . -C /opt/cross/staging/ .
+    tar czf ../../artifacts/crosslang-$VERSION\-$1\.tar.gz --owner=1000 --group=1000 -C usr/ . -C /opt/cross/staging/ .
 fi
