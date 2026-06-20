@@ -18,4 +18,4 @@ curl --user tesses50:$PACKAGE_AND_BREW \
 popd
 popd
 mkdir -p artifacts
-tar --owner=1000 --group=1000 czf artifacts/crosslang-$VERSION\-powerpc.tar.gz -C /home/build/cl/src/usr . -C /opt/cross/staging/ .
+tar czf artifacts/crosslang-$VERSION\-powerpc.tar.gz --owner=1000 --group=1000 -C /home/build/cl/src/usr . -C /opt/cross/staging/ .
