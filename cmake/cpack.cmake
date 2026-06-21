@@ -32,8 +32,7 @@ set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS
  set(CPACK_NSIS_MUI_ICON "${CMAKE_CURRENT_SOURCE_DIR}/winicon.ico")
 set(CPACK_NSIS_MODIFY_PATH ON)
 set(CPACK_PACKAGE_VENDOR "Tesses")
-set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$DESKTOP\\\\CrossLang Interperter.lnk' '$INSTDIR\\\\bin\\\\crossint.exe'")
-set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\CrossLang Interperter.lnk' '$INSTDIR\\\\bin\\\\crossint.exe'")
-
+set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$DESKTOP\\\\CrossLang Menu.lnk' '$INSTDIR\\\\bin\\\\crosslang.exe' 'interactive'")
+set(CPACK_NSIS_CREATE_ICONS_EXTRA "CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\CrossLang Menu.lnk' '$INSTDIR\\\\bin\\\\crosslang.exe' 'interactive'")
 
 include(CPack)

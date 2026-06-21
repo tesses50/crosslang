@@ -281,7 +281,7 @@ void TStd::RegisterProcess(std::shared_ptr<GC> gc, TRootEnvironment *env) {
             return Undefined();
         });
 
-    process->DeclareFunction(
+    dict->DeclareFunction(
         gc, "ShellFileOrUrl", "Launch file or url in shell", {"urlOrFilename"},
         [](GCList &ls, std::vector<TObject> args) -> TObject {
             std::string fileOrUrl;

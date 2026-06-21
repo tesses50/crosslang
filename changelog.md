@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.9
+Fixed Process.ShellFileOrUrl was broken New.ShellFileOrUrl
+
 ## 0.0.8
 Use new build setup
 
