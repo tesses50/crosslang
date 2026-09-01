@@ -823,8 +823,8 @@ static TObject Net_Http_ListenOnUnusedPort(GCList &ls,
 static TObject Net_Http_MimeType(GCList &ls, std::vector<TObject> args) {
     Tesses::Framework::Filesystem::VFSPath p;
     if (GetArgumentAsPath(args, 0, p)) {
-        std::filesystem::path p2 = p.GetFileName();
-        return HttpUtils::GetMimeType(p2);
+
+        return HttpUtils::GetMimeTypePath(p);
     }
     return std::string("application/octet-stream");
 }

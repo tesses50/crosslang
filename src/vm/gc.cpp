@@ -2,9 +2,7 @@
 #include <chrono>
 #include <iostream>
 #include <time.h>
-#if defined(_WIN32)
-#include <windows.h>
-#else
+#if !defined(_WIN32)
 #include <unistd.h>
 #endif
 
@@ -85,7 +83,6 @@ TDictionary *CreateThread(GCList &ls, TCallable *callable, bool detached) {
         TObject cb = th->callable->Call(ls, {});
         gc->BarrierBegin();
         th->returnValue = cb;
-        std::map<pthread_t, int> mt;
 #if defined(GEKKO) || defined(_EE)
         current_funcs_mtx.Lock();
         current_funcs.erase(pthread_self());

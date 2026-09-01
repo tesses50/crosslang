@@ -2292,9 +2292,9 @@ bool InterperterThread::ExecuteMethod2(std::shared_ptr<GC> gc, TObject instance,
                 }
                 if (key == "RegisterClass") {
                     if ((myEnv->permissions.canRegisterEverything ||
-                         myEnv->permissions.canRegisterClass) &&
+                         myEnv->permissions.canRegisterZeClass) &&
                         !rootEnv->permissions.locked)
-                        TStd::RegisterClass(gc, rootEnv);
+                        TStd::RegisterZeClass(gc, rootEnv);
                     cse.back()->Push(gc, nullptr);
                     return false;
                 }

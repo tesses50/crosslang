@@ -6,28 +6,17 @@
 #include <memory>
 #include <variant>
 #include <vector>
+
 #if !defined(CROSSLANG_STATIC)
 #if defined(CROSSLANG_ENABLE_FFI)
 #include <ffi.h>
 #endif
-#if defined(_WIN32)
-#include <windows.h>
-
-#include <time.h>
-#undef min
-#undef max
-#else
+#if !defined(_WIN32)
 #include <dlfcn.h>
 #include <unistd.h>
 #endif
 #else
-#if defined(_WIN32)
-#include <windows.h>
-
-#include <time.h>
-#undef min
-#undef max
-#else
+#if !defined(_WIN32)
 #include <unistd.h>
 #endif
 #endif
@@ -70,15 +59,18 @@ class DL {
         Tesses::Framework::Filesystem::LocalFilesystem lfs;
         std::string str = lfs.VFSPathToSystem(p);
 #if defined(_WIN32)
-        handle =
-            LoadLibraryExA(str.c_str(), NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+
+        throw std::runtime_error("I removed support on this platform");
+        // handle =LoadLibraryExA(str.c_str(), NULL,
+        // LOAD_WITH_ALTERED_SEARCH_PATH);
 #else
         handle = dlopen(str.c_str(), RTLD_LAZY);
 #endif
     }
     template <typename T> T Resolve(std::string name) {
 #if defined(_WIN32)
-        return (T)GetProcAddress((HMODULE)handle, name.c_str());
+        throw std::runtime_error("I removed support on this platform");
+        // return (T)GetProcAddress((HMODULE)handle, name.c_str());
 #else
         return (T)dlsym(handle, name.c_str());
 
@@ -86,7 +78,9 @@ class DL {
     }
     ~DL() {
 #if defined(_WIN32)
-        FreeLibrary((HMODULE)handle);
+
+        throw std::runtime_error("I removed support on this platform");
+        // FreeLibrary((HMODULE)handle);
 #else
         dlclose(handle);
 #endif
@@ -1004,11 +998,7 @@ static TObject YieldEnumerableFunc(GCList &ls, std::vector<TObject> args) {
 static TObject DateTime_Sleep(GCList &ls, std::vector<TObject> args) {
     int64_t msec;
     if (GetArgument(args, 0, msec)) {
-#if defined(_WIN32)
-        Sleep((int)msec);
-#else
-        usleep(1000 * msec);
-#endif
+        Tesses::Framework::TF_Sleep(msec);
     }
     return nullptr;
 }
@@ -1587,7 +1577,7 @@ void TStd::RegisterStd(
     RegisterCrypto(gc, env);
     RegisterOGC(gc, env);
     RegisterProcess(gc, env);
-    RegisterClass(gc, env);
+    RegisterZeClass(gc, env);
 
     gc->RegisterEverything(env);
 

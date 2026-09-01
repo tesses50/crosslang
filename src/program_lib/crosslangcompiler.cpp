@@ -192,7 +192,7 @@ void CrossLangCompiler(std::vector<std::string> &argv) {
 
         if (comptime == "secure") {
             TStd::RegisterConsole(gc, env);
-            TStd::RegisterClass(gc, env);
+            TStd::RegisterZeClass(gc, env);
             TStd::RegisterCrypto(gc, env);
             TStd::RegisterDictionary(gc, env);
             TStd::RegisterJson(gc, env);
@@ -201,7 +201,7 @@ void CrossLangCompiler(std::vector<std::string> &argv) {
             env->permissions.locked = true;
         } else if (comptime == "secure_file") {
             TStd::RegisterConsole(gc, env);
-            TStd::RegisterClass(gc, env);
+            TStd::RegisterZeClass(gc, env);
             TStd::RegisterCrypto(gc, env);
             TStd::RegisterDictionary(gc, env);
             TStd::RegisterJson(gc, env);

@@ -1,10 +1,6 @@
 #include "CrossLang.hpp"
 #include "TessesFramework/Serialization/BitConverter.hpp"
 
-#if defined(_WIN32)
-#include <windows.h>
-#endif
-
 namespace Tesses::CrossLang {
 using namespace Tesses::Framework::Platform::Environment;
 #if defined(_WIN32)

@@ -1815,7 +1815,7 @@ class EnvironmentPermissions {
     bool canRegisterPath;
     bool canRegisterOGC;
     bool canRegisterEnv;
-    bool canRegisterClass;
+    bool canRegisterZeClass;
     bool sqlite3Scoped;
     bool locked;
     TDictionary *customConsole = nullptr;
@@ -1903,7 +1903,7 @@ class TStd {
     static void RegisterOGC(std::shared_ptr<GC> gc, TRootEnvironment *env);
     static void RegisterEnv(std::shared_ptr<GC> gc, TRootEnvironment *env);
     static void RegisterProcess(std::shared_ptr<GC> gc, TRootEnvironment *env);
-    static void RegisterClass(std::shared_ptr<GC> gc, TRootEnvironment *env);
+    static void RegisterZeClass(std::shared_ptr<GC> gc, TRootEnvironment *env);
 };
 
 class TSubEnvironment : public TEnvironment {

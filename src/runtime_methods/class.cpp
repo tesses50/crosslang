@@ -190,9 +190,9 @@ static TObject Class_GetInfo(TRootEnvironment *env, GCList &ls,
 
     return nullptr;
 }
-void TStd::RegisterClass(std::shared_ptr<GC> gc, TRootEnvironment *env) {
+void TStd::RegisterZeClass(std::shared_ptr<GC> gc, TRootEnvironment *env) {
     GCList ls(gc);
-    env->permissions.canRegisterClass = true;
+    env->permissions.canRegisterZeClass = true;
     TDictionary *cls = env->EnsureDictionary(gc, "Class");
     gc->BarrierBegin();
 
