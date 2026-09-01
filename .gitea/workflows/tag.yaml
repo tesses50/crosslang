@@ -5,7 +5,7 @@ on:
       - 'v*'
 
 env:
-  TF_VERSION: 0.0.6
+  TF_VERSION: 0.0.7
   PACKAGE_AND_BREW: ${{ secrets.PACKAGE_AND_BREW }} 
   VERSION: ${{ gitea.ref_name }}
   RESULT_IMAGE_NAME: tesses50/crosslang

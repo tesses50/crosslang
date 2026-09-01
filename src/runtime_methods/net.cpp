@@ -150,6 +150,46 @@ class THttpDictionary : public TNativeObject {
                     value);
             }
             return nullptr;
+        } else if (key == "TryGetOnlyOne") {
+            std::string key;
+            std::string value;
+            if (GetArgument(args, 0, key) && dict->TryGetOnlyOne(key, value)) {
+                return value;
+            }
+            return nullptr;
+        } else if (key == "TryGetOnlyOneBoolean") {
+            std::string key;
+            bool value;
+            if (GetArgument(args, 0, key) &&
+                dict->TryGetOnlyOneBoolean(key, value)) {
+                return value;
+            }
+            return nullptr;
+        } else if (key == "TryGetOnlyOneDouble") {
+            std::string key;
+            double value;
+            if (GetArgument(args, 0, key) &&
+                dict->TryGetOnlyOneDouble(key, value)) {
+                return value;
+            }
+            return nullptr;
+        } else if (key == "TryGetOnlyOneInt") {
+            std::string key;
+            int64_t value;
+            if (GetArgument(args, 0, key) &&
+                dict->TryGetOnlyOneInt(key, value)) {
+                return value;
+            }
+            return nullptr;
+        } else if (key == "TryGetOnlyOneDate") {
+            std::string key;
+            Tesses::Framework::Date::DateTime value;
+            if (GetArgument(args, 0, key) &&
+                dict->TryGetOnlyOneDate(key, value)) {
+                return std::make_shared<Tesses::Framework::Date::DateTime>(
+                    value);
+            }
+            return nullptr;
         } else if (key == "ToList") {
             TList *_ls = TList::Create(ls);
             for (auto item : dict->kvp) {
@@ -238,6 +278,9 @@ class TServerContext : public TNativeObjectThatReturnsHttpDictionary {
             return (int64_t)ctx->statusCode;
         else if (key == "getQueryParams")
             return TNativeObject::Create<THttpDictionary>(ls, &ctx->queryParams,
+                                                          this);
+        else if (key == "getBodyParams")
+            return TNativeObject::Create<THttpDictionary>(ls, &ctx->bodyParams,
                                                           this);
         else if (key == "getRequestHeaders")
             return TNativeObject::Create<THttpDictionary>(
@@ -781,17 +824,19 @@ static TObject Net_Http_MimeType(GCList &ls, std::vector<TObject> args) {
     Tesses::Framework::Filesystem::VFSPath p;
     if (GetArgumentAsPath(args, 0, p)) {
         std::filesystem::path p2 = p.GetFileName();
-        return HttpUtils::MimeType(p2);
+        return HttpUtils::GetMimeType(p2);
     }
     return std::string("application/octet-stream");
 }
 class THttpRequestBody : public TNativeObject {
-    HttpRequestBody *body;
+    std::shared_ptr<HttpRequestBody> body;
 
   public:
-    THttpRequestBody(HttpRequestBody *body) { this->body = body; }
+    THttpRequestBody(std::shared_ptr<HttpRequestBody> body) {
+        this->body = body;
+    }
     bool IsClosed() { return body == nullptr; }
-    HttpRequestBody *GetBody() { return this->body; }
+    std::shared_ptr<HttpRequestBody> GetBody() { return this->body; }
 
     std::string TypeName() { return "Net.Http.HttpRequestBody"; }
 
@@ -799,10 +844,7 @@ class THttpRequestBody : public TNativeObject {
         return Undefined();
     }
 
-    void Close() {
-        delete this->body;
-        this->body = nullptr;
-    }
+    void Close() { this->body = nullptr; }
 };
 
 class THttpResponse : public TNativeObjectThatReturnsHttpDictionary {
@@ -907,7 +949,8 @@ static TObject Net_Http_MakeRequest(GCList &ls, std::vector<TObject> args,
             _obj = options->GetValue("Body");
 
             if (GetObjectHeap(_obj, body1)) {
-                req.body = new TDictionaryHttpRequestBody(gc, body1);
+                req.body =
+                    std::make_shared<TDictionaryHttpRequestBody>(gc, body1);
             } else if (GetObjectHeap(_obj, body2) && !body2->IsClosed()) {
                 req.body = body2->GetBody();
             }
@@ -920,8 +963,6 @@ static TObject Net_Http_MakeRequest(GCList &ls, std::vector<TObject> args,
         if (req.body != nullptr) {
             if (body2 != nullptr) {
                 body2->Close();
-            } else if (body1 != nullptr) {
-                delete req.body;
             }
         }
 
@@ -1073,7 +1114,7 @@ static TObject Net_Http_WebSocketClient(GCList &ls, std::vector<TObject> args) {
     if (GetArgument(args, 0, url) && GetArgumentHeap(args, 1, headers) &&
         GetArgumentHeap(args, 2, dict)) {
         GetArgumentHeap(args, 3, callable);
-        HttpDictionary hdict;
+        HttpDictionary hdict(false);
         for (int64_t index = 0; index < headers->Count(); index++) {
             _obj = headers->Get(index);
             TDictionary *dict;
@@ -1171,7 +1212,7 @@ static TObject Net_Http_WebSocketClient(GCList &ls, std::vector<TObject> args) {
         if (!GetObjectHeap(hobj, headers))
             return Undefined();
 
-        HttpDictionary hdict;
+        HttpDictionary hdict(false);
         for (int64_t index = 0; index < headers->Count(); index++) {
             _obj = headers->Get(index);
             TDictionary *dict;
@@ -1381,7 +1422,7 @@ static TObject New_StreamHttpRequestBody(GCList &ls,
 
     if (GetArgument(args, 0, strm) && GetArgument(args, 1, mimeType)) {
         return TNativeObject::Create<THttpRequestBody>(
-            ls, new StreamHttpRequestBody(strm, mimeType));
+            ls, std::make_shared<StreamHttpRequestBody>(strm, mimeType));
     }
     return nullptr;
 }
@@ -1390,7 +1431,7 @@ static TObject New_TextHttpRequestBody(GCList &ls, std::vector<TObject> args) {
     std::string mimeType;
     if (GetArgument(args, 0, text) && GetArgument(args, 1, mimeType)) {
         return TNativeObject::Create<THttpRequestBody>(
-            ls, new TextHttpRequestBody(text, mimeType));
+            ls, std::make_shared<TextHttpRequestBody>(text, mimeType));
     }
     return nullptr;
 }
@@ -1398,8 +1439,8 @@ static TObject New_JsonHttpRequestBody(GCList &ls, std::vector<TObject> args) {
 
     if (!args.empty()) {
         return TNativeObject::Create<THttpRequestBody>(
-            ls,
-            new TextHttpRequestBody(Json_Encode(args[0]), "application/json"));
+            ls, std::make_shared<TextHttpRequestBody>(Json_Encode(args[0]),
+                                                      "application/json"));
     }
     return nullptr;
 }
@@ -1423,7 +1464,7 @@ void TStd::RegisterNet(std::shared_ptr<GC> gc, TRootEnvironment *env) {
                           "Create a text request body", {"text", "mimeType"},
                           New_TextHttpRequestBody);
     _new->DeclareFunction(gc, "JsonHttpRequestBody",
-                          "Create a text request body", {"json"},
+                          "Create a json request body", {"json"},
                           New_JsonHttpRequestBody);
     _new->DeclareFunction(
         gc, "HttpServer", "Create a http server (allows multiple)",

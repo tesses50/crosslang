@@ -3,18 +3,10 @@
 namespace Tesses::CrossLang {
 
 TAssociativeArray *TAssociativeArray::Create(GCList &ls) {
-    TAssociativeArray *list = new TAssociativeArray();
-    std::shared_ptr<GC> _gc = ls.GetGC();
-    ls.Add(list);
-    _gc->Watch(list);
-    return list;
+    return ls.Create<TAssociativeArray>();
 }
 TAssociativeArray *TAssociativeArray::Create(GCList *ls) {
-    TAssociativeArray *list = new TAssociativeArray();
-    std::shared_ptr<GC> _gc = ls->GetGC();
-    ls->Add(list);
-    _gc->Watch(list);
-    return list;
+    return ls->Create<TAssociativeArray>();
 }
 void TAssociativeArray::Set(std::shared_ptr<GC> gc, TObject key,
                             TObject value) {

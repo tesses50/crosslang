@@ -1,7 +1,6 @@
 #include "CrossLang.hpp"
 
 namespace Tesses::CrossLang {
-TNativeObject::~TNativeObject() {}
 
 TNative::TNative(void *ptr, std::function<void(void *)> destroy) {
     this->ptr = ptr;
@@ -34,19 +33,11 @@ bool TNativeObject::Equals(std::shared_ptr<GC> gc, TObject right) {
 }
 TNative *TNative::Create(GCList &ls, void *ptr,
                          std::function<void(void *)> destroy) {
-    TNative *native = new TNative(ptr, destroy);
-    std::shared_ptr<GC> gc = ls.GetGC();
-    ls.Add(native);
-    gc->Watch(native);
-    return native;
+    return ls.Create<TNative>(ptr, destroy);
 }
 TNative *TNative::Create(GCList *ls, void *ptr,
                          std::function<void(void *)> destroy) {
-    TNative *native = new TNative(ptr, destroy);
-    std::shared_ptr<GC> gc = ls->GetGC();
-    ls->Add(native);
-    gc->Watch(native);
-    return native;
+    return ls->Create<TNative>(ptr, destroy);
 }
 TNative::~TNative() { this->Destroy(); }
 

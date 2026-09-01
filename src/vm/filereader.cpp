@@ -5,22 +5,8 @@
 #include <iostream>
 namespace Tesses::CrossLang {
 
-TFile *TFile::Create(GCList &ls) {
-    TFile *f = new TFile();
-    f->icon = -1;
-    std::shared_ptr<GC> _gc = ls.GetGC();
-    ls.Add(f);
-    _gc->Watch(f);
-    return f;
-}
-TFile *TFile::Create(GCList *ls) {
-    TFile *f = new TFile();
-    f->icon = -1;
-    std::shared_ptr<GC> _gc = ls->GetGC();
-    ls->Add(f);
-    _gc->Watch(f);
-    return f;
-}
+TFile *TFile::Create(GCList &ls) { return ls.Create<TFile>(); }
+TFile *TFile::Create(GCList *ls) { return ls->Create<TFile>(); }
 void TFileChunk::Mark() {
     if (this->marked)
         return;
@@ -28,20 +14,8 @@ void TFileChunk::Mark() {
     this->file->Mark();
 }
 
-TFileChunk *TFileChunk::Create(GCList &ls) {
-    TFileChunk *chk = new TFileChunk();
-    std::shared_ptr<GC> _gc = ls.GetGC();
-    ls.Add(chk);
-    _gc->Watch(chk);
-    return chk;
-}
-TFileChunk *TFileChunk::Create(GCList *ls) {
-    TFileChunk *chk = new TFileChunk();
-    std::shared_ptr<GC> _gc = ls->GetGC();
-    ls->Add(chk);
-    _gc->Watch(chk);
-    return chk;
-}
+TFileChunk *TFileChunk::Create(GCList &ls) { return ls.Create<TFileChunk>(); }
+TFileChunk *TFileChunk::Create(GCList *ls) { return ls->Create<TFileChunk>(); }
 void TFile::Mark() {
     if (this->marked)
         return;

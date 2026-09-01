@@ -11,7 +11,18 @@
 using namespace Tesses::Framework::Threading;
 using namespace std::chrono;
 namespace Tesses::CrossLang {
+#if defined(GEKKO) || defined(_EE)
 
+struct PthreadCmp {
+    bool operator()(const pthread_t &a, const pthread_t &b) const {
+        return pthread_equal(a, b) != 0;
+    }
+};
+static std::map<pthread_t, CallStackEntry *, PthreadCmp> current_funcs;
+static Tesses::Framework::Threading::Mutex current_funcs_mtx;
+#else
+thread_local CallStackEntry *current_function;
+#endif
 bool GC::IsRunning() {
 
     bool run = this->running;
@@ -74,7 +85,14 @@ TDictionary *CreateThread(GCList &ls, TCallable *callable, bool detached) {
         TObject cb = th->callable->Call(ls, {});
         gc->BarrierBegin();
         th->returnValue = cb;
+        std::map<pthread_t, int> mt;
+#if defined(GEKKO) || defined(_EE)
+        current_funcs_mtx.Lock();
+        current_funcs.erase(pthread_self());
+        current_funcs_mtx.Unlock();
+#endif
         gc->BarrierEnd();
+
         th->hasReturned = true;
     });
     while (!th->hasInit)
@@ -93,50 +111,47 @@ void GC::Start() {
             return new Tesses::Framework::Threading::ThreadPool(threads);
         },
         [](Tesses::Framework::Threading::ThreadPool *p) -> void { delete p; });
-    this->mtx = new Mutex();
+
     this->running = true;
     this->thrd = new Thread([this]() -> void {
-        std::chrono::time_point<std::chrono::system_clock> last_frame,
-            this_frame;
-
-        this_frame = system_clock::now();
-        last_frame = this_frame;
-
         while (this->IsRunning()) {
-            this_frame = system_clock::now();
-            if ((this_frame - last_frame) > 10s) {
+            this->BarrierBegin();
+            while (this->allocs < ALLOC_THRESHOLD)
+                this->cond.Wait(
+                    &this->mtx); // your wrapper around pthread_cond_wait
+            this->allocs = 0;
+            std::vector<THeapObject *> to_delete;
+            this->Collect(to_delete);
+            this->BarrierEnd();
 
-                last_frame = this_frame;
-                this->Collect();
-            }
-
-#if defined(_WIN32)
-            Sleep(100);
-#else
-            usleep(100000);
-#endif
+            for (auto o : to_delete)
+                delete o;
         }
-        GC::Collect();
+        {
+            std::vector<THeapObject *> to_delete;
+            this->BarrierBegin();
+            this->Collect(to_delete);
+            this->BarrierEnd();
+
+            for (auto item : to_delete)
+                delete item;
+        }
     });
 }
 
 bool GC::UsingNullThreads() { return false; }
 
-void GC::BarrierBegin() { this->mtx->Lock(); }
-void GC::BarrierEnd() { this->mtx->Unlock(); }
+void GC::BarrierBegin() { this->mtx.Lock(); }
+void GC::BarrierEnd() { this->mtx.Unlock(); }
 void GC::Watch(TObject obj) {
     if (std::holds_alternative<THeapObjectHolder>(obj)) {
         auto _item = std::get<THeapObjectHolder>(obj).obj;
         this->BarrierBegin();
-
-        for (auto item : this->objects) {
-            if (item == _item) {
-                this->BarrierEnd();
-                return;
-            }
-        }
-        this->objects.push_back(_item);
+        this->objects.insert(_item);
+        auto nowAllocs = ++this->allocs;
         this->BarrierEnd();
+        if (nowAllocs >= ALLOC_THRESHOLD)
+            this->cond.Signal();
     }
 }
 void GC::Mark(TObject obj) {
@@ -149,65 +164,36 @@ void GC::Unwatch(TObject obj) {
     if (std::holds_alternative<THeapObjectHolder>(obj)) {
         auto _item = std::get<THeapObjectHolder>(obj).obj;
         this->BarrierBegin();
-        for (auto index = this->objects.begin();
-             index != this->objects.end();) {
-            if (*index == _item) {
-                index = this->objects.erase(index);
-                continue;
-            }
-            index++;
-        }
+        this->objects.erase(_item);
         this->BarrierEnd();
     }
 }
-void GC::SetRoot(TObject obj) {
-    if (std::holds_alternative<THeapObjectHolder>(obj)) {
-        auto _item = std::get<THeapObjectHolder>(obj).obj;
-        this->BarrierBegin();
+void GC::SetRoot(GCList *_item) {
+    if (_item == nullptr)
+        return;
+    this->BarrierBegin();
 
-        for (auto item : this->roots) {
-            if (item == _item) {
-                this->BarrierEnd();
-                return;
-            }
-        }
-        this->roots.push_back(_item);
-        this->BarrierEnd();
-    }
+    this->roots.insert(_item);
+    this->BarrierEnd();
 }
 Tesses::Framework::Threading::ThreadPool *GC::GetPool() {
     return this->tpool->GetValue();
 }
 
-void GC::UnsetRoot(TObject obj) {
-    if (std::holds_alternative<THeapObjectHolder>(obj)) {
-        auto _item = std::get<THeapObjectHolder>(obj).obj;
-        this->BarrierBegin();
-        for (auto index = this->roots.begin(); index != this->roots.end();) {
-            if (*index == _item) {
-                index = this->roots.erase(index);
-                continue;
-            }
-            index++;
-        }
-        this->BarrierEnd();
-    }
+void GC::UnsetRoot(GCList *_item) {
+    if (_item == nullptr)
+        return;
+    this->BarrierBegin();
+    this->roots.erase(_item);
+    this->BarrierEnd();
 }
 
 GC::~GC() {
-    GC::BarrierBegin();
-
-    this->roots.clear();
-    GC::BarrierEnd();
-
     this->running = false;
+    this->cond.Signal();
     this->thrd->Join();
     delete this->thrd;
-    for (auto item : objects)
-        delete item;
-
     delete this->tpool;
-    delete this->mtx;
 }
 
 void GC::RegisterEverythingCallback(
@@ -218,23 +204,45 @@ void GC::RegisterEverything(TRootEnvironment *env) {
     for (auto item : this->register_everything)
         item(this->shared_from_this(), env);
 }
-void GC::Collect() {
-    this->BarrierBegin();
+
+CallStackEntry *GC::GetCurrentFunction() {
+#if defined(GEKKO) || defined(_EE)
+    current_funcs_mtx.Lock();
+    auto val = current_funcs[pthread_self()];
+    current_funcs_mtx.Unlock();
+
+    return val;
+
+#else
+    return current_function;
+#endif
+}
+void GC::SetCurrentFunction(CallStackEntry *cse) {
+#if defined(GEKKO) || defined(_EE)
+    current_funcs_mtx.Lock();
+    current_funcs[pthread_self()] = cse;
+    current_funcs_mtx.Unlock();
+#else
+    current_function = cse;
+#endif
+}
+
+void GC::Collect(std::vector<THeapObject *> &to_delete) {
+
     for (auto item : this->objects) {
         item->marked = false;
     }
     for (auto item : this->roots) {
         item->Mark();
     }
-    for (auto index = this->objects.begin(); index != this->objects.end();
-         index++) {
+    for (auto index = this->objects.begin(); index != this->objects.end();) {
         THeapObject *o = *index;
         if (!o->marked) {
-            delete o;
-            this->objects.erase(index);
-            index--;
+            to_delete.push_back(o);
+            index = this->objects.erase(index);
+        } else {
+            ++index;
         }
     }
-    this->BarrierEnd();
 }
 }; // namespace Tesses::CrossLang

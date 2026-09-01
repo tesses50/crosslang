@@ -175,7 +175,7 @@ void CodeGen::WriteMetadataObject(std::vector<uint8_t> &bytes, SyntaxNode n) {
             std::vector<SyntaxNode> itms;
             if (asn.nodes.size() > 0)
 
-                GetFunctionArgs(itms, asn.nodes[0]);
+                FlattenCommas(itms, asn.nodes[0]);
             bytes.push_back(7);
             size_t offset = bytes.size();
             bytes.resize(offset + 4);
@@ -189,7 +189,7 @@ void CodeGen::WriteMetadataObject(std::vector<uint8_t> &bytes, SyntaxNode n) {
             std::vector<SyntaxNode> itms;
             if (asn.nodes.size() > 0)
 
-                GetFunctionArgs(itms, asn.nodes[0]);
+                FlattenCommas(itms, asn.nodes[0]);
             bytes.push_back(8);
             size_t offset = bytes.size();
             bytes.resize(offset + 4);
@@ -827,6 +827,8 @@ void CodeGen::GenNode(std::vector<ByteCodeInstruction *> &instructions,
                         size_t fnindex = this->chunks.size();
                         ent.closure = (uint32_t)fnindex;
                         this->chunks.resize(fnindex + 1);
+
+                        std::vector<ByteCodeInstruction *> fnInstructions;
                         auto &nameAndArgs =
                             std::get<AdvancedSyntaxNode>(adv2.nodes[2]);
                         if (nameAndArgs.nodeName == FunctionCallExpression &&
@@ -844,13 +846,12 @@ void CodeGen::GenNode(std::vector<ByteCodeInstruction *> &instructions,
                                     std::get<std::string>(getvar.nodes[0]));
                                 if (nameAndArgs.nodes.size() > 1) {
                                     GetFunctionArgs(ent.arguments,
+                                                    fnInstructions,
                                                     nameAndArgs.nodes[1]);
                                 }
                             } else
                                 continue;
                         }
-
-                        std::vector<ByteCodeInstruction *> fnInstructions;
 
                         GenNode(fnInstructions, adv2.nodes[3], 0, -1, -1, -1,
                                 -1);
@@ -881,8 +882,8 @@ void CodeGen::GenNode(std::vector<ByteCodeInstruction *> &instructions,
                                 ent.name = GetString(
                                     std::get<std::string>(getvar.nodes[0]));
                                 if (nameAndArgs.nodes.size() > 1) {
-                                    GetFunctionArgs(ent.arguments,
-                                                    nameAndArgs.nodes[1]);
+                                    FlattenCommas(ent.arguments,
+                                                  nameAndArgs.nodes[1]);
                                 }
                             } else
                                 continue;
@@ -1041,13 +1042,13 @@ void CodeGen::GenNode(std::vector<ByteCodeInstruction *> &instructions,
                         }
                         if (item.first.second.nodeName == DefaultStatement) {
                             if (!defaultJmp.empty())
-                                std::cout << "ERROR: multiple default in "
-                                             "switch statement will cause "
-                                             "undefined behaviour, this is not "
-                                             "an exception due to not allowing "
-                                             "exceptions in codegen stage (the "
-                                             "compilation shouldn't fail)"
-                                          << std::endl;
+                                Tesses::Framework::Console::WriteLine(
+                                    "ERROR: multiple default in "
+                                    "switch statement will cause "
+                                    "undefined behaviour, this is not "
+                                    "an exception due to not allowing "
+                                    "exceptions in codegen stage (the "
+                                    "compilation shouldn't fail)");
                             defaultJmp = item.first.first;
                         }
                     }
@@ -1223,7 +1224,7 @@ void CodeGen::GenNode(std::vector<ByteCodeInstruction *> &instructions,
             std::vector<SyntaxNode> itms;
             if (adv.nodes.size() > 0)
 
-                GetFunctionArgs(itms, adv.nodes[0]);
+                FlattenCommas(itms, adv.nodes[0]);
             for (auto item : itms) {
                 GenNode(instructions, item, scope, contscope, brkscope, contI,
                         brkI);
@@ -1233,7 +1234,7 @@ void CodeGen::GenNode(std::vector<ByteCodeInstruction *> &instructions,
             instructions.push_back(new SimpleInstruction(CREATEDICTIONARY));
             std::vector<SyntaxNode> itms;
             if (adv.nodes.size() > 0)
-                GetFunctionArgs(itms, adv.nodes[0]);
+                FlattenCommas(itms, adv.nodes[0]);
             for (auto item : itms) {
                 if (std::holds_alternative<AdvancedSyntaxNode>(item)) {
                     auto tkn = std::get<AdvancedSyntaxNode>(item);
@@ -1273,7 +1274,7 @@ void CodeGen::GenNode(std::vector<ByteCodeInstruction *> &instructions,
                         contI, brkI);
                 if (adv.nodes.size() == 2) {
                     std::vector<SyntaxNode> nodes;
-                    GetFunctionArgs(nodes, adv.nodes[1]);
+                    FlattenCommas(nodes, adv.nodes[1]);
                     for (auto item : nodes)
                         GenNode(instructions, item, scope, contscope, brkscope,
                                 contI, brkI);
@@ -1288,7 +1289,7 @@ void CodeGen::GenNode(std::vector<ByteCodeInstruction *> &instructions,
                         contI, brkI);
                 if (adv.nodes.size() == 2) {
                     std::vector<SyntaxNode> nodes;
-                    GetFunctionArgs(nodes, adv.nodes[1]);
+                    FlattenCommas(nodes, adv.nodes[1]);
                     for (auto item : nodes)
                         GenNode(instructions, item, scope, contscope, brkscope,
                                 contI, brkI);
@@ -1555,7 +1556,8 @@ void CodeGen::GenNode(std::vector<ByteCodeInstruction *> &instructions,
 
         } else if (adv.nodeName == ContinueStatement) {
             if (contscope == -1) {
-                std::cout << "WARN: continue does nothing here\n";
+                Tesses::Framework::Console::WriteLine(
+                    "WARN: continue does nothing here");
             } else if (contscope == -2) {
                 instructions.push_back(new SimpleInstruction(PUSHCONTINUE));
                 instructions.push_back(new SimpleInstruction(RET));
@@ -1572,7 +1574,8 @@ void CodeGen::GenNode(std::vector<ByteCodeInstruction *> &instructions,
             }
         } else if (adv.nodeName == BreakStatement) {
             if (brkscope == -1) {
-                std::cout << "WARN: break does nothing here\n";
+                Tesses::Framework::Console::WriteLine(
+                    "WARN: break does nothing here");
             } else if (brkscope == -2) {
                 instructions.push_back(new SimpleInstruction(PUSHBREAK));
                 instructions.push_back(new SimpleInstruction(RET));
@@ -1978,7 +1981,7 @@ void CodeGen::GenNode(std::vector<ByteCodeInstruction *> &instructions,
             //(a,b) => {}
             // it has two args
             std::vector<uint32_t> args;
-            GetFunctionArgs(args, adv.nodes[0]);
+            FlattenCommas(args, adv.nodes[0]);
 
             std::vector<ByteCodeInstruction *> fnInstructions;
             size_t fnindex = this->chunks.size();
@@ -2008,12 +2011,11 @@ void CodeGen::GenNode(std::vector<ByteCodeInstruction *> &instructions,
             // Name => {}
             //(a,b) => {}
             // it has two args
-            std::vector<uint32_t> args;
-            GetFunctionArgs(args, adv.nodes[0]);
-
             std::vector<ByteCodeInstruction *> fnInstructions;
             size_t fnindex = this->chunks.size();
             this->chunks.resize(fnindex + 1);
+            std::vector<uint32_t> args;
+            GetFunctionArgs(args, fnInstructions, adv.nodes[0]);
 
             auto body = adv.nodes[1];
 
@@ -2060,18 +2062,20 @@ void CodeGen::GenNode(std::vector<ByteCodeInstruction *> &instructions,
         }
     }
 }
-void CodeGen::GetFunctionArgs(std::vector<SyntaxNode> &args, SyntaxNode n) {
+void CodeGen::FlattenCommas(std::vector<SyntaxNode> &args, SyntaxNode n) {
     AdvancedSyntaxNode sn;
     if (std::holds_alternative<AdvancedSyntaxNode>(n) &&
         (sn = std::get<AdvancedSyntaxNode>(n)).nodeName == CommaExpression &&
         sn.nodes.size() == 2) {
-        GetFunctionArgs(args, sn.nodes[0]);
-        GetFunctionArgs(args, sn.nodes[1]);
+        FlattenCommas(args, sn.nodes[0]);
+        FlattenCommas(args, sn.nodes[1]);
     } else {
         args.push_back(n);
     }
 }
-void CodeGen::GetFunctionArgs(std::vector<uint32_t> &name, SyntaxNode n) {
+void CodeGen::GetFunctionArgs(std::vector<uint32_t> &name,
+                              std::vector<ByteCodeInstruction *> &instrs,
+                              SyntaxNode n) {
     if (std::holds_alternative<std::nullptr_t>(n))
         return;
 
@@ -2079,10 +2083,90 @@ void CodeGen::GetFunctionArgs(std::vector<uint32_t> &name, SyntaxNode n) {
         auto res = std::get<AdvancedSyntaxNode>(n);
         if (res.nodeName == ParenthesesExpression) {
             for (auto n : res.nodes)
-                GetFunctionArgs(name, n);
+                GetFunctionArgs(name, instrs, n);
+        } else if (res.nodeName == AssignExpression && res.nodes.size() == 2) {
+            // ennsure the left argument is a getVariableExpression
+            if (std::holds_alternative<AdvancedSyntaxNode>(res.nodes[0])) {
+                auto left = std::get<AdvancedSyntaxNode>(res.nodes[0]);
+
+                if (left.nodeName == GetVariableExpression &&
+                    !left.nodes.empty() &&
+                    std::holds_alternative<std::string>(left.nodes[0])) {
+                    std::string key = std::get<std::string>(left.nodes[0]);
+                    if (key.size() >= 2 && key[0] == '$' && key[1] == '$') {
+                        Tesses::Framework::Console::WriteLine(
+                            "WARN: you can't assign variadic functions to a "
+                            "default value, this will be an "
+                            "error on future release.");
+                        return;
+                    }
+
+                    if (key.size() > 0 && key[0] == '$') {
+                        key.erase(key.cbegin());
+                    }
+
+                    name.push_back(GetString('$' + key));
+
+                    uint32_t ifId = NewId();
+                    std::string compGenSetVar = "__compGenSetVar";
+                    compGenSetVar.append(std::to_string(ifId));
+
+                    std::string compGenSetVarEnd = "__compGenSetVarEnd";
+                    compGenSetVarEnd.append(std::to_string(ifId));
+                    GenNode(instrs,
+                            AdvancedSyntaxNode::Create(GetVariableExpression,
+                                                       true, {key}),
+                            0, -1, -1, -1, -1);
+                    instrs.push_back(new JumpStyleInstruction(
+                        Tesses::CrossLang::Instruction::JMPUNDEFINED,
+                        compGenSetVar));
+                    instrs.push_back(new SimpleInstruction(POP));
+                    instrs.push_back(new JumpStyleInstruction(
+                        Tesses::CrossLang::Instruction::JMP, compGenSetVarEnd));
+                    instrs.push_back(new LabelInstruction(compGenSetVar));
+                    GenNode(instrs,
+                            AdvancedSyntaxNode::Create(
+                                AssignExpression, true,
+                                {AdvancedSyntaxNode::Create(DeclareExpression,
+                                                            true, {key}),
+                                 res.nodes[1]}),
+
+                            0, -1, -1, -1, -1);
+                    instrs.push_back(new SimpleInstruction(POP));
+                    instrs.push_back(new LabelInstruction(compGenSetVarEnd));
+                } else {
+                    Tesses::Framework::Console::WriteLine(
+                        "WARN: assignment does not assign arg, this will be an "
+                        "error on future release.");
+                }
+            } else {
+                Tesses::Framework::Console::WriteLine(
+                    "WARN: assignment does not assign arg, this will be an "
+                    "error on future release.");
+            }
         } else if (res.nodeName == CommaExpression && res.nodes.size() == 2) {
-            GetFunctionArgs(name, res.nodes[0]);
-            GetFunctionArgs(name, res.nodes[1]);
+            GetFunctionArgs(name, instrs, res.nodes[0]);
+            GetFunctionArgs(name, instrs, res.nodes[1]);
+        } else if (res.nodeName == GetVariableExpression &&
+                   res.nodes.size() == 1) {
+            if (std::holds_alternative<std::string>(res.nodes[0])) {
+                name.push_back(GetString(std::get<std::string>(res.nodes[0])));
+            }
+        }
+    }
+}
+void CodeGen::FlattenCommas(std::vector<uint32_t> &name, SyntaxNode n) {
+    if (std::holds_alternative<std::nullptr_t>(n))
+        return;
+
+    if (std::holds_alternative<AdvancedSyntaxNode>(n)) {
+        auto res = std::get<AdvancedSyntaxNode>(n);
+        if (res.nodeName == ParenthesesExpression) {
+            for (auto n : res.nodes)
+                FlattenCommas(name, n);
+        } else if (res.nodeName == CommaExpression && res.nodes.size() == 2) {
+            FlattenCommas(name, res.nodes[0]);
+            FlattenCommas(name, res.nodes[1]);
         } else if (res.nodeName == GetVariableExpression &&
                    res.nodes.size() == 1) {
             if (std::holds_alternative<std::string>(res.nodes[0])) {
@@ -2175,14 +2259,14 @@ void CodeGen::GenRoot(SyntaxNode n) {
                                         functionName.insert(
                                             functionName.begin(),
                                             {GetString(documentation)});
-                                        if (fcalli.nodes.size() == 2)
-                                            GetFunctionArgs(args,
-                                                            fcalli.nodes[1]);
-
                                         std::vector<ByteCodeInstruction *>
                                             fnInstructions;
                                         size_t fnindex = this->chunks.size();
                                         this->chunks.resize(fnindex + 1);
+                                        if (fcalli.nodes.size() == 2)
+                                            GetFunctionArgs(args,
+                                                            fnInstructions,
+                                                            fcalli.nodes[1]);
 
                                         GenNode(fnInstructions, res2.nodes[1],
                                                 0, -1, -1, -1, -1);

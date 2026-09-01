@@ -67,6 +67,8 @@ static TObject VM_SourceToAst(GCList &ls, std::vector<TObject> args) {
 static TObject VM_Eval(GCList &ls, std::vector<TObject> args) {
     std::string str;
     if (GetArgument(args, 0, str)) {
+
+        auto current_function = GC::GetCurrentFunction();
         if (current_function != nullptr) {
             return current_function->env->Eval(ls, str);
         }
@@ -90,6 +92,8 @@ static TObject Success(GCList &ls) {
 }
 static TObject VM_getCurrentEnvironment(GCList &ls2,
                                         std::vector<TObject> args) {
+
+    auto current_function = GC::GetCurrentFunction();
     if (current_function != nullptr)
         return current_function->env;
     return Undefined();
@@ -261,6 +265,7 @@ static TObject VM_Compile(GCList &ls, std::vector<TObject> args) {
     }
 }
 static TObject VM_GetStacktrace(GCList &ls, std::vector<TObject> args) {
+    auto current_function = GC::GetCurrentFunction();
     if (current_function != nullptr) {
         if (current_function->thread != nullptr) {
             TList *list = TList::Create(ls);

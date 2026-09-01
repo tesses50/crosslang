@@ -12,8 +12,6 @@
 
 namespace Tesses::CrossLang {
 
-thread_local CallStackEntry *current_function = nullptr;
-
 TObject ExecuteFunction(GCList &ls, TCallable *callable,
                         std::vector<TObject> args) {
     return callable->Call(ls, args);
@@ -2113,8 +2111,14 @@ bool InterperterThread::Throw(std::shared_ptr<GC> gc) {
 
     if (!std::holds_alternative<Undefined>(_res2)) {
         auto env = cse.back()->env;
-        if (!env->GetRootEnvironment()->HandleException(gc, env, _res2))
+        if (!env->GetRootEnvironment()->HandleException(gc, env, _res2)) {
+            TNativeException *nex;
+            if (GetObjectHeap(_res2, nex)) {
+                nex->ThrowIt();
+            }
+
             throw VMByteCodeException(gc, _res2, cse.back());
+        }
     }
     return false;
 }
@@ -2223,6 +2227,7 @@ bool InterperterThread::JumpUndefined(std::shared_ptr<GC> gc) {
 bool InterperterThread::Jump(std::shared_ptr<GC> gc) {
 
     std::vector<CallStackEntry *> &cse = this->call_stack_entries;
+
     auto stk = cse.back();
 
     if (stk->ip + 4 <= stk->callable->closure->code.size()) {
@@ -2409,23 +2414,39 @@ bool InterperterThread::TryCatch(std::shared_ptr<GC> gc) {
     if (GetObjectHeap(tryFn, tryC) && GetObjectHeap(catchFn, catchC)) {
         try {
             stk->Push(gc, tryC->Call(ls, {}));
-        }
 
-        catch (std::exception &ex) {
-            TDictionary *dict = TDictionary::Create(ls);
-            auto gc = ls.GetGC();
-            auto myEx = dynamic_cast<VMByteCodeException *>(&ex);
-            if (myEx != nullptr) {
-                stk->Push(gc, catchC->Call(ls, {myEx->exception}));
-            } else {
-                gc->BarrierBegin();
+        } catch (std::bad_alloc &ex) {
+            std::cerr
+                << "CrossLang has failed to allocate, sorry for termination."
+                << std::endl;
+            std::exit(1);
+        } catch (const std::string &ex) {
+            stk->Push(gc, catchC->Call(ls, {ex}));
+        } catch (const char *ex) {
 
-                dict->SetValue("Type", "NativeException");
-                dict->SetValue("Text", ex.what());
-                gc->BarrierEnd();
+            stk->Push(gc,
+                      catchC->Call(ls, {std::string{ex != nullptr ? ex : ""}}));
+        } catch (std::runtime_error &ex) {
 
-                stk->Push(gc, catchC->Call(ls, {dict}));
-            }
+            stk->Push(
+                gc, catchC->Call(ls, {TNativeObject::Create<TException>(
+                                         ls, ex.what(), "RuntimeException")}));
+        } catch (VMException &ex) {
+            stk->Push(
+                gc, catchC->Call(ls, {TNativeObject::Create<TException>(
+                                         ls, ex.GetMessage(), "VMException")}));
+        } catch (VMByteCodeException &ex) {
+            stk->Push(gc, catchC->Call(ls, {ex.exception}));
+        } catch (std::exception &ex) {
+            stk->Push(gc,
+                      catchC->Call(
+                          ls, {TNativeObject::Create<TNativeException>(
+                                  ls, ex.what(), std::current_exception())}));
+        } catch (...) {
+            stk->Push(gc,
+                      catchC->Call(ls, {TNativeObject::Create<TNativeException>(
+                                           ls, "<No Message>",
+                                           std::current_exception())}));
         }
     }
     return false;
@@ -2693,14 +2714,14 @@ void InterperterThread::Execute(std::shared_ptr<GC> gc) {
 
     std::vector<CallStackEntry *> &cse = this->call_stack_entries;
 #define VM_OPCODE_TABLE_INLINE
-#include "vm_opcode_table.h"
+#include "vm_opcode_table.def"
 #undef VM_OPCODE_TABLE_INLINE
 
 execute:
 
     if (!cse.empty()) {
         auto stk = cse.back();
-        current_function = stk;
+        GC::SetCurrentFunction(stk);
 
         try {
             while (stk->ip < 0xFFFFFFFF &&
@@ -2721,7 +2742,7 @@ execute:
                         cse[cse.size() - 2]->Push(gc, o);
 
                         cse.erase(cse.end() - 1);
-                        current_function = cse.back();
+                        GC::SetCurrentFunction(cse.back());
                         gc->BarrierEnd();
                         goto execute;
                     } else {
@@ -2729,8 +2750,13 @@ execute:
                     }
                 }
 
-                if (gc->UsingNullThreads())
-                    gc->Collect();
+                if (gc->UsingNullThreads()) {
+                    std::vector<THeapObject *> objs;
+                    gc->Collect(objs);
+                    for (auto &item : objs) {
+                        delete item;
+                    }
+                }
             }
 
             stk->mustReturn = false;
@@ -2764,7 +2790,7 @@ execute:
         }
         if (cse.size() == 1) {
 
-            current_function = nullptr;
+            GC::SetCurrentFunction(nullptr);
             {
 
                 gc->BarrierBegin();
@@ -2817,7 +2843,7 @@ execute:
                 cse[cse.size() - 2]->Push(gc, o);
 
                 cse.erase(cse.end() - 1);
-                current_function = cse.back();
+                GC::SetCurrentFunction(cse.back());
                 gc->BarrierEnd();
 
                 for (auto item : callable) {
@@ -2846,7 +2872,7 @@ void CallStackEntry::Push(std::shared_ptr<GC> gc, TObject o) {
     gc->BarrierEnd();
 }
 TObject CallStackEntry::Resume(GCList &ls) {
-    auto cse = current_function;
+    auto cse = GC::GetCurrentFunction();
     InterperterThread *thrd = InterperterThread::Create(ls);
     ls.GetGC()->BarrierBegin();
     thrd->call_stack_entries.push_back(this);
@@ -2855,7 +2881,7 @@ TObject CallStackEntry::Resume(GCList &ls) {
     thrd->Execute(ls.GetGC());
 
     TObject v = thrd->call_stack_entries[0]->Pop(ls);
-    current_function = cse;
+    GC::SetCurrentFunction(cse);
     return v;
 }
 TObject CallStackEntry::Pop(GCList &gc) {
@@ -2870,41 +2896,17 @@ TObject CallStackEntry::Pop(GCList &gc) {
 }
 
 InterperterThread *InterperterThread::Create(GCList &ls) {
-    InterperterThread *it = new InterperterThread();
-    std::shared_ptr<GC> _gc = ls.GetGC();
-    ls.Add(it);
-    _gc->Watch(it);
-    return it;
+    return ls.Create<InterperterThread>();
 }
 InterperterThread *InterperterThread::Create(GCList *ls) {
-    InterperterThread *it = new InterperterThread();
-    std::shared_ptr<GC> _gc = ls->GetGC();
-    ls->Add(it);
-    _gc->Watch(it);
-    return it;
+    return ls->Create<InterperterThread>();
 }
 CallStackEntry *CallStackEntry::Create(GCList &ls) {
-    CallStackEntry *cse = new CallStackEntry();
-    cse->mustReturn = false;
-    cse->srcline = -1;
-    cse->srcfile = "";
-    cse->thread = nullptr;
-    std::shared_ptr<GC> _gc = ls.GetGC();
-    ls.Add(cse);
-    _gc->Watch(cse);
-    return cse;
+    return ls.Create<CallStackEntry>();
 }
 
 CallStackEntry *CallStackEntry::Create(GCList *ls) {
-    CallStackEntry *cse = new CallStackEntry();
-    cse->mustReturn = false;
-    cse->srcline = -1;
-    cse->srcfile = "";
-    cse->thread = nullptr;
-    std::shared_ptr<GC> _gc = ls->GetGC();
-    ls->Add(cse);
-    _gc->Watch(cse);
-    return cse;
+    return ls->Create<CallStackEntry>();
 }
 void InterperterThread::AddCallStackEntry(GCList &ls, TClosure *closure,
                                           std::vector<TObject> args) {
@@ -2963,6 +2965,18 @@ void InterperterThread::AddCallStackEntry(GCList &ls, TClosure *closure,
             cse->env->DeclareVariable(trimStart(closure->closure->args[i]),
                                       args[i]);
         }
+
+        for (; i < closure->closure->args.size(); i++) {
+            auto &a = closure->closure->args[i];
+            if (a.size() > 1 && a[0] == '$') {
+                if (a[1] == '$') {
+                    break;
+                }
+                cse->env->DeclareVariable(trimStart(a), Undefined());
+            } else {
+                break;
+            }
+        }
         std::string back = closure->closure->args.empty()
                                ? std::string()
                                : closure->closure->args.back();
@@ -2979,7 +2993,7 @@ void InterperterThread::AddCallStackEntry(GCList &ls, TClosure *closure,
             throw VMException("Too many arguments");
     }
 
-    current_function = cse;
+    GC::SetCurrentFunction(cse);
 
     this->call_stack_entries.push_back(cse);
     ls.GetGC()->BarrierEnd();

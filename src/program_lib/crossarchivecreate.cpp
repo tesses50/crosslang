@@ -16,7 +16,7 @@ static void Help(std::string &filename) {
     printf("  -n:  Set name (MyAppOrLibName defaults to out)\n");
     printf("  -h, --help:  Prints help\n");
     printf("Options except for help have flag with arg like this: -F ARG\n");
-    exit(1);
+    std::exit(1);
 }
 
 int64_t CrossArchiveCreate(std::vector<std::string> &argv) {
@@ -53,7 +53,7 @@ int64_t CrossArchiveCreate(std::vector<std::string> &argv) {
                     printf("Expected "
                            "MAJOR[.MINOR[.PATCH[.BUILD[-dev,-alpha,-beta,-prod]"
                            "]]]\n");
-                    exit(1);
+                    std::exit(1);
                 }
             }
         } else {

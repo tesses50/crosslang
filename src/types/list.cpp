@@ -1,20 +1,11 @@
 #include "CrossLang.hpp"
 namespace Tesses::CrossLang {
+TDynamicList::TDynamicList(TCallable *callable) : cb(callable) {}
 TDynamicList *TDynamicList::Create(GCList &ls, TCallable *callable) {
-    TDynamicList *list = new TDynamicList();
-    list->cb = callable;
-    std::shared_ptr<GC> _gc = ls.GetGC();
-    ls.Add(list);
-    _gc->Watch(list);
-    return list;
+    return ls.Create<TDynamicList>(callable);
 }
 TDynamicList *TDynamicList::Create(GCList *ls, TCallable *callable) {
-    TDynamicList *list = new TDynamicList();
-    list->cb = callable;
-    std::shared_ptr<GC> _gc = ls->GetGC();
-    ls->Add(list);
-    _gc->Watch(list);
-    return list;
+    return ls->Create<TDynamicList>(callable);
 }
 
 void TDynamicList::Mark() {
@@ -120,35 +111,11 @@ TObject TDynamicList::SetAt(GCList &ls, int64_t index, TObject val) {
 
 TDynamicList::~TDynamicList() {}
 
-TByteArray *TByteArray::Create(GCList &ls) {
-    TByteArray *arr = new TByteArray();
-    std::shared_ptr<GC> _gc = ls.GetGC();
-    ls.Add(arr);
-    _gc->Watch(arr);
-    return arr;
-}
+TByteArray *TByteArray::Create(GCList &ls) { return ls.Create<TByteArray>(); }
 
-TByteArray *TByteArray::Create(GCList *ls) {
-    TByteArray *arr = new TByteArray();
-    std::shared_ptr<GC> _gc = ls->GetGC();
-    ls->Add(arr);
-    _gc->Watch(arr);
-    return arr;
-}
-TList *TList::Create(GCList *gc) {
-    TList *list = new TList();
-    std::shared_ptr<GC> _gc = gc->GetGC();
-    gc->Add(list);
-    _gc->Watch(list);
-    return list;
-}
-TList *TList::Create(GCList &gc) {
-    TList *list = new TList();
-    std::shared_ptr<GC> _gc = gc.GetGC();
-    gc.Add(list);
-    _gc->Watch(list);
-    return list;
-}
+TByteArray *TByteArray::Create(GCList *ls) { return ls->Create<TByteArray>(); }
+TList *TList::Create(GCList *gc) { return gc->Create<TList>(); }
+TList *TList::Create(GCList &gc) { return gc.Create<TList>(); }
 void TList::Add(TObject value) { this->items.push_back(value); }
 void TList::Set(int64_t index, TObject value) {
     if (index >= 0 && index < this->Count()) {
@@ -161,7 +128,7 @@ TObject TList::Get(int64_t index) {
     }
     return Undefined();
 }
-int64_t TList::Count() { return (int64_t)this->items.size(); }
+int64_t TList::Count() { return this->items.size(); }
 void TList::Insert(int64_t index, TObject value) {
     if (index >= 0 && index <= this->Count()) {
         this->items.insert(this->items.begin() + index, value);

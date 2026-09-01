@@ -41,19 +41,11 @@ TList *TQueryable::ToList(GCList &ls) {
     return list;
 }
 TQueryable *TQueryable::Create(GCList &ls, TObject parent) {
-    TQueryable *queryable = new TQueryable(parent);
-    std::shared_ptr<GC> gc = ls.GetGC();
-    ls.Add(queryable);
-    gc->Watch(queryable);
-    return queryable;
+    return ls.Create<TQueryable>(parent);
 }
 TQueryable *TQueryable::Create(GCList &ls, TObject parent, TQueryableMode mode,
                                std::vector<TObject> args) {
-    TQueryable *queryable = new TQueryable(parent, mode, args);
-    std::shared_ptr<GC> gc = ls.GetGC();
-    ls.Add(queryable);
-    gc->Watch(queryable);
-    return queryable;
+    return ls.Create<TQueryable>(parent, mode, args);
 }
 
 void TQueryable::Mark() {

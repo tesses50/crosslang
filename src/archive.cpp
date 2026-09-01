@@ -44,7 +44,7 @@ void CrossArchiveCreate(
     strs.push_back("Console");
     strs.push_back("WriteLine");
     strs.push_back("You are trying to run a crvm archive, stop it you won't "
-                   "get anywhere!\nUse crossarchiveextract instead.");
+                   "get anywhere!\nUse crosslang archiveextract instead.");
 
     std::vector<std::string> resources;
 

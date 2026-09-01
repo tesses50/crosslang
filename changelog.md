@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.10
+Replace time-based GC with allocation-count trigger, migrate all Create factories to GCList::Create(), fix VFSPath root path, reorder TObject variant
+
 ## 0.0.9
 Fixed Process.ShellFileOrUrl was broken New.ShellFileOrUrl
 

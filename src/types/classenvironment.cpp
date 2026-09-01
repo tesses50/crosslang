@@ -9,22 +9,12 @@ bool TClassEnvironment::HasConstForSet(std::string key) {
 TClassEnvironment *TClassEnvironment::Create(GCList *gc, TEnvironment *env,
                                              TClassObject *obj) {
 
-    TClassEnvironment *env2 = new TClassEnvironment(env, obj);
-
-    std::shared_ptr<GC> _gc = gc->GetGC();
-    gc->Add(env2);
-    _gc->Watch(env2);
-    return env2;
+    return gc->Create<TClassEnvironment>(env, obj);
 }
 TClassEnvironment *TClassEnvironment::Create(GCList &gc, TEnvironment *env,
                                              TClassObject *obj) {
 
-    TClassEnvironment *env2 = new TClassEnvironment(env, obj);
-
-    std::shared_ptr<GC> _gc = gc.GetGC();
-    gc.Add(env2);
-    _gc->Watch(env2);
-    return env2;
+    return gc.Create<TClassEnvironment>(env, obj);
 }
 TClassEnvironment::TClassEnvironment(TEnvironment *env, TClassObject *obj) {
     this->env = env;
@@ -33,6 +23,7 @@ TClassEnvironment::TClassEnvironment(TEnvironment *env, TClassObject *obj) {
 bool TClassEnvironment::HasVariable(std::string key) {
     if (key == "this")
         return true;
+    auto current_function = GC::GetCurrentFunction();
     if (this->clsObj->HasValue(current_function == nullptr
                                    ? ""
                                    : current_function->callable->className,
@@ -49,6 +40,8 @@ bool TClassEnvironment::HasVariableOrFieldRecurse(std::string key,
                                                   bool setting) {
     if (key == "this")
         return true;
+
+    auto current_function = GC::GetCurrentFunction();
     std::string clsName = current_function == nullptr
                               ? ""
                               : current_function->callable->className;
@@ -63,6 +56,7 @@ TObject TClassEnvironment::GetVariable(std::string key) {
     if (key == "this")
         return this->clsObj;
 
+    auto current_function = GC::GetCurrentFunction();
     std::string clsName = current_function == nullptr
                               ? ""
                               : current_function->callable->className;
@@ -75,6 +69,7 @@ void TClassEnvironment::SetVariable(std::string key, TObject value) {
     if (key == "this")
         return;
 
+    auto current_function = GC::GetCurrentFunction();
     std::string clsName = current_function == nullptr
                               ? ""
                               : current_function->callable->className;
@@ -90,6 +85,7 @@ TObject TClassEnvironment::GetVariable(GCList &ls, std::string key) {
     if (key == "this")
         return this->clsObj;
 
+    auto current_function = GC::GetCurrentFunction();
     std::string clsName = current_function == nullptr
                               ? ""
                               : current_function->callable->className;
@@ -107,6 +103,7 @@ TObject TClassEnvironment::SetVariable(GCList &ls, std::string key, TObject v) {
     if (key == "this")
         return this->clsObj;
 
+    auto current_function = GC::GetCurrentFunction();
     std::string clsName = current_function == nullptr
                               ? ""
                               : current_function->callable->className;

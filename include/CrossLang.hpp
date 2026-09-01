@@ -14,6 +14,7 @@
 #include <sstream>
 #include <string>
 #include <time.h>
+#include <unordered_set>
 #include <variant>
 #include <vector>
 
@@ -35,6 +36,7 @@
  *
  */
 namespace Tesses::CrossLang {
+constexpr uint32_t ALLOC_THRESHOLD = 10000;
 using BitConverter = Tesses::Framework::Serialization::BitConverter;
 constexpr std::string_view VMName = "CrossLangVM";
 constexpr std::string_view VMHowToGet = "https://crosslang.tesseslanguage.com/";
@@ -794,14 +796,16 @@ class ResourceByteArray : public ResourceBase {
     GetLength(std::shared_ptr<Tesses::Framework::Filesystem::VFS> embedFS);
     void Write(std::shared_ptr<Tesses::Framework::Streams::Stream> output);
 };
-
 class CodeGen {
     uint32_t id;
     uint32_t NewId();
 
-    void GetFunctionArgs(std::vector<uint32_t> &args, SyntaxNode n);
+    void GetFunctionArgs(std::vector<uint32_t> &args,
+                         std::vector<ByteCodeInstruction *> &instructions,
+                         SyntaxNode n);
+    void FlattenCommas(std::vector<uint32_t> &args, SyntaxNode n);
     void GetFunctionName(std::vector<uint32_t> &name, SyntaxNode n);
-    void GetFunctionArgs(std::vector<SyntaxNode> &args, SyntaxNode n);
+    void FlattenCommas(std::vector<SyntaxNode> &args, SyntaxNode n);
     SyntaxNode StringifyListOfVars(SyntaxNode n);
 
     uint32_t GetString(std::string str);
@@ -1347,8 +1351,10 @@ class THeapObject {
   public:
     bool marked;
     virtual void Mark() { marked = true; }
-
-    virtual ~THeapObject() {}
+    THeapObject() = default;
+    THeapObject(const THeapObject &) = delete;
+    THeapObject &operator=(const THeapObject &) = delete;
+    virtual ~THeapObject() = default;
 };
 
 class THeapObjectHolder {
@@ -1369,9 +1375,9 @@ class TContinue {};
  */
 
 using TObject =
-    std::variant<int64_t, double, char, bool, std::string, std::regex,
-                 Tesses::Framework::Filesystem::VFSPath, std::nullptr_t,
-                 Undefined, MethodInvoker, THeapObjectHolder, TVMVersion,
+    std::variant<Undefined, int64_t, double, char, bool, std::string,
+                 std::regex, Tesses::Framework::Filesystem::VFSPath,
+                 std::nullptr_t, MethodInvoker, THeapObjectHolder, TVMVersion,
                  std::shared_ptr<Tesses::Framework::Date::DateTime>,
                  std::shared_ptr<Tesses::Framework::Date::TimeSpan>, TBreak,
                  TContinue, std::shared_ptr<Tesses::Framework::Streams::Stream>,
@@ -1387,50 +1393,72 @@ using TObject =
                  Tesses::Framework::Uuid>;
 
 class TRootEnvironment;
+class GCList;
 
 class GC : public std::enable_shared_from_this<GC> {
     Tesses::Framework::Threading::Thread *thrd;
-    Tesses::Framework::Threading::Mutex *mtx;
+    Tesses::Framework::Threading::Mutex mtx;
+    Tesses::Framework::Threading::Cond cond;
+    uint32_t allocs = 0;
     volatile std::atomic<bool> running;
-    std::vector<THeapObject *> roots;
-    std::vector<THeapObject *> objects;
+    std::unordered_set<GCList *> roots;
+    std::unordered_set<THeapObject *> objects;
 
     Tesses::Framework::Lazy<Tesses::Framework::Threading::ThreadPool *> *tpool;
     std::vector<
         std::function<void(std::shared_ptr<GC> gc, TRootEnvironment *env)>>
         register_everything;
 
+    void SetRoot(GCList *obj);
+    void UnsetRoot(GCList *obj);
+
   public:
     Tesses::Framework::Threading::ThreadPool *GetPool();
     bool UsingNullThreads();
     GC();
+    GC(const GC &) = delete;
+    GC &operator=(const GC &) = delete;
     void Start();
     bool IsRunning();
     void BarrierBegin();
     void BarrierEnd();
-    void Collect();
+    void Collect(std::vector<THeapObject *> &to_delete);
     void Watch(TObject obj);
     void Unwatch(TObject obj);
-    void SetRoot(TObject obj);
-    void UnsetRoot(TObject obj);
     static void Mark(TObject obj);
     void RegisterEverythingCallback(
         std::function<void(std::shared_ptr<GC> gc, TRootEnvironment *env)> cb);
     void RegisterEverything(TRootEnvironment *env);
     ~GC();
+
+    // uses thread_local or std::map
+    static void SetCurrentFunction(CallStackEntry *fn);
+    // uses thread local or std::map
+    static CallStackEntry *GetCurrentFunction();
+    friend class GCList;
 };
 
 std::string GetObjectTypeString(TObject obj);
 std::string ToString(std::shared_ptr<GC> gc, TObject obj);
 
-class GCList : public THeapObject {
+class GCList {
     std::vector<THeapObject *> items;
 
     std::shared_ptr<GC> gc;
 
   public:
     GCList(std::shared_ptr<GC> gc);
-    std::shared_ptr<GC> GetGC();
+    GCList(const GCList &) = delete;
+    GCList &operator=(const GCList &) = delete;
+    std::shared_ptr<GC> GetGC() const;
+
+    template <typename T, typename... TArgs> T *Create(TArgs &&...args) {
+        T *obj = new T(std::forward<TArgs>(args)...);
+        Add(obj);
+        gc->Watch(obj);
+        return obj;
+    }
+
     void Add(TObject v);
     void Remove(TObject v);
     void Mark();
@@ -1443,7 +1471,9 @@ class TFile;
 
 class TFileChunk : public THeapObject {
   public:
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TFileChunk *Create(GCList *gc);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TFileChunk *Create(GCList &gc);
     TFile *file;
     std::vector<uint8_t> code;
@@ -1455,7 +1485,9 @@ class TFileChunk : public THeapObject {
 class TByteArray : public THeapObject {
   public:
     std::vector<uint8_t> data;
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TByteArray *Create(GCList *gc);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TByteArray *Create(GCList &gc);
 };
 enum class TClassModifier { Private, Protected, Public, Static };
@@ -1488,7 +1520,9 @@ class TClassObjectEntry {
 class TDictionary;
 class TFile : public THeapObject {
   public:
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TFile *Create(GCList *gc);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TFile *Create(GCList &gc);
     std::vector<TFileChunk *> chunks;
 
@@ -1504,7 +1538,7 @@ class TFile : public THeapObject {
     std::string name;
     TVMVersion version;
     std::string info;
-    int32_t icon;
+    int32_t icon = -1;
 
     void Load(std::shared_ptr<GC> gc,
               std::shared_ptr<Tesses::Framework::Streams::Stream> strm);
@@ -1528,7 +1562,9 @@ class TFile : public THeapObject {
 class TAssociativeArray : public THeapObject {
   public:
     std::vector<std::pair<TObject, TObject>> items;
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TAssociativeArray *Create(GCList &ls);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TAssociativeArray *Create(GCList *ls);
     void Set(std::shared_ptr<GC> gc, TObject key, TObject value);
     TObject Get(std::shared_ptr<GC> gc, TObject key);
@@ -1542,29 +1578,33 @@ class TAssociativeArray : public THeapObject {
 
 class TList : public THeapObject {
   public:
+    TList() = default;
+    template <typename Itterator>
+    TList(Itterator begin, Itterator end) : items(begin, end) {}
+    TList(std::initializer_list<TObject> il) : items(il) {}
+    TList(int64_t capacity) { items.reserve(capacity); }
     std::vector<TObject> items;
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TList *Create(GCList *gc);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TList *Create(GCList &gc);
     template <typename Itterator>
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TList *Create(GCList *gc, Itterator begin, Itterator end) {
-        auto list = Create(gc);
-        gc->GetGC()->BarrierBegin();
-        for (Itterator i = begin; i != end; ++i) {
-            TObject item = *i;
-            list->Add(item);
-        }
-        gc->GetGC()->BarrierEnd();
-        return list;
+        return gc->Create<TList>(begin, end);
     }
     template <typename Itterator>
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TList *Create(GCList &gc, Itterator begin, Itterator end) {
-        return Create(&gc, begin, end);
+        return gc.Create<TList>(begin, end);
     }
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TList *Create(GCList *gc, std::initializer_list<TObject> il) {
-        return Create(gc, il.begin(), il.end());
+        return gc->Create<TList>(il);
     }
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TList *Create(GCList &gc, std::initializer_list<TObject> il) {
-        return Create(gc, il.begin(), il.end());
+        return gc.Create<TList>(il);
     }
     virtual int64_t Count();
     virtual TObject Get(int64_t index);
@@ -1578,30 +1618,37 @@ class TList : public THeapObject {
 using TDItem = std::pair<std::string, TObject>;
 class TDictionary : public THeapObject {
   public:
+    TDictionary() = default;
+    template <typename Itterator> TDictionary(Itterator begin, Itterator end) {
+        for (Itterator i = begin; i != end; ++i) {
+            TDItem &item = *i;
+            SetValue(item.first, item.second);
+        }
+    }
+    TDictionary(std::initializer_list<TDItem> il) {
+        for (auto &item : il) {
+            SetValue(item.first, item.second);
+        }
+    }
     std::map<std::string, TObject> items;
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TDictionary *Create(GCList *gc);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TDictionary *Create(GCList &gc);
     template <typename Itterator>
     static TDictionary *Create(GCList *gc, Itterator begin, Itterator end) {
-        auto dict = Create(gc);
-        gc->GetGC()->BarrierBegin();
-        for (Itterator i = begin; i != end; ++i) {
-            TDItem item = *i;
-            dict->SetValue(item.first, item.second);
-        }
-        gc->GetGC()->BarrierEnd();
-        return dict;
+        return gc->Create<TDictionary>(begin, end);
     }
     template <typename Itterator>
     static TDictionary *Create(GCList &gc, Itterator begin, Itterator end) {
-        return Create(&gc, begin, end);
+        return gc.Create<TDictionary>(begin, end);
     }
 
     static TDictionary *Create(GCList *gc, std::initializer_list<TDItem> il) {
-        return Create(gc, il.begin(), il.end());
+        return gc->Create<TDictionary>(il);
     }
     static TDictionary *Create(GCList &gc, std::initializer_list<TDItem> il) {
-        return Create(gc, il.begin(), il.end());
+        return gc.Create<TDictionary>(il);
     }
 
     virtual bool HasValue(std::string key);
@@ -1641,9 +1688,11 @@ class TCallable : public THeapObject {
 void ThrowFatalError(std::exception &ex);
 
 void ThrowConstError(std::string key);
+enum class TEnvironmentDeclType { TEDT_VAR, TEDT_CONST };
 
 class TEnvironment : public THeapObject {
-    std::vector<std::string> consts;
+  protected:
+    std::unordered_map<std::string, TEnvironmentDeclType> decls;
 
   public:
     std::vector<TCallable *> defers;
@@ -1700,8 +1749,10 @@ class TClassObject : public THeapObject {
     std::vector<std::string> inherit_tree;
     std::vector<TClassObjectEntry> entries;
 
+    // This is the only place where the old way is
     static TClassObject *Create(GCList &ls, TFile *f, uint32_t classIndex,
                                 TEnvironment *env, std::vector<TObject> args);
+    // this too
     static TClassObject *Create(GCList *ls, TFile *f, uint32_t classIndex,
                                 TEnvironment *env, std::vector<TObject> args);
 
@@ -1720,8 +1771,10 @@ class TClassEnvironment : public TEnvironment {
     TClassObject *clsObj;
 
   public:
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TClassEnvironment *Create(GCList *gc, TEnvironment *env,
                                      TClassObject *obj);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TClassEnvironment *Create(GCList &gc, TEnvironment *env,
                                      TClassObject *obj);
     TClassEnvironment(TEnvironment *env, TClassObject *obj);
@@ -1796,7 +1849,9 @@ class TRootEnvironment : public TEnvironment {
         Tesses::Framework::Filesystem::VFSPath path);
 
     TDictionary *GetDictionary();
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TRootEnvironment *Create(GCList *gc, TDictionary *dict);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TRootEnvironment *Create(GCList &gc, TDictionary *dict);
     TRootEnvironment(TDictionary *dict);
     bool HasVariable(std::string key);
@@ -1856,8 +1911,10 @@ class TSubEnvironment : public TEnvironment {
     TDictionary *dict;
 
   public:
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TSubEnvironment *Create(GCList *gc, TEnvironment *env,
                                    TDictionary *dict);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TSubEnvironment *Create(GCList &gc, TEnvironment *env,
                                    TDictionary *dict);
     TSubEnvironment(TEnvironment *env, TDictionary *dict);
@@ -1883,7 +1940,10 @@ TDictionary *CreateThread(GCList &ls, TCallable *callable, bool detached);
 class TArgWrapper : public TCallable {
   public:
     TCallable *callable;
+    TArgWrapper(TCallable *callable);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TArgWrapper *Create(GCList &ls, TCallable *callable);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TArgWrapper *Create(GCList *ls, TCallable *callable);
     TObject Call(GCList &ls, std::vector<TObject> args);
     void Mark();
@@ -1897,24 +1957,28 @@ class TExternalMethod : public TCallable {
     std::vector<std::string> args;
     std::vector<TObject> watch;
     TExternalMethod(
-        std::function<TObject(GCList &ls, std::vector<TObject> args)> cb,
         std::string documentation, std::vector<std::string> argNames,
-        std::function<void()> destroy);
+        std::function<TObject(GCList &ls, std::vector<TObject> args)> cb,
+        std::function<void()> destroy = nullptr);
+
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TExternalMethod *
     Create(GCList &ls, std::string documentation,
            std::vector<std::string> argNames,
            std::function<TObject(GCList &ls, std::vector<TObject> args)> cb,
            std::function<void()> destroy);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TExternalMethod *
     Create(GCList *ls, std::string documentation,
            std::vector<std::string> argNames,
            std::function<TObject(GCList &ls, std::vector<TObject> args)> cb,
            std::function<void()> destroy);
-
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TExternalMethod *
     Create(GCList &ls, std::string documentation,
            std::vector<std::string> argNames,
            std::function<TObject(GCList &ls, std::vector<TObject> args)> cb);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TExternalMethod *
     Create(GCList *ls, std::string documentation,
            std::vector<std::string> argNames,
@@ -1943,8 +2007,11 @@ class TAssociativeArrayEnumerator : public TEnumerator {
     TAssociativeArray *ls;
 
   public:
+    TAssociativeArrayEnumerator(TAssociativeArray *list);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TAssociativeArrayEnumerator *Create(GCList &ls,
                                                TAssociativeArray *list);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TAssociativeArrayEnumerator *Create(GCList *ls,
                                                TAssociativeArray *list);
     bool MoveNext(std::shared_ptr<GC> ls);
@@ -1955,10 +2022,13 @@ class TAssociativeArrayEnumerator : public TEnumerator {
 class TCustomEnumerator : public TEnumerator {
   public:
     TDictionary *dict;
+    TCustomEnumerator(TDictionary *dict);
     bool MoveNext(std::shared_ptr<GC> ls);
     TObject GetCurrent(GCList &ls);
     void Mark();
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TCustomEnumerator *Create(GCList &ls, TDictionary *dict);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TCustomEnumerator *Create(GCList *ls, TDictionary *dict);
 };
 
@@ -1968,10 +2038,13 @@ class TYieldEnumerator : public TEnumerator {
     TObject current;
 
   public:
+    TYieldEnumerator(TObject v);
     bool MoveNext(std::shared_ptr<GC> ls);
     TObject GetCurrent(GCList &ls);
     void Mark();
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TYieldEnumerator *Create(GCList &ls, TObject v);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TYieldEnumerator *Create(GCList *ls, TObject v);
 };
 
@@ -1981,7 +2054,10 @@ class TStringEnumerator : public TEnumerator {
     std::string str;
 
   public:
+    TStringEnumerator(std::string str);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TStringEnumerator *Create(GCList &ls, std::string str);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TStringEnumerator *Create(GCList *ls, std::string str);
     bool MoveNext(std::shared_ptr<GC> ls);
     TObject GetCurrent(GCList &ls);
@@ -1992,7 +2068,10 @@ class TListEnumerator : public TEnumerator {
     TList *ls;
 
   public:
+    TListEnumerator(TList *list);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TListEnumerator *Create(GCList &ls, TList *list);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TListEnumerator *Create(GCList *ls, TList *list);
     bool MoveNext(std::shared_ptr<GC> ls);
     TObject GetCurrent(GCList &ls);
@@ -2005,7 +2084,10 @@ class TDynamicListEnumerator : public TEnumerator {
     TDynamicList *ls;
 
   public:
+    TDynamicListEnumerator(TDynamicList *list);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TDynamicListEnumerator *Create(GCList &ls, TDynamicList *list);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TDynamicListEnumerator *Create(GCList *ls, TDynamicList *list);
     bool MoveNext(std::shared_ptr<GC> ls);
     TObject GetCurrent(GCList &ls);
@@ -2015,8 +2097,11 @@ class TVFSPathEnumerator : public TEnumerator {
     Tesses::Framework::Filesystem::VFSPathEnumerator enumerator;
 
   public:
+    TVFSPathEnumerator(Tesses::Framework::Filesystem::VFSPathEnumerator list);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TVFSPathEnumerator *
     Create(GCList &ls, Tesses::Framework::Filesystem::VFSPathEnumerator list);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TVFSPathEnumerator *
     Create(GCList *ls, Tesses::Framework::Filesystem::VFSPathEnumerator list);
     bool MoveNext(std::shared_ptr<GC> ls);
@@ -2105,7 +2190,10 @@ class TDictionaryEnumerator : public TEnumerator {
     TDictionary *dict;
 
   public:
+    TDictionaryEnumerator(TDictionary *dict);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TDictionaryEnumerator *Create(GCList &ls, TDictionary *dict);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TDictionaryEnumerator *Create(GCList *ls, TDictionary *dict);
     bool MoveNext(std::shared_ptr<GC> ls);
     TObject GetCurrent(GCList &ls);
@@ -2114,8 +2202,12 @@ class TDictionaryEnumerator : public TEnumerator {
 
 class TClosure : public TCallable {
   public:
+    TClosure(TEnvironment *env, TFile *file, uint32_t chunkId,
+             bool ownScope = true);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TClosure *Create(GCList &ls, TEnvironment *env, TFile *file,
                             uint32_t chunkId, bool ownScope = true);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TClosure *Create(GCList *ls, TEnvironment *env, TFile *file,
                             uint32_t chunkId, bool ownScope = true);
     bool ownScope;
@@ -2130,7 +2222,10 @@ class TClosure : public TCallable {
 class TDynamicList : public THeapObject {
   public:
     TCallable *cb;
+    TDynamicList(TCallable *callable);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TDynamicList *Create(GCList &ls, TCallable *callable);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TDynamicList *Create(GCList *ls, TCallable *callable);
 
     void Mark();
@@ -2154,8 +2249,10 @@ class TDynamicList : public THeapObject {
 class TDynamicDictionary : public THeapObject {
   public:
     TCallable *cb;
-
+    TDynamicDictionary(TCallable *callable);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TDynamicDictionary *Create(GCList &ls, TCallable *callable);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TDynamicDictionary *Create(GCList *ls, TCallable *callable);
 
     void Mark();
@@ -2176,17 +2273,19 @@ class InterperterThread;
 
 class CallStackEntry : public THeapObject {
   public:
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static CallStackEntry *Create(GCList *ls);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static CallStackEntry *Create(GCList &ls);
-    InterperterThread *thread;
+    InterperterThread *thread = nullptr;
     std::vector<TObject> stack;
-    TEnvironment *env;
-    TClosure *callable;
+    TEnvironment *env = nullptr;
+    TClosure *callable = nullptr;
     uint32_t ip;
     uint32_t scopes;
-    int64_t srcline;
-    std::string srcfile;
-    bool mustReturn;
+    int64_t srcline = -1;
+    std::string srcfile = "";
+    bool mustReturn = false;
 
     void Mark();
     void Push(std::shared_ptr<GC> gc, TObject v);
@@ -2203,6 +2302,7 @@ class TTask : public THeapObject {
     TTask(std::shared_ptr<GC> gc);
 
   public:
+    // this still is needed
     static TTask *Create(GCList &ls);
     bool IsCompleted();
 
@@ -2223,7 +2323,6 @@ class TTask : public THeapObject {
 
     static TTask *FromResult(GCList &ls, TObject v);
 };
-extern thread_local CallStackEntry *current_function;
 
 class InterperterThread : public THeapObject {
   private:
@@ -2309,7 +2408,9 @@ class InterperterThread : public THeapObject {
     bool PushPrivateExpression(std::shared_ptr<GC> gc);
 
   public:
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static InterperterThread *Create(GCList *ls);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static InterperterThread *Create(GCList &ls);
     std::vector<CallStackEntry *> call_stack_entries;
     virtual void Execute(std::shared_ptr<GC> gc);
@@ -2328,34 +2429,31 @@ class VMException : public std::exception {
         error_message.append(ex);
     }
 
+    const std::string &GetMessage() { return error_message; }
+
     const char *what() const noexcept override { return error_message.c_str(); }
 };
 class TAny : public THeapObject {
   public:
     std::any any;
     TObject other;
-
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TAny *Create(GCList &ls);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TAny *Create(GCList *ls);
     void Mark();
 };
 class TNativeObject : public THeapObject {
   public:
     template <typename T, typename... TArgs>
-    static T *Create(GCList &ls, TArgs... args) {
-        T *obj = new T(args...);
-        std::shared_ptr<GC> gc = ls.GetGC();
-        ls.Add(obj);
-        gc->Watch(obj);
-        return obj;
+    [[deprecated("Use GCList::Create<T>() instead")]]
+    static T *Create(GCList &ls, TArgs &&...args) {
+        return ls.Create<T>(std::forward<TArgs>(args)...);
     }
     template <typename T, typename... TArgs>
-    static T *Create(GCList *ls, TArgs... args) {
-        T *obj = new T(args...);
-        std::shared_ptr<GC> gc = ls->GetGC();
-        ls->Add(obj);
-        gc->Watch(obj);
-        return obj;
+    [[deprecated("Use GCList::Create<T>() instead")]]
+    static T *Create(GCList *ls, TArgs &&...args) {
+        return ls->Create<T>(std::forward<TArgs>(args)...);
     }
 
     virtual TObject CallMethod(GCList &ls, std::string name,
@@ -2363,7 +2461,6 @@ class TNativeObject : public THeapObject {
     virtual std::string TypeName() = 0;
     virtual bool ToBool();
     virtual bool Equals(std::shared_ptr<GC> gc, TObject right);
-    virtual ~TNativeObject();
 };
 class TRandom : public TNativeObject {
   public:
@@ -2380,13 +2477,15 @@ class TNative : public THeapObject {
 
   public:
     TObject other;
-    TNative(void *ptr, std::function<void(void *)> destroy);
+    TNative(void *ptr, std::function<void(void *)> destroy = nullptr);
     bool GetDestroyed();
     void *GetPointer();
     void Destroy();
     void Mark();
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TNative *Create(GCList &ls, void *ptr,
                            std::function<void(void *)> destroy);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TNative *Create(GCList *ls, void *ptr,
                            std::function<void(void *)> destroy);
     ~TNative();
@@ -2525,9 +2624,9 @@ typedef void (*PluginFunction)(std::shared_ptr<GC> gc, TRootEnvironment *env);
 void LoadPlugin(std::shared_ptr<GC> gc, TRootEnvironment *env,
                 Tesses::Framework::Filesystem::VFSPath sharedObjectPath);
 std::string Json_Encode(TObject o, bool indent = false);
-TObject Json_Decode(GCList ls, std::string str);
+TObject Json_Decode(GCList &ls, std::string str);
 std::string Json_DocEncode(TObject o, bool indent);
-TObject Json_DocDecode(GCList ls, std::string str);
+TObject Json_DocDecode(GCList &ls, std::string str);
 // DO NOT USE DIRECTLY
 class SharedPtrTObject {
     GCList *ls;
@@ -2586,6 +2685,44 @@ class EmbedDirectory : public Tesses::Framework::Filesystem::VFS {
               Tesses::Framework::Filesystem::StatData &data);
 };
 
+class TNativeException : public TNativeObject {
+    std::string what;
+    std::exception_ptr ptr;
+
+  public:
+    TNativeException() = delete;
+    TNativeException(const char *what, std::exception_ptr ptr);
+    TObject CallMethod(GCList &ls, std::string key, std::vector<TObject> args);
+    std::string TypeName();
+    std::string What();
+    std::exception_ptr GetPointer();
+    void ThrowIt();
+};
+
+class TException : public TNativeObject {
+  private:
+    TDictionary *extraFields;
+    TObject innerException;
+
+    std::string message;
+    std::string type;
+    std::optional<std::string> filename;
+    std::optional<uint32_t> line;
+    std::optional<uint32_t> column;
+    std::optional<uint32_t> offset;
+
+  public:
+    TException() = delete;
+    TException(std::string message, std::string type = "Exception",
+               TDictionary *extraFields = nullptr,
+               TObject innerException = Undefined());
+    TObject CallMethod(GCList &ls, std::string key, std::vector<TObject> args);
+    std::string TypeName();
+    bool ToBool();
+    void Mark();
+    ~TException() = default;
+};
+
 namespace Programs {
 int64_t CrossArchiveCreate(std::vector<std::string> &argv);
 int64_t CrossArchiveExtract(std::vector<std::string> &argv);
@@ -2615,11 +2752,14 @@ class TQueryable : public THeapObject {
     TObject parent;
     TQueryableMode mode;
     std::vector<TObject> args;
+
+  public:
     TQueryable(TObject parent);
     TQueryable(TObject parent, TQueryableMode mode, std::vector<TObject> args);
 
-  public:
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TQueryable *Create(GCList &ls, TObject parent);
+    [[deprecated("Use GCList::Create<T>() instead")]]
     static TQueryable *Create(GCList &ls, TObject parent, TQueryableMode mode,
                               std::vector<TObject> args);
 

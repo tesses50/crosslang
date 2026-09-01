@@ -482,6 +482,7 @@ int Lex(std::string filename, std::istream &strm,
             }
             break;
         case '<':
+        case '>':
         case '?':
             if (peek == read) {
                 Flush();
@@ -532,7 +533,6 @@ int Lex(std::string filename, std::istream &strm,
         case '^':
         case '~':
         case '!':
-        case '>':
         case '*':
         case '%':
             //*

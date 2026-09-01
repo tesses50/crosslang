@@ -1,8 +1,8 @@
 #include "CrossLang.hpp"
 namespace Tesses::CrossLang {
 TExternalMethod::TExternalMethod(
-    std::function<TObject(GCList &ls, std::vector<TObject> args)> cb,
     std::string documentation, std::vector<std::string> argNames,
+    std::function<TObject(GCList &ls, std::vector<TObject> args)> cb,
     std::function<void()> destroy) {
 
     this->cb = cb;
@@ -14,43 +14,24 @@ TExternalMethod *TExternalMethod::Create(
     GCList &ls, std::string documentation, std::vector<std::string> argNames,
     std::function<TObject(GCList &ls, std::vector<TObject> args)> cb,
     std::function<void()> destroy) {
-    auto gc = ls.GetGC();
-    TExternalMethod *method =
-        new TExternalMethod(cb, documentation, argNames, destroy);
-    ls.Add(method);
-    gc->Watch(method);
-    return method;
+    return ls.Create<TExternalMethod>(documentation, argNames, cb, destroy);
 }
 TExternalMethod *TExternalMethod::Create(
     GCList *ls, std::string documentation, std::vector<std::string> argNames,
     std::function<TObject(GCList &ls, std::vector<TObject> args)> cb,
     std::function<void()> destroy) {
-    auto gc = ls->GetGC();
-    TExternalMethod *method =
-        new TExternalMethod(cb, documentation, argNames, destroy);
-    ls->Add(method);
-    gc->Watch(method);
-    return method;
+    return ls->Create<TExternalMethod>(documentation, argNames, cb, destroy);
 }
 TExternalMethod *TExternalMethod::Create(
     GCList &ls, std::string documentation, std::vector<std::string> argNames,
     std::function<TObject(GCList &ls, std::vector<TObject> args)> cb) {
-    auto gc = ls.GetGC();
-    TExternalMethod *method =
-        new TExternalMethod(cb, documentation, argNames, []() -> void {});
-    ls.Add(method);
-    gc->Watch(method);
-    return method;
+    return ls.Create<TExternalMethod>(documentation, argNames, cb);
 }
 TExternalMethod *TExternalMethod::Create(
     GCList *ls, std::string documentation, std::vector<std::string> argNames,
     std::function<TObject(GCList &ls, std::vector<TObject> args)> cb) {
-    auto gc = ls->GetGC();
-    TExternalMethod *method =
-        new TExternalMethod(cb, documentation, argNames, []() -> void {});
-    ls->Add(method);
-    gc->Watch(method);
-    return method;
+
+    return ls->Create<TExternalMethod>(documentation, argNames, cb);
 }
 TObject TExternalMethod::Call(GCList &ls, std::vector<TObject> args) {
     if (cb == nullptr)

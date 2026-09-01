@@ -82,16 +82,24 @@ TObject TSubEnvironment::GetVariable(std::string key) {
     if (this->dict->HasValue(key)) {
         return this->dict->GetValue(key);
     }
+    if (this->decls.count(key) > 0 &&
+        this->decls[key] == TEnvironmentDeclType::TEDT_VAR) {
+        return Undefined();
+    }
     if (this->env->HasVariableRecurse(key)) {
         return this->env->GetVariable(key);
     }
     return Undefined();
 }
 void TSubEnvironment::DeclareVariable(std::string key, TObject value) {
+    if (this->decls.count(key) == 0)
+        this->decls[key] = TEnvironmentDeclType::TEDT_VAR;
+
     this->dict->SetValue(key, value);
 }
 void TSubEnvironment::SetVariable(std::string key, TObject value) {
-    if (this->dict->HasValue(key)) {
+
+    if (this->dict->HasValue(key) || this->decls.count(key) > 0) {
         this->dict->SetValue(key, value);
         return;
     }
@@ -102,10 +110,10 @@ void TSubEnvironment::SetVariable(std::string key, TObject value) {
     }
 }
 bool TSubEnvironment::HasVariable(std::string key) {
-    return this->dict->HasValue(key);
+    return this->dict->HasValue(key) || this->decls.count(key) > 0;
 }
 bool TSubEnvironment::HasVariableRecurse(std::string key) {
-    if (this->dict->HasValue(key))
+    if (this->dict->HasValue(key) || this->decls.count(key) > 0)
         return true;
     return this->env->HasVariableRecurse(key);
 }
@@ -159,19 +167,11 @@ TSubEnvironment *TEnvironment::GetSubEnvironment(GCList &gc) {
 }
 TSubEnvironment *TSubEnvironment::Create(GCList *gc, TEnvironment *env,
                                          TDictionary *dict) {
-    TSubEnvironment *senv = new TSubEnvironment(env, dict);
-    std::shared_ptr<GC> _gc = gc->GetGC();
-    gc->Add(senv);
-    _gc->Watch(senv);
-    return senv;
+    return gc->Create<TSubEnvironment>(env, dict);
 }
 TSubEnvironment *TSubEnvironment::Create(GCList &gc, TEnvironment *env,
                                          TDictionary *dict) {
-    TSubEnvironment *senv = new TSubEnvironment(env, dict);
-    std::shared_ptr<GC> _gc = gc.GetGC();
-    gc.Add(senv);
-    _gc->Watch(senv);
-    return senv;
+    return gc.Create<TSubEnvironment>(env, dict);
 }
 TEnvironment *TSubEnvironment::GetParentEnvironment() { return this->env; }
 TRootEnvironment *TSubEnvironment::GetRootEnvironment() {

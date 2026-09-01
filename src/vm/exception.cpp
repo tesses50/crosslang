@@ -58,13 +58,13 @@ void ThrowFatalError(std::exception &ex) {
             error.WriteLine(text);
         }
 
-        exit(1);
+        std::exit(1);
     }
     if (clrtexcept != nullptr) {
         error.WriteLine("CrossLang has encountered a fatal runtime exception");
         error.WriteLine();
         error.WriteLine(clrtexcept->what());
-        exit(1);
+        std::exit(1);
     }
     if (compiler != nullptr) {
         error.WriteLine("CrossLang has encountered a compiler error");
@@ -81,13 +81,13 @@ void ThrowFatalError(std::exception &ex) {
         error.Write(":");
         error.WriteLine((int64_t)li.offset);
 
-        exit(1);
+        std::exit(1);
     }
 
     error.WriteLine("CrossLang has encountered a fatal C++ exception");
     error.WriteLine();
     error.Write("what(): ");
     error.WriteLine(ex2->what());
-    exit(1);
+    std::exit(1);
 }
 } // namespace Tesses::CrossLang

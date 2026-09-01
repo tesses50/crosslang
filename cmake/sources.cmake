@@ -47,6 +47,7 @@ src/types/class.cpp
 src/types/classenvironment.cpp
 src/types/random.cpp
 src/types/queryable.cpp
+src/types/exception.cpp
 src/vm/filereader.cpp
 src/vm/gc.cpp
 src/vm/gclist.cpp

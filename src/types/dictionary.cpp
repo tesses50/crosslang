@@ -1,24 +1,15 @@
 #include "CrossLang.hpp"
 
 namespace Tesses::CrossLang {
+TDynamicDictionary::TDynamicDictionary(TCallable *callable) : cb(callable) {}
 TDynamicDictionary *TDynamicDictionary::Create(GCList &ls,
                                                TCallable *callable) {
 
-    TDynamicDictionary *dict = new TDynamicDictionary();
-    dict->cb = callable;
-    std::shared_ptr<GC> _gc = ls.GetGC();
-    ls.Add(dict);
-    _gc->Watch(dict);
-    return dict;
+    return ls.Create<TDynamicDictionary>(callable);
 }
 TDynamicDictionary *TDynamicDictionary::Create(GCList *ls,
                                                TCallable *callable) {
-    TDynamicDictionary *dict = new TDynamicDictionary();
-    dict->cb = callable;
-    std::shared_ptr<GC> _gc = ls->GetGC();
-    ls->Add(dict);
-    _gc->Watch(dict);
-    return dict;
+    return ls->Create<TDynamicDictionary>(callable);
 }
 
 void TDynamicDictionary::Mark() {
@@ -165,8 +156,9 @@ void TDictionary::DeclareFunction(
 TObject TDictionary::GetValue(std::string key) {
     if (this->items.empty())
         return Undefined();
-    if (this->items.count(key) > 0)
-        return this->items[key];
+    auto item = this->items.find(key);
+    if (item != this->items.end())
+        return item->second;
     return Undefined();
 }
 void TDictionary::SetValue(std::string key, TObject value) {
@@ -189,18 +181,10 @@ void TDictionary::Mark() {
     }
 }
 TDictionary *TDictionary::Create(GCList *gc) {
-    TDictionary *dict = new TDictionary();
-    std::shared_ptr<GC> _gc = gc->GetGC();
-    gc->Add(dict);
-    _gc->Watch(dict);
-    return dict;
+    return gc->Create<TDictionary>();
 }
 TDictionary *TDictionary::Create(GCList &gc) {
-    TDictionary *dict = new TDictionary();
-    std::shared_ptr<GC> _gc = gc.GetGC();
-    gc.Add(dict);
-    _gc->Watch(dict);
-    return dict;
+    return gc.Create<TDictionary>();
 }
 
 }; // namespace Tesses::CrossLang

@@ -1,27 +1,18 @@
 #include "CrossLang.hpp"
 namespace Tesses::CrossLang {
+TArgWrapper::TArgWrapper(TCallable *callable) : callable(callable) {}
 TArgWrapper *TArgWrapper::Create(GCList &ls, TCallable *callable) {
-    TArgWrapper *argWrapper = new TArgWrapper();
-    argWrapper->callable = callable;
-    std::shared_ptr<GC> gc = ls.GetGC();
-    ls.Add(argWrapper);
-    gc->Watch(argWrapper);
-    return argWrapper;
+    return ls.Create<TArgWrapper>(callable);
 }
 TArgWrapper *TArgWrapper::Create(GCList *ls, TCallable *callable) {
-    TArgWrapper *argWrapper = new TArgWrapper();
-    argWrapper->callable = callable;
-    std::shared_ptr<GC> gc = ls->GetGC();
-    ls->Add(argWrapper);
-    gc->Watch(argWrapper);
-    return argWrapper;
+    return ls->Create<TArgWrapper>(callable);
 }
 TObject TArgWrapper::Call(GCList &ls, std::vector<TObject> args) {
-    auto cse = current_function;
+    auto cse = GC::GetCurrentFunction();
     TList *argList = TList::Create(ls);
     argList->items = args;
     TObject v = this->callable->Call(ls, {argList});
-    current_function = cse;
+    GC::SetCurrentFunction(cse);
     return v;
 }
 void TArgWrapper::Mark() {
@@ -46,52 +37,39 @@ void TClosure::Mark() {
     this->closure->Mark();
     GC::Mark(this->tag);
 }
-TClosure *TClosure::Create(GCList &ls, TEnvironment *env, TFile *file,
-                           uint32_t chunkId, bool ownScope) {
-    TClosure *closure = new TClosure();
-    closure->className = "";
-    closure->ownScope = ownScope;
-    std::shared_ptr<GC> _gc = ls.GetGC();
-    ls.Add(closure);
-    _gc->Watch(closure);
-    closure->chunkId = chunkId;
+TClosure::TClosure(TEnvironment *env, TFile *file, uint32_t chunkId,
+                   bool ownScope) {
+    this->className = "";
+    this->ownScope = ownScope;
+
+    this->chunkId = chunkId;
+
     if (chunkId < file->chunks.size())
-        closure->closure = file->chunks[chunkId];
+        this->closure = file->chunks[chunkId];
     else
         throw VMException("ChunkId out of bounds.");
-    closure->env = env;
-    closure->file = file;
-
-    return closure;
+    this->env = env;
+    this->file = file;
+}
+TClosure *TClosure::Create(GCList &ls, TEnvironment *env, TFile *file,
+                           uint32_t chunkId, bool ownScope) {
+    return ls.Create<TClosure>(env, file, chunkId, ownScope);
 }
 TClosure *TClosure::Create(GCList *ls, TEnvironment *env, TFile *file,
                            uint32_t chunkId, bool ownScope) {
-    TClosure *closure = new TClosure();
-    closure->className = "";
-    closure->ownScope = ownScope;
-    std::shared_ptr<GC> _gc = ls->GetGC();
-    ls->Add(closure);
-    _gc->Watch(closure);
-    closure->chunkId = chunkId;
-    if (chunkId < file->chunks.size())
-        closure->closure = file->chunks[chunkId];
-    else
-        throw VMException("ChunkId out of bounds.");
-    closure->env = env;
-    closure->file = file;
-
-    return closure;
+    return ls->Create<TClosure>(env, file, chunkId, ownScope);
 }
 
 TObject TClosure::Call(GCList &ls, std::vector<TObject> args) {
-    auto cse = current_function;
+    auto cse = GC::GetCurrentFunction();
     InterperterThread *thrd = InterperterThread::Create(ls);
     thrd->AddCallStackEntry(ls, this, args);
 
     thrd->Execute(ls.GetGC());
 
     TObject v = thrd->call_stack_entries[0]->Pop(ls);
-    current_function = cse;
+    GC::SetCurrentFunction(cse);
+    // current_function = cse;
     return v;
 }
 } // namespace Tesses::CrossLang

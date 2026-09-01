@@ -1613,7 +1613,13 @@ void TStd::RegisterStd(
     gc_dict->DeclareFunction(
         gc, "Collect", "Collect garbage", {},
         [](GCList &ls, std::vector<TObject> args) -> TObject {
-            ls.GetGC()->Collect();
+            std::vector<THeapObject *> to_delete;
+            ls.GetGC()->BarrierBegin();
+            ls.GetGC()->Collect(to_delete);
+            ls.GetGC()->BarrierEnd();
+
+            for (auto item : to_delete)
+                delete item;
             return nullptr;
         });
     gc_dict->DeclareFunction(

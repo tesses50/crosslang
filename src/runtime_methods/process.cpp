@@ -3,10 +3,6 @@
 namespace Tesses::CrossLang {
 class ProcessObject : public TNativeObject {
   public:
-    ProcessObject() {
-        arguments = nullptr;
-        environment = nullptr;
-    }
     ProcessObject(GCList &ls) {
         arguments = TList::Create(ls);
         environment = TList::Create(ls);
@@ -167,7 +163,7 @@ static TObject Process_Start(GCList &ls, std::vector<TObject> args,
     TDictionary *dict;
 
     if (GetArgumentHeap(args, 0, dict)) {
-        auto process = TNativeObject::Create<ProcessObject>(ls);
+        auto process = TNativeObject::Create<ProcessObject>(ls, ls);
         auto name = dict->GetValue("FileName");
         auto inh = dict->GetValue("InheritParentEnvironment");
         auto rStdIn = dict->GetValue("RedirectStandardInput");

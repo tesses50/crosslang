@@ -9,12 +9,11 @@ void ThrowConstError(std::string key) {
 
 void TEnvironment::DeclareConstVariable(std::string key, TObject value) {
     this->DeclareVariable(key, value);
-    this->consts.push_back(key);
+    this->decls[key] = TEnvironmentDeclType::TEDT_CONST;
 }
 bool TEnvironment::HasConstForDeclare(std::string key) {
-    for (auto item : this->consts)
-        if (item == key)
-            return true;
+    if (this->decls.count(key) > 0)
+        return this->decls[key] == TEnvironmentDeclType::TEDT_CONST;
     return false;
 }
 bool TEnvironment::HasConstForSet(std::string key) {
@@ -308,13 +307,15 @@ void TRootEnvironment::SetVariable(std::string key, TObject value) {
     this->dict->SetValue(key, value);
 }
 void TRootEnvironment::DeclareVariable(std::string key, TObject value) {
+    if (this->decls.count(key) == 0)
+        this->decls[key] = TEnvironmentDeclType::TEDT_VAR;
     return this->dict->SetValue(key, value);
 }
 bool TRootEnvironment::HasVariable(std::string key) {
-    return this->dict->HasValue(key);
+    return this->dict->HasValue(key) || this->decls.count(key) > 0;
 }
 bool TRootEnvironment::HasVariableRecurse(std::string key) {
-    return this->dict->HasValue(key);
+    return this->dict->HasValue(key) || this->decls.count(key) > 0;
 }
 TEnvironment *TRootEnvironment::GetParentEnvironment() { return this; }
 TRootEnvironment *TRootEnvironment::GetRootEnvironment() { return this; }
@@ -338,18 +339,10 @@ void TRootEnvironment::Mark() {
         cls.first->Mark();
 }
 TRootEnvironment *TRootEnvironment::Create(GCList *gc, TDictionary *dict) {
-    TRootEnvironment *env = new TRootEnvironment(dict);
-    std::shared_ptr<GC> _gc = gc->GetGC();
-    gc->Add(env);
-    _gc->Watch(env);
-    return env;
+    return gc->Create<TRootEnvironment>(dict);
 }
 TRootEnvironment *TRootEnvironment::Create(GCList &gc, TDictionary *dict) {
-    TRootEnvironment *env = new TRootEnvironment(dict);
-    std::shared_ptr<GC> _gc = gc.GetGC();
-    gc.Add(env);
-    _gc->Watch(env);
-    return env;
+    return gc.Create<TRootEnvironment>(dict);
 }
 
 bool TRootEnvironment::HandleException(std::shared_ptr<GC> gc,

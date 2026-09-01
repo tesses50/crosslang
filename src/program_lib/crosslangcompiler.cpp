@@ -27,7 +27,7 @@ static void Help(std::string filename) {
            "for sane with file access to current directory and sub "
            "directories, \"full\" has full runtime.\n");
     printf("Options except for help have flag with arg like this: -F ARG\n");
-    exit(1);
+    std::exit(1);
 }
 void CrossLangCompiler(std::vector<std::string> &argv) {
     /*std::ifstream strm(argv[1],std::ios_base::in|std::ios_base::binary);
@@ -107,14 +107,14 @@ void CrossLangCompiler(std::vector<std::string> &argv) {
                         printf("Expected "
                                "MAJOR[.MINOR[.PATCH[.BUILD[-dev,-alpha,-beta,-"
                                "prod]]]]\n");
-                        exit(1);
+                        std::exit(1);
                     }
                     dependencies.push_back(
                         std::pair<std::string, TVMVersion>(str1, v2));
 
                 } else {
                     printf("ERROR: Dependency must have version\n");
-                    exit(1);
+                    std::exit(1);
                 }
             }
         } else if (argv[i] == "-t") {
@@ -137,14 +137,14 @@ void CrossLangCompiler(std::vector<std::string> &argv) {
                         printf("Expected "
                                "MAJOR[.MINOR[.PATCH[.BUILD[-dev,-alpha,-beta,-"
                                "prod]]]]\n");
-                        exit(1);
+                        std::exit(1);
                     }
                     tools.push_back(
                         std::pair<std::string, TVMVersion>(str1, v2));
 
                 } else {
                     printf("ERROR: Tool must have version\n");
-                    exit(1);
+                    std::exit(1);
                 }
             }
         } else if (argv[i] == "-n") {
@@ -161,7 +161,7 @@ void CrossLangCompiler(std::vector<std::string> &argv) {
                     printf("Expected "
                            "MAJOR[.MINOR[.PATCH[.BUILD[-dev,-alpha,-beta,-prod]"
                            "]]]\n");
-                    exit(1);
+                    std::exit(1);
                 }
             }
         } else if (argv[i] == "-D" || argv[i] == "--debug") {

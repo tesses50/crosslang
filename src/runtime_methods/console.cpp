@@ -72,11 +72,11 @@ TObject Console_Write(GCList &ls, std::vector<TObject> args) {
 TObject Console_Fatal(GCList &ls, std::vector<TObject> args) {
     if (args.size() < 1) {
         Tesses::Framework::Console::ErrorLine("FATAL: <NO MESSAGE>");
-        exit(1);
+        std::exit(1);
     }
     Tesses::Framework::Console::ErrorLine("FATAL: " +
                                           ToString(ls.GetGC(), args[0]));
-    exit(1);
+    std::exit(1);
 }
 TObject Console_WriteLine(GCList &ls, std::vector<TObject> args) {
 

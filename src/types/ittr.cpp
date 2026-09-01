@@ -44,28 +44,15 @@ void TYieldEnumerator::Mark() {
     GC::Mark(this->current);
     GC::Mark(this->enumerator);
 }
-TYieldEnumerator *TYieldEnumerator::Create(GCList &ls, TObject v) {
-    TYieldEnumerator *yieldEnum = new TYieldEnumerator();
-    yieldEnum->current = nullptr;
-    yieldEnum->hasStarted = false;
-    yieldEnum->enumerator = v;
 
-    std::shared_ptr<GC> _gc = ls.GetGC();
-    ls.Add(yieldEnum);
-    _gc->Watch(yieldEnum);
-    return yieldEnum;
+TYieldEnumerator::TYieldEnumerator(TObject v)
+    : current(nullptr), hasStarted(false), enumerator(v) {}
+
+TYieldEnumerator *TYieldEnumerator::Create(GCList &ls, TObject v) {
+    return ls.Create<TYieldEnumerator>(v);
 }
 TYieldEnumerator *TYieldEnumerator::Create(GCList *ls, TObject v) {
-
-    TYieldEnumerator *yieldEnum = new TYieldEnumerator();
-    yieldEnum->current = nullptr;
-    yieldEnum->hasStarted = false;
-    yieldEnum->enumerator = v;
-
-    std::shared_ptr<GC> _gc = ls->GetGC();
-    ls->Add(yieldEnum);
-    _gc->Watch(yieldEnum);
-    return yieldEnum;
+    return ls->Create<TYieldEnumerator>(v);
 }
 
 bool TCustomEnumerator::MoveNext(std::shared_ptr<GC> ls) {
@@ -97,21 +84,12 @@ void TCustomEnumerator::Mark() {
         return;
     this->dict->Mark();
 }
+TCustomEnumerator::TCustomEnumerator(TDictionary *dict) : dict(dict) {}
 TCustomEnumerator *TCustomEnumerator::Create(GCList *ls, TDictionary *dict) {
-    TCustomEnumerator *customEnum = new TCustomEnumerator();
-    customEnum->dict = dict;
-    std::shared_ptr<GC> _gc = ls->GetGC();
-    ls->Add(customEnum);
-    _gc->Watch(customEnum);
-    return customEnum;
+    return ls->Create<TCustomEnumerator>(dict);
 }
 TCustomEnumerator *TCustomEnumerator::Create(GCList &ls, TDictionary *dict) {
-    TCustomEnumerator *customEnum = new TCustomEnumerator();
-    customEnum->dict = dict;
-    std::shared_ptr<GC> _gc = ls.GetGC();
-    ls.Add(customEnum);
-    _gc->Watch(customEnum);
-    return customEnum;
+    return ls.Create<TCustomEnumerator>(dict);
 }
 TEnumerator *TEnumerator::CreateFromObject(GCList &ls, TObject obj) {
     std::string str;
@@ -141,23 +119,16 @@ TEnumerator *TEnumerator::CreateFromObject(GCList &ls, TObject obj) {
     }
     return nullptr;
 }
+TVFSPathEnumerator::TVFSPathEnumerator(
+    Tesses::Framework::Filesystem::VFSPathEnumerator enumerator)
+    : enumerator(enumerator) {}
 TVFSPathEnumerator *TVFSPathEnumerator::Create(
     GCList &ls, Tesses::Framework::Filesystem::VFSPathEnumerator enumerator) {
-    TVFSPathEnumerator *vfspathe = new TVFSPathEnumerator();
-    vfspathe->enumerator = enumerator;
-    std::shared_ptr<GC> _gc = ls.GetGC();
-    ls.Add(vfspathe);
-    _gc->Watch(vfspathe);
-    return vfspathe;
+    return ls.Create<TVFSPathEnumerator>(enumerator);
 }
 TVFSPathEnumerator *TVFSPathEnumerator::Create(
     GCList *ls, Tesses::Framework::Filesystem::VFSPathEnumerator enumerator) {
-    TVFSPathEnumerator *vfspathe = new TVFSPathEnumerator();
-    vfspathe->enumerator = enumerator;
-    std::shared_ptr<GC> _gc = ls->GetGC();
-    ls->Add(vfspathe);
-    _gc->Watch(vfspathe);
-    return vfspathe;
+    return ls->Create<TVFSPathEnumerator>(enumerator);
 }
 bool TVFSPathEnumerator::MoveNext(std::shared_ptr<GC> ls) {
     return enumerator.MoveNext();
@@ -165,25 +136,15 @@ bool TVFSPathEnumerator::MoveNext(std::shared_ptr<GC> ls) {
 TObject TVFSPathEnumerator::GetCurrent(GCList &ls) {
     return enumerator.Current;
 }
+TDictionaryEnumerator::TDictionaryEnumerator(TDictionary *dict)
+    : dict(dict), hasStarted(false) {}
 TDictionaryEnumerator *TDictionaryEnumerator::Create(GCList &ls,
                                                      TDictionary *dict) {
-    TDictionaryEnumerator *dicte = new TDictionaryEnumerator();
-    dicte->dict = dict;
-    dicte->hasStarted = false;
-    std::shared_ptr<GC> _gc = ls.GetGC();
-    ls.Add(dicte);
-    _gc->Watch(dicte);
-    return dicte;
+    return ls.Create<TDictionaryEnumerator>(dict);
 }
 TDictionaryEnumerator *TDictionaryEnumerator::Create(GCList *ls,
                                                      TDictionary *dict) {
-    TDictionaryEnumerator *dicte = new TDictionaryEnumerator();
-    dicte->dict = dict;
-    dicte->hasStarted = false;
-    std::shared_ptr<GC> _gc = ls->GetGC();
-    ls->Add(dicte);
-    _gc->Watch(dicte);
-    return dicte;
+    return ls->Create<TDictionaryEnumerator>(dict);
 }
 
 bool TDictionaryEnumerator::MoveNext(std::shared_ptr<GC> ls) {
@@ -217,24 +178,13 @@ void TDictionaryEnumerator::Mark() {
     this->marked = true;
     this->dict->Mark();
 }
+TListEnumerator::TListEnumerator(TList *list) : ls(list), index(-1) {}
 
 TListEnumerator *TListEnumerator::Create(GCList &ls, TList *list) {
-    TListEnumerator *liste = new TListEnumerator();
-    liste->ls = list;
-    liste->index = -1;
-    std::shared_ptr<GC> _gc = ls.GetGC();
-    ls.Add(liste);
-    _gc->Watch(liste);
-    return liste;
+    return ls.Create<TListEnumerator>(list);
 }
 TListEnumerator *TListEnumerator::Create(GCList *ls, TList *list) {
-    TListEnumerator *liste = new TListEnumerator();
-    liste->ls = list;
-    liste->index = -1;
-    std::shared_ptr<GC> _gc = ls->GetGC();
-    ls->Add(liste);
-    _gc->Watch(liste);
-    return liste;
+    return ls->Create<TListEnumerator>(list);
 }
 bool TListEnumerator::MoveNext(std::shared_ptr<GC> ls) {
     this->index++;
@@ -260,25 +210,17 @@ void TListEnumerator::Mark() {
     this->ls->Mark();
 }
 
+TAssociativeArrayEnumerator::TAssociativeArrayEnumerator(
+    TAssociativeArray *list)
+    : ls(list), index(-1) {}
+
 TAssociativeArrayEnumerator *
 TAssociativeArrayEnumerator::Create(GCList &ls, TAssociativeArray *list) {
-    TAssociativeArrayEnumerator *liste = new TAssociativeArrayEnumerator();
-    liste->ls = list;
-    liste->index = -1;
-    std::shared_ptr<GC> _gc = ls.GetGC();
-    ls.Add(liste);
-    _gc->Watch(liste);
-    return liste;
+    return ls.Create<TAssociativeArrayEnumerator>(list);
 }
 TAssociativeArrayEnumerator *
 TAssociativeArrayEnumerator::Create(GCList *ls, TAssociativeArray *list) {
-    TAssociativeArrayEnumerator *liste = new TAssociativeArrayEnumerator();
-    liste->ls = list;
-    liste->index = -1;
-    std::shared_ptr<GC> _gc = ls->GetGC();
-    ls->Add(liste);
-    _gc->Watch(liste);
-    return liste;
+    return ls->Create<TAssociativeArrayEnumerator>(list);
 }
 bool TAssociativeArrayEnumerator::MoveNext(std::shared_ptr<GC> ls) {
     this->index++;
@@ -305,26 +247,16 @@ void TAssociativeArrayEnumerator::Mark() {
     this->marked = true;
     this->ls->Mark();
 }
+TDynamicListEnumerator::TDynamicListEnumerator(TDynamicList *list)
+    : ls(list), index(-1) {}
 
 TDynamicListEnumerator *TDynamicListEnumerator::Create(GCList &ls,
                                                        TDynamicList *list) {
-    TDynamicListEnumerator *liste = new TDynamicListEnumerator();
-    liste->ls = list;
-    liste->index = -1;
-    std::shared_ptr<GC> _gc = ls.GetGC();
-    ls.Add(liste);
-    _gc->Watch(liste);
-    return liste;
+    return ls.Create<TDynamicListEnumerator>(list);
 }
 TDynamicListEnumerator *TDynamicListEnumerator::Create(GCList *ls,
                                                        TDynamicList *list) {
-    TDynamicListEnumerator *liste = new TDynamicListEnumerator();
-    liste->ls = list;
-    liste->index = -1;
-    std::shared_ptr<GC> _gc = ls->GetGC();
-    ls->Add(liste);
-    _gc->Watch(liste);
-    return liste;
+    return ls->Create<TDynamicListEnumerator>(list);
 }
 bool TDynamicListEnumerator::MoveNext(std::shared_ptr<GC> ls) {
     this->index++;
@@ -351,24 +283,13 @@ void TDynamicListEnumerator::Mark() {
     this->marked = true;
     this->ls->Mark();
 }
-
+TStringEnumerator::TStringEnumerator(std::string str)
+    : str(str), hasStarted(false) {}
 TStringEnumerator *TStringEnumerator::Create(GCList &ls, std::string str) {
-    TStringEnumerator *stre = new TStringEnumerator();
-    stre->str = str;
-    stre->hasStarted = false;
-    std::shared_ptr<GC> _gc = ls.GetGC();
-    ls.Add(stre);
-    _gc->Watch(stre);
-    return stre;
+    return ls.Create<TStringEnumerator>(str);
 }
 TStringEnumerator *TStringEnumerator::Create(GCList *ls, std::string str) {
-    TStringEnumerator *stre = new TStringEnumerator();
-    stre->str = str;
-    stre->hasStarted = false;
-    std::shared_ptr<GC> _gc = ls->GetGC();
-    ls->Add(stre);
-    _gc->Watch(stre);
-    return stre;
+    return ls->Create<TStringEnumerator>(str);
 }
 bool TStringEnumerator::MoveNext(std::shared_ptr<GC> ls) {
     if (!this->hasStarted) {

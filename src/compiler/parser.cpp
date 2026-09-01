@@ -115,58 +115,16 @@ bool Parser::IsIdentifier(std::string txt, bool pop) {
     }
     return false;
 }
-
 bool Parser::IsAnySymbol(std::initializer_list<std::string> idents, bool pop) {
-
     if (i < tokens.size()) {
         if (tokens[i].type != LexTokenType::Symbol)
             return false;
         for (auto item : idents) {
-            if (item == ">") {
-                if (i + 1 < tokens.size()) {
-                    if ((tokens[i + 1].text == ">" ||
-                         tokens[i + 1].text == ">=") &&
-                        tokens[i + 1].type == LexTokenType::Symbol)
-                        continue;
-                }
-                if (item == tokens[i].text) {
-                    tkn = tokens[i];
-                    if (pop)
-                        i++;
-                    return true;
-                }
-            } else if (item == ">>=") {
-                if (i + 1 < tokens.size()) {
-                    if (tokens[i].text == ">" && tokens[i + 1].text == ">=" &&
-                        tokens[i].type == LexTokenType::Symbol &&
-                        tokens[i + 1].type == LexTokenType::Symbol) {
-                        tkn = tokens[i];
-                        tkn.text = ">>=";
-                        if (pop)
-                            i += 2;
-                        return true;
-                    }
-                }
-            } else if (item == ">>") {
-                if (i + 1 < tokens.size()) {
-                    if (tokens[i].text == ">" && tokens[i + 1].text == ">" &&
-                        tokens[i].type == LexTokenType::Symbol &&
-                        tokens[i + 1].type == LexTokenType::Symbol) {
-                        tkn = tokens[i];
-                        tkn.text = ">>";
-                        if (pop)
-                            i += 2;
-                        return true;
-                    }
-                }
-
-            } else {
-                if (item == tokens[i].text) {
-                    tkn = tokens[i];
-                    if (pop)
-                        i++;
-                    return true;
-                }
+            if (item == tokens[i].text) {
+                tkn = tokens[i];
+                if (pop)
+                    i++;
+                return true;
             }
         }
     }
@@ -176,45 +134,7 @@ bool Parser::IsSymbol(std::string txt, bool pop) {
     if (i < tokens.size()) {
         if (tokens[i].type != LexTokenType::Symbol)
             return false;
-        if (txt == ">") {
-            if (i + 1 < tokens.size()) {
-                if ((tokens[i + 1].text == ">" || tokens[i + 1].text == ">=") &&
-                    tokens[i + 1].type == LexTokenType::Symbol)
-                    return false;
-            }
-            if (txt == tokens[i].text) {
-                tkn = tokens[i];
-                if (pop)
-                    i++;
-                return true;
-            }
-        } else if (txt == ">>=") {
-            if (i + 1 < tokens.size()) {
-
-                if (tokens[i].text == ">" && tokens[i + 1].text == ">=" &&
-                    tokens[i].type == LexTokenType::Symbol &&
-                    tokens[i + 1].type == LexTokenType::Symbol) {
-                    tkn = tokens[i];
-                    tkn.text = ">>=";
-                    if (pop)
-                        i += 2;
-                    return true;
-                }
-            }
-        } else if (txt == ">>") {
-            if (i + 1 < tokens.size()) {
-                if (tokens[i].text == ">" && tokens[i + 1].text == ">" &&
-                    tokens[i].type == LexTokenType::Symbol &&
-                    tokens[i + 1].type == LexTokenType::Symbol) {
-                    tkn = tokens[i];
-                    tkn.text = ">>";
-                    if (pop)
-                        i += 2;
-                    return true;
-                }
-            }
-
-        } else if (tokens[i].text == txt) {
+        if (tokens[i].text == txt) {
             tkn = tokens[i];
             if (pop)
                 i++;
@@ -233,7 +153,6 @@ static std::string EnsureSafeVariable(LexToken token) {
 }
 void Parser::EnsureSymbol(std::string txt) {
     if (i < tokens.size()) {
-
         if (tokens[i].type != LexTokenType::Symbol) {
             throw SyntaxException(
                 tokens[i].lineInfo,
@@ -241,69 +160,7 @@ void Parser::EnsureSymbol(std::string txt) {
                     LexTokenType_ToString(tokens[i].type) + " \"" +
                     tokens[i].text + "\" which is not a symbol at all.");
         }
-        if (txt == ">") {
-            if (i + 1 < tokens.size()) {
-                if ((tokens[i + 1].text == ">" || tokens[i + 1].text == ">=") &&
-                    tokens[i + 1].type == LexTokenType::Symbol)
-                    throw SyntaxException(tokens[i].lineInfo,
-                                          "expected the symbol \"" + txt +
-                                              "\" but got the symbol \"" +
-                                              tokens[i].text +
-                                              tokens[i + 1].text + "\"");
-                ;
-            }
-            if (txt == tokens[i].text) {
-
-                tkn = tokens[i];
-                i++;
-                return;
-            }
-        }
-        if (txt == ">>=") {
-            if (i + 1 < tokens.size()) {
-                if (tokens[i].text == ">" && tokens[i + 1].text == ">=" &&
-                    tokens[i].type == LexTokenType::Symbol &&
-                    tokens[i + 1].type == LexTokenType::Symbol) {
-
-                    tkn = tokens[i];
-                    i += 2;
-                    return;
-                }
-
-                throw SyntaxException(tokens[i].lineInfo,
-                                      "expected the symbol \"" + txt +
-                                          "\" but got the symbol \"" +
-                                          tokens[i].text + tokens[i + 1].text +
-                                          "\"");
-            }
-
-            throw SyntaxException(tokens[i].lineInfo,
-                                  "expected the symbol \"" + txt +
-                                      "\" but got the symbol \"" +
-                                      tokens[i].text + "\"");
-        } else if (txt == ">>") {
-            if (i + 1 < tokens.size()) {
-                if (tokens[i].text == ">" && tokens[i + 1].text == ">" &&
-                    tokens[i].type == LexTokenType::Symbol &&
-                    tokens[i + 1].type == LexTokenType::Symbol) {
-
-                    tkn = tokens[i];
-                    i += 2;
-                    return;
-                }
-
-                throw SyntaxException(tokens[i].lineInfo,
-                                      "expected the symbol \"" + txt +
-                                          "\" but got the symbol \"" +
-                                          tokens[i].text + tokens[i + 1].text +
-                                          "\"");
-            }
-
-            throw SyntaxException(tokens[i].lineInfo,
-                                  "expected the symbol \"" + txt +
-                                      "\" but got the symbol \"" +
-                                      tokens[i].text + "\"");
-        } else if (tokens[i].text != txt) {
+        if (tokens[i].text != txt) {
 
             throw SyntaxException(tokens[i].lineInfo,
                                   "expected the symbol \"" + txt +
@@ -632,6 +489,11 @@ void Parser::ParseHtml(std::vector<SyntaxNode> &nodes, std::string var) {
                 }
                 EnsureSymbol(")");
                 EnsureSymbol(">");
+
+                if (std::holds_alternative<std::nullptr_t>(item))
+                    item = AdvancedSyntaxNode::Create(
+                        DeclareExpression, true,
+                        {"item"});
 
                 std::vector<SyntaxNode> _nodes;
                 parseFn(_nodes, "each");
@@ -1411,7 +1273,7 @@ SyntaxNode Parser::ParseNode(bool isRoot) {
         }
 
         if (!isRoot)
-            i++;
+            EnsureSymbol("}");
         return aSN;
     }
 
@@ -1519,8 +1381,7 @@ SyntaxNode Parser::ParseNode(bool isRoot) {
         if (std::holds_alternative<std::nullptr_t>(item))
             item = AdvancedSyntaxNode::Create(
                 DeclareExpression, true,
-                {AdvancedSyntaxNode::Create(GetVariableExpression, true,
-                                            {"item"})});
+                {"item"});
 
         return AdvancedSyntaxNode::Create(EachStatement, false,
                                           {item, list, body});

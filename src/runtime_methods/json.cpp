@@ -159,7 +159,7 @@ static TObject JsonDocDecode(GCList &ls2, std::vector<TObject> args) {
 std::string Json_Encode(TObject o, bool indent) {
     return Json::Encode(JsonSerialize(o), indent);
 }
-TObject Json_Decode(GCList ls, std::string str) {
+TObject Json_Decode(GCList &ls, std::string str) {
     return JsonDeserialize(ls, Json::Decode(str));
 }
 std::string Json_DocEncode(TObject o, bool indent) {
@@ -169,7 +169,7 @@ std::string Json_DocEncode(TObject o, bool indent) {
         return Json::DocEncode(ls, indent);
     return "";
 }
-TObject Json_DocDecode(GCList ls, std::string str) {
+TObject Json_DocDecode(GCList &ls, std::string str) {
     return JsonDeserialize(ls, Json::DocDecode(str));
 }
 void TStd::RegisterJson(std::shared_ptr<GC> gc, TRootEnvironment *env) {

@@ -1490,12 +1490,12 @@ bool InterperterThread::ExecuteMethod2(std::shared_ptr<GC> gc, TObject instance,
                                 pattern,
                                 callable->ToRouteServerRequestHandler(gc));
                         }
-                    } else if (key == "Trace") {
+                    } else if (key == "Query") {
                         std::string pattern;
                         TCallable *callable;
                         if (GetArgument(args, 0, pattern) &&
                             GetArgumentHeap(args, 1, callable)) {
-                            routable->Trace(
+                            routable->Query(
                                 pattern,
                                 callable->ToRouteServerRequestHandler(gc));
                         }
