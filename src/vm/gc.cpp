@@ -113,9 +113,8 @@ void GC::Start() {
     this->thrd = new Thread([this]() -> void {
         while (this->IsRunning()) {
             this->BarrierBegin();
-            while (this->allocs < ALLOC_THRESHOLD)
-                this->cond.Wait(
-                    &this->mtx); // your wrapper around pthread_cond_wait
+            while (this->IsRunning() && (this->allocs < ALLOC_THRESHOLD))
+                this->cond.Wait(&this->mtx);
             this->allocs = 0;
             std::vector<THeapObject *> to_delete;
             this->Collect(to_delete);
