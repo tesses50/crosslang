@@ -5,7 +5,7 @@ namespace Tesses::CrossLang {
 SyntaxNode TObject2SyntaxNode(TObject o) {
     if (std::holds_alternative<Undefined>(o))
         return Undefined();
-    if (std::holds_alternative<std::nullptr_t>(o))
+    if (IsNull(o))
         return nullptr;
     if (std::holds_alternative<std::string>(o))
         return std::get<std::string>(o);
@@ -491,9 +491,8 @@ void Parser::ParseHtml(std::vector<SyntaxNode> &nodes, std::string var) {
                 EnsureSymbol(">");
 
                 if (std::holds_alternative<std::nullptr_t>(item))
-                    item = AdvancedSyntaxNode::Create(
-                        DeclareExpression, true,
-                        {"item"});
+                    item = AdvancedSyntaxNode::Create(DeclareExpression, true,
+                                                      {"item"});
 
                 std::vector<SyntaxNode> _nodes;
                 parseFn(_nodes, "each");
@@ -1379,9 +1378,8 @@ SyntaxNode Parser::ParseNode(bool isRoot) {
             body = ParseNode();
         }
         if (std::holds_alternative<std::nullptr_t>(item))
-            item = AdvancedSyntaxNode::Create(
-                DeclareExpression, true,
-                {"item"});
+            item =
+                AdvancedSyntaxNode::Create(DeclareExpression, true, {"item"});
 
         return AdvancedSyntaxNode::Create(EachStatement, false,
                                           {item, list, body});

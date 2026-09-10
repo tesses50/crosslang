@@ -1357,13 +1357,6 @@ class THeapObject {
     virtual ~THeapObject() = default;
 };
 
-class THeapObjectHolder {
-  public:
-    THeapObject *obj;
-    THeapObjectHolder(THeapObject *obj) { this->obj = obj; }
-    THeapObjectHolder() {}
-};
-
 // this is a dummy type with
 class MethodInvoker {};
 
@@ -1377,7 +1370,7 @@ class TContinue {};
 using TObject =
     std::variant<Undefined, int64_t, double, char, bool, std::string,
                  std::regex, Tesses::Framework::Filesystem::VFSPath,
-                 std::nullptr_t, MethodInvoker, THeapObjectHolder, TVMVersion,
+                 MethodInvoker, THeapObject *, TVMVersion,
                  std::shared_ptr<Tesses::Framework::Date::DateTime>,
                  std::shared_ptr<Tesses::Framework::Date::TimeSpan>, TBreak,
                  TContinue, std::shared_ptr<Tesses::Framework::Streams::Stream>,
@@ -2578,6 +2571,22 @@ template <typename T> bool GetObject(TObject &obj, T &res) {
     res = std::get<T>(obj);
     return true;
 }
+
+inline bool IsNull(const TObject &obj) {
+    if (!std::holds_alternative<THeapObject *>(obj))
+        return false;
+
+    return std::get<THeapObject *>(obj) == nullptr;
+}
+
+[[deprecated("Use GetObjectHeap() with TString instead")]]
+inline bool GetObject(TObject &obj, std::string &str) {
+    if (!std::holds_alternative<std::string>(obj))
+        return false;
+    str = std::get<std::string>(obj);
+    return true;
+}
+
 template <typename T>
 bool GetArgument(std::vector<TObject> &args, size_t index, T &obj) {
     if (index >= args.size())
@@ -2586,10 +2595,10 @@ bool GetArgument(std::vector<TObject> &args, size_t index, T &obj) {
 }
 
 template <typename T> bool GetObjectHeap(TObject &obj, T &res) {
-    THeapObjectHolder h;
-    if (!GetObject<THeapObjectHolder>(obj, h))
+    THeapObject *h;
+    if (!GetObject<THeapObject *>(obj, h))
         return false;
-    auto v = dynamic_cast<T>(h.obj);
+    auto v = dynamic_cast<T>(h);
     if (v == nullptr)
         return false;
     res = v;

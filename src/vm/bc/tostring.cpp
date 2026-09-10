@@ -31,7 +31,7 @@ std::string ToString(std::shared_ptr<GC> gc, TObject o) {
     if (std::holds_alternative<char>(o)) {
         return std::string{std::get<char>(o)};
     }
-    if (std::holds_alternative<std::nullptr_t>(o)) {
+    if (IsNull(o)) {
         return "null";
     }
     if (std::holds_alternative<Undefined>(o)) {
@@ -54,8 +54,8 @@ std::string ToString(std::shared_ptr<GC> gc, TObject o) {
         return std::get<Tesses::Framework::Uuid>(o).ToString(
             Framework::UuidStringifyConfig::LowercaseNoCurly);
     }
-    if (std::holds_alternative<THeapObjectHolder>(o)) {
-        auto obj = std::get<THeapObjectHolder>(o).obj;
+    if (std::holds_alternative<THeapObject *>(o)) {
+        auto obj = std::get<THeapObject *>(o);
         auto dict = dynamic_cast<TDictionary *>(obj);
         auto list = dynamic_cast<TList *>(obj);
         auto bArray = dynamic_cast<TByteArray *>(obj);

@@ -75,7 +75,7 @@ SyntaxNode Deserialize(std::string astData) {
 }
 #if defined(CROSSLANG_ENABLE_JSON)
 static json_t *Serialize2(SyntaxNode node) {
-    if (std::holds_alternative<std::nullptr_t>(node))
+    if (IsNull(node))
         return json_null();
     if (std::holds_alternative<int64_t>(node)) {
         return json_integer(std::get<int64_t>(node));

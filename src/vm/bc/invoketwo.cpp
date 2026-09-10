@@ -12,10 +12,9 @@
 namespace Tesses::CrossLang {
 bool InterperterThread::InvokeTwo(GCList &ls, TObject fn, TObject left,
                                   TObject right) {
-    if (std::holds_alternative<THeapObjectHolder>(fn)) {
+    if (std::holds_alternative<THeapObject *>(fn)) {
 
-        auto obj =
-            dynamic_cast<TCallable *>(std::get<THeapObjectHolder>(fn).obj);
+        auto obj = dynamic_cast<TCallable *>(std::get<THeapObject *>(fn));
         if (obj != nullptr) {
             auto closure = dynamic_cast<TClosure *>(obj);
             if (closure != nullptr) {

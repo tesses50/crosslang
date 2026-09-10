@@ -5,7 +5,7 @@ using namespace Tesses::Framework::Serialization::Json;
 namespace Tesses::CrossLang {
 
 static bool IsValidForJson(TObject v) {
-    if (std::holds_alternative<std::nullptr_t>(v))
+    if (IsNull(v))
         return true;
 
     if (std::holds_alternative<int64_t>(v))
@@ -20,10 +20,10 @@ static bool IsValidForJson(TObject v) {
     if (std::holds_alternative<std::string>(v))
         return true;
 
-    if (std::holds_alternative<THeapObjectHolder>(v)) {
-        auto res = std::get<THeapObjectHolder>(v);
-        auto ls = dynamic_cast<TList *>(res.obj);
-        auto dict = dynamic_cast<TDictionary *>(res.obj);
+    if (std::holds_alternative<THeapObject *>(v)) {
+        auto res = std::get<THeapObject *>(v);
+        auto ls = dynamic_cast<TList *>(res);
+        auto dict = dynamic_cast<TDictionary *>(res);
         if (ls != nullptr)
             return true;
         if (dict != nullptr)
@@ -32,7 +32,7 @@ static bool IsValidForJson(TObject v) {
     return false;
 }
 static JToken JsonSerialize(TObject v) {
-    if (std::holds_alternative<std::nullptr_t>(v))
+    if (IsNull(v))
         return nullptr;
     if (std::holds_alternative<int64_t>(v))
         return std::get<int64_t>(v);
@@ -42,8 +42,8 @@ static JToken JsonSerialize(TObject v) {
         return std::get<bool>(v);
     if (std::holds_alternative<std::string>(v))
         return std::get<std::string>(v);
-    if (std::holds_alternative<THeapObjectHolder>(v)) {
-        auto obj = std::get<THeapObjectHolder>(v).obj;
+    if (std::holds_alternative<THeapObject *>(v)) {
+        auto obj = std::get<THeapObject *>(v);
         auto ls = dynamic_cast<TList *>(obj);
         auto dict = dynamic_cast<TDictionary *>(obj);
 

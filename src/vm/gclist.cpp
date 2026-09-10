@@ -10,8 +10,8 @@ GCList::GCList(std::shared_ptr<GC> gc) {
 
 std::shared_ptr<GC> GCList::GetGC() const { return this->gc; }
 void GCList::Remove(TObject obj) {
-    if (std::holds_alternative<THeapObjectHolder>(obj)) {
-        auto _item = std::get<THeapObjectHolder>(obj).obj;
+    if (std::holds_alternative<THeapObject *>(obj)) {
+        auto _item = std::get<THeapObject *>(obj);
         this->gc->BarrierBegin();
         for (auto index = this->items.begin(); index != this->items.end();
              index++) {
@@ -25,8 +25,8 @@ void GCList::Remove(TObject obj) {
 }
 void GCList::Add(TObject obj) {
 
-    if (std::holds_alternative<THeapObjectHolder>(obj)) {
-        auto _item = std::get<THeapObjectHolder>(obj).obj;
+    if (std::holds_alternative<THeapObject *>(obj)) {
+        auto _item = std::get<THeapObject *>(obj);
         this->gc->BarrierBegin();
 
         for (auto item : this->items) {

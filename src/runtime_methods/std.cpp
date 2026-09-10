@@ -143,8 +143,8 @@ ffi_tmp_type_t FFI_ConvertTObjectToFFIType(TObject &arg, std::string t) {
             return (ffi_tmp_type_t){
                 .v_ptr = (void *)std::get<std::string>(arg).c_str()};
         }
-    } else if (std::holds_alternative<THeapObjectHolder>(arg)) {
-        auto obj = std::get<THeapObjectHolder>(arg).obj;
+    } else if (std::holds_alternative<THeapObject *>(arg)) {
+        auto obj = std::get<THeapObject *>(arg);
         auto bA = dynamic_cast<TByteArray *>(obj);
         auto nat = dynamic_cast<TNative *>(obj);
         if (bA != nullptr) {
@@ -435,13 +435,7 @@ static TObject TypeIsClass(GCList &ls, std::vector<TObject> args) {
 static TObject TypeIsDefined(GCList &ls, std::vector<TObject> args) {
     if (args.empty())
         return nullptr;
-    return (!std::holds_alternative<std::nullptr_t>(args[0]) &&
-            !std::holds_alternative<Undefined>(args[0]));
-}
-static TObject TypeIsHeap(GCList &ls, std::vector<TObject> args) {
-    if (args.empty())
-        return nullptr;
-    return std::holds_alternative<THeapObjectHolder>(args[0]);
+    return (!IsNull(args[0]) && !std::holds_alternative<Undefined>(args[0]));
 }
 static TObject TypeIsNumber(GCList &ls, std::vector<TObject> args) {
     if (args.empty())
@@ -668,7 +662,7 @@ std::string GetObjectTypeString(TObject _obj) {
         return "Regex";
     if (std::holds_alternative<Undefined>(_obj))
         return "Undefined";
-    if (std::holds_alternative<std::nullptr_t>(_obj))
+    if (IsNull(_obj))
         return "Null";
     if (std::holds_alternative<bool>(_obj))
         return "Boolean";
@@ -820,8 +814,8 @@ std::string GetObjectTypeString(TObject _obj) {
         }
         return "VFS";
     }
-    if (std::holds_alternative<THeapObjectHolder>(_obj)) {
-        auto obj = std::get<THeapObjectHolder>(_obj).obj;
+    if (std::holds_alternative<THeapObject *>(_obj)) {
+        auto obj = std::get<THeapObject *>(_obj);
         auto dict = dynamic_cast<TDictionary *>(obj);
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
 
@@ -1380,10 +1374,7 @@ void TStd::RegisterRoot(std::shared_ptr<GC> gc, TRootEnvironment *env) {
     env->DeclareFunction(gc, "TypeIsDefined",
                          "Get whether object is not null or undefined",
                          {"object"}, TypeIsDefined);
-    env->DeclareFunction(
-        gc, "TypeIsHeap",
-        "Get whether object is susceptible to garbage collection", {"object"},
-        TypeIsHeap);
+
     env->DeclareFunction(gc, "TypeIsNumber", "Get whether object is a number",
                          {"object"}, TypeIsNumber);
     env->DeclareFunction(gc, "TypeIsLong",
@@ -1455,9 +1446,9 @@ void TStd::RegisterRoot(std::shared_ptr<GC> gc, TRootEnvironment *env) {
         gc, "Thread", "Create thread", {"callback"},
         [](GCList &ls, std::vector<TObject> args) -> TObject {
             if (args.size() == 1 &&
-                std::holds_alternative<THeapObjectHolder>(args[0])) {
-                auto cb = dynamic_cast<TCallable *>(
-                    std::get<THeapObjectHolder>(args[0]).obj);
+                std::holds_alternative<THeapObject *>(args[0])) {
+                auto cb =
+                    dynamic_cast<TCallable *>(std::get<THeapObject *>(args[0]));
                 if (cb != nullptr) {
                     return CreateThread(ls, cb, false);
                 }

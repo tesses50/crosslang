@@ -257,8 +257,8 @@ bool InterperterThread::SetField(std::shared_ptr<GC> gc) {
             stk->Push(gc, Undefined());
             return false;
         }
-        if (std::holds_alternative<THeapObjectHolder>(instance)) {
-            auto obj = std::get<THeapObjectHolder>(instance).obj;
+        if (std::holds_alternative<THeapObject *>(instance)) {
+            auto obj = std::get<THeapObject *>(instance);
 
             auto dict = dynamic_cast<TDictionary *>(obj);
             auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
@@ -313,9 +313,9 @@ bool InterperterThread::SetField(std::shared_ptr<GC> gc) {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("set" + key);
                 gc->BarrierEnd();
-                if (std::holds_alternative<THeapObjectHolder>(fn) &&
-                    dynamic_cast<TCallable *>(
-                        std::get<THeapObjectHolder>(fn).obj) != nullptr) {
+                if (std::holds_alternative<THeapObject *>(fn) &&
+                    dynamic_cast<TCallable *>(std::get<THeapObject *>(fn)) !=
+                        nullptr) {
                     return InvokeTwo(ls, fn, dict, value);
                 } else {
                     gc->BarrierBegin();

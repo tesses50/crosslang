@@ -171,9 +171,8 @@ void TEnvironment::DeclareVariable(std::shared_ptr<GC> gc,
 
         TObject v = this->GetVariable(name[0]);
         TDictionary *dict = nullptr;
-        if (std::holds_alternative<THeapObjectHolder>(v)) {
-            dict =
-                dynamic_cast<TDictionary *>(std::get<THeapObjectHolder>(v).obj);
+        if (std::holds_alternative<THeapObject *>(v)) {
+            dict = dynamic_cast<TDictionary *>(std::get<THeapObject *>(v));
             if (dict == nullptr) {
                 dict = TDictionary::Create(ls);
                 gc->BarrierBegin();
@@ -191,9 +190,9 @@ void TEnvironment::DeclareVariable(std::shared_ptr<GC> gc,
             gc->BarrierBegin();
             auto v = dict->GetValue(name[i]);
             gc->BarrierEnd();
-            if (std::holds_alternative<THeapObjectHolder>(v)) {
-                auto dict2 = dynamic_cast<TDictionary *>(
-                    std::get<THeapObjectHolder>(v).obj);
+            if (std::holds_alternative<THeapObject *>(v)) {
+                auto dict2 =
+                    dynamic_cast<TDictionary *>(std::get<THeapObject *>(v));
                 if (dict2 == nullptr) {
                     dict2 = TDictionary::Create(ls);
                     gc->BarrierBegin();

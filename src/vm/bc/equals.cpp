@@ -14,8 +14,7 @@ namespace Tesses::CrossLang {
 
 bool Equals(std::shared_ptr<GC> gc, TObject left, TObject right) {
     GCList ls(gc);
-    if (std::holds_alternative<std::nullptr_t>(left) &&
-        std::holds_alternative<std::nullptr_t>(right)) {
+    if (IsNull(left) && IsNull(right)) {
 
         return true;
     }
@@ -92,8 +91,8 @@ bool Equals(std::shared_ptr<GC> gc, TObject left, TObject right) {
         auto r = std::get<Tesses::Framework::Uuid>(right);
 
         return l == r;
-    } else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    } else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
 
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
@@ -109,12 +108,12 @@ bool Equals(std::shared_ptr<GC> gc, TObject left, TObject right) {
             if (GetObjectHeap(obj, callable)) {
                 return ToBool(callable->Call(ls, {right}));
 
-            } else if (std::holds_alternative<std::nullptr_t>(right)) {
+            } else if (IsNull(right)) {
                 return false;
             } else if (std::holds_alternative<Undefined>(right)) {
                 return false;
-            } else if (std::holds_alternative<THeapObjectHolder>(right)) {
-                return cls == std::get<THeapObjectHolder>(right).obj;
+            } else if (std::holds_alternative<THeapObject *>(right)) {
+                return cls == std::get<THeapObject *>(right);
             }
         } else if (natObj != nullptr) {
             return natObj->Equals(gc, right);
@@ -124,10 +123,10 @@ bool Equals(std::shared_ptr<GC> gc, TObject left, TObject right) {
             TObject fn = dict->GetValue("operator==");
             gc->BarrierEnd();
             if (!std::holds_alternative<Undefined>(fn)) {
-                if (std::holds_alternative<THeapObjectHolder>(fn)) {
+                if (std::holds_alternative<THeapObject *>(fn)) {
 
-                    auto obj = dynamic_cast<TCallable *>(
-                        std::get<THeapObjectHolder>(fn).obj);
+                    auto obj =
+                        dynamic_cast<TCallable *>(std::get<THeapObject *>(fn));
                     if (obj != nullptr) {
                         auto closure = dynamic_cast<TClosure *>(obj);
                         if (closure != nullptr) {
@@ -144,17 +143,17 @@ bool Equals(std::shared_ptr<GC> gc, TObject left, TObject right) {
                         }
                     } else {
 
-                        return dict == std::get<THeapObjectHolder>(right).obj;
+                        return dict == std::get<THeapObject *>(right);
                     }
 
                 } else {
 
-                    return dict == std::get<THeapObjectHolder>(right).obj;
+                    return dict == std::get<THeapObject *>(right);
                 }
 
             } else {
 
-                return dict == std::get<THeapObjectHolder>(right).obj;
+                return dict == std::get<THeapObject *>(right);
             }
             return false;
 
@@ -162,21 +161,19 @@ bool Equals(std::shared_ptr<GC> gc, TObject left, TObject right) {
 
         else if (dynDict != nullptr) {
             auto res = dynDict->CallMethod(ls, "operator==", {right});
-            if (!std::holds_alternative<std::nullptr_t>(res) &&
-                std::holds_alternative<Undefined>(res)) {
+            if (!IsNull(res) && std::holds_alternative<Undefined>(res)) {
                 return ToBool(res);
             }
-        } else if (native != nullptr &&
-                   std::holds_alternative<std::nullptr_t>(right)) {
+        } else if (native != nullptr && IsNull(right)) {
             return native->GetDestroyed();
         }
 
-        if (std::holds_alternative<THeapObjectHolder>(right)) {
-            return obj == std::get<THeapObjectHolder>(right).obj;
+        if (std::holds_alternative<THeapObject *>(right)) {
+            return obj == std::get<THeapObject *>(right);
 
         }
 
-        else if (std::holds_alternative<std::nullptr_t>(right)) {
+        else if (IsNull(right)) {
             return false;
         } else if (std::holds_alternative<Undefined>(right)) {
 
@@ -187,7 +184,7 @@ bool Equals(std::shared_ptr<GC> gc, TObject left, TObject right) {
 
     }
 
-    else if (std::holds_alternative<std::nullptr_t>(right)) {
+    else if (IsNull(right)) {
         return false;
     } else if (std::holds_alternative<Undefined>(right)) {
         return false;

@@ -119,8 +119,8 @@ bool InterperterThread::Add(std::shared_ptr<GC> gc) {
         str.append(std::get<std::string>(left));
         str.push_back(std::get<char>(right));
         cse.back()->Push(gc, str);
-    } else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    } else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
         auto natObj = dynamic_cast<TNativeObject *>(obj);

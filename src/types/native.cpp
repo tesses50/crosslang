@@ -26,8 +26,8 @@ void TNative::Destroy() {
 }
 bool TNativeObject::ToBool() { return true; }
 bool TNativeObject::Equals(std::shared_ptr<GC> gc, TObject right) {
-    if (std::holds_alternative<THeapObjectHolder>(right)) {
-        return this == std::get<THeapObjectHolder>(right).obj;
+    if (std::holds_alternative<THeapObject *>(right)) {
+        return this == std::get<THeapObject *>(right);
     }
     return false;
 }

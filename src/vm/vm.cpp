@@ -79,8 +79,8 @@ bool InterperterThread::Times(std::shared_ptr<GC> gc) {
     } else if (std::holds_alternative<int64_t>(left) &&
                std::holds_alternative<double>(right)) {
         cse.back()->Push(gc, std::get<int64_t>(left) * std::get<double>(right));
-    } else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    } else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
 
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
@@ -180,8 +180,8 @@ bool InterperterThread::Divide(std::shared_ptr<GC> gc) {
         cse.back()->Push(gc, std::get<int64_t>(left) / std::get<double>(right));
     }
 
-    else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
 
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
@@ -256,8 +256,8 @@ bool InterperterThread::Mod(std::shared_ptr<GC> gc) {
             gc, fmod(std::get<int64_t>(left), std::get<double>(right)));
     }
 
-    else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
 
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
@@ -312,8 +312,8 @@ bool InterperterThread::Neg(std::shared_ptr<GC> gc) {
         cse.back()->Push(gc, -std::get<int64_t>(left));
     } else if (std::holds_alternative<double>(left)) {
         cse.back()->Push(gc, -std::get<double>(left));
-    } else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    } else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
 
@@ -365,7 +365,7 @@ bool InterperterThread::LNot(std::shared_ptr<GC> gc) {
 
     if (std::holds_alternative<Undefined>(left)) {
         cse.back()->Push(gc, true);
-    } else if (std::holds_alternative<std::nullptr_t>(left)) {
+    } else if (IsNull(left)) {
         cse.back()->Push(gc, true);
     }
 
@@ -375,8 +375,8 @@ bool InterperterThread::LNot(std::shared_ptr<GC> gc) {
 
     else if (std::holds_alternative<bool>(left)) {
         cse.back()->Push(gc, !std::get<bool>(left));
-    } else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    } else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
 
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
@@ -431,8 +431,8 @@ bool InterperterThread::BNot(std::shared_ptr<GC> gc) {
         cse.back()->Push(gc, ~std::get<int64_t>(left));
     }
 
-    else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
 
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
@@ -538,8 +538,8 @@ bool InterperterThread::Lt(std::shared_ptr<GC> gc) {
         auto &r =
             std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right);
         cse.back()->Push(gc, l->TotalSeconds() < r->TotalSeconds());
-    } else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    } else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
 
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
@@ -644,8 +644,8 @@ bool InterperterThread::Gt(std::shared_ptr<GC> gc) {
         auto &r =
             std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right);
         cse.back()->Push(gc, l->TotalSeconds() > r->TotalSeconds());
-    } else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    } else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
 
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
@@ -751,8 +751,8 @@ bool InterperterThread::Lte(std::shared_ptr<GC> gc) {
         auto &r =
             std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right);
         cse.back()->Push(gc, l->TotalSeconds() <= r->TotalSeconds());
-    } else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    } else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
 
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
@@ -863,8 +863,8 @@ bool InterperterThread::Gte(std::shared_ptr<GC> gc) {
         auto &r =
             std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right);
         cse.back()->Push(gc, l->TotalSeconds() >= r->TotalSeconds());
-    } else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    } else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
 
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
@@ -917,8 +917,7 @@ bool InterperterThread::Eq(std::shared_ptr<GC> gc) {
     GCList ls(gc);
     auto right = cse.back()->Pop(ls);
     auto left = cse.back()->Pop(ls);
-    if (std::holds_alternative<std::nullptr_t>(left) &&
-        std::holds_alternative<std::nullptr_t>(right)) {
+    if (IsNull(left) && IsNull(right)) {
         cse.back()->Push(gc, true);
         return false;
     }
@@ -1000,8 +999,8 @@ bool InterperterThread::Eq(std::shared_ptr<GC> gc) {
         auto &r =
             std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right);
         cse.back()->Push(gc, l->TotalSeconds() == r->TotalSeconds());
-    } else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    } else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
 
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
@@ -1039,25 +1038,23 @@ bool InterperterThread::Eq(std::shared_ptr<GC> gc) {
 
         else if (dynDict != nullptr) {
             auto res = dynDict->CallMethod(ls, "operator==", {right});
-            if (!std::holds_alternative<std::nullptr_t>(res) &&
-                std::holds_alternative<Undefined>(res)) {
+            if (!IsNull(res) && std::holds_alternative<Undefined>(res)) {
                 cse.back()->Push(gc, res);
                 return false;
             }
         }
 
-        else if (native != nullptr &&
-                 std::holds_alternative<std::nullptr_t>(right)) {
+        else if (native != nullptr && IsNull(right)) {
             cse.back()->Push(gc, native->GetDestroyed());
             return false;
         }
 
-        if (std::holds_alternative<THeapObjectHolder>(right)) {
-            cse.back()->Push(gc, obj == std::get<THeapObjectHolder>(right).obj);
+        if (std::holds_alternative<THeapObject *>(right)) {
+            cse.back()->Push(gc, obj == std::get<THeapObject *>(right));
             return false;
         }
 
-        else if (std::holds_alternative<std::nullptr_t>(right)) {
+        else if (IsNull(right)) {
             cse.back()->Push(gc, false);
             return false;
         } else if (std::holds_alternative<Undefined>(right)) {
@@ -1069,7 +1066,7 @@ bool InterperterThread::Eq(std::shared_ptr<GC> gc) {
 
     }
 
-    else if (std::holds_alternative<std::nullptr_t>(right)) {
+    else if (IsNull(right)) {
         cse.back()->Push(gc, false);
         return false;
     } else if (std::holds_alternative<Undefined>(right)) {
@@ -1087,8 +1084,7 @@ bool InterperterThread::NEq(std::shared_ptr<GC> gc) {
     auto right = cse.back()->Pop(ls);
     auto left = cse.back()->Pop(ls);
 
-    if (std::holds_alternative<std::nullptr_t>(left) &&
-        std::holds_alternative<std::nullptr_t>(right)) {
+    if (IsNull(left) && IsNull(right)) {
         cse.back()->Push(gc, false);
         return false;
     } else if (std::holds_alternative<Undefined>(left) &&
@@ -1158,8 +1154,8 @@ bool InterperterThread::NEq(std::shared_ptr<GC> gc) {
         auto &r =
             std::get<std::shared_ptr<Tesses::Framework::Date::TimeSpan>>(right);
         cse.back()->Push(gc, l->TotalSeconds() != r->TotalSeconds());
-    } else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    } else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
         auto native = dynamic_cast<TNative *>(obj);
         auto natObj = dynamic_cast<TNativeObject *>(obj);
@@ -1196,22 +1192,20 @@ bool InterperterThread::NEq(std::shared_ptr<GC> gc) {
         else if (dynDict != nullptr) {
 
             auto res = dynDict->CallMethod(ls, "operator!=", {right});
-            if (!std::holds_alternative<std::nullptr_t>(res) &&
-                std::holds_alternative<Undefined>(res)) {
+            if (!IsNull(res) && std::holds_alternative<Undefined>(res)) {
                 cse.back()->Push(gc, res);
                 return false;
             }
         }
 
-        else if (native != nullptr &&
-                 std::holds_alternative<std::nullptr_t>(right)) {
+        else if (native != nullptr && IsNull(right)) {
             cse.back()->Push(gc, !native->GetDestroyed());
             return false;
         }
-        if (std::holds_alternative<THeapObjectHolder>(right)) {
-            cse.back()->Push(gc, obj != std::get<THeapObjectHolder>(right).obj);
+        if (std::holds_alternative<THeapObject *>(right)) {
+            cse.back()->Push(gc, obj != std::get<THeapObject *>(right));
             return false;
-        } else if (std::holds_alternative<std::nullptr_t>(right)) {
+        } else if (IsNull(right)) {
             cse.back()->Push(gc, true);
             return false;
         } else if (std::holds_alternative<Undefined>(right)) {
@@ -1224,7 +1218,7 @@ bool InterperterThread::NEq(std::shared_ptr<GC> gc) {
     } else if (std::holds_alternative<Undefined>(right)) {
         cse.back()->Push(gc, true);
         return false;
-    } else if (std::holds_alternative<std::nullptr_t>(right)) {
+    } else if (IsNull(right)) {
         cse.back()->Push(gc, true);
         return false;
     } else {
@@ -1243,8 +1237,8 @@ bool InterperterThread::LShift(std::shared_ptr<GC> gc) {
         std::holds_alternative<int64_t>(right)) {
         cse.back()->Push(gc, std::get<int64_t>(left)
                                  << (int)std::get<int64_t>(right));
-    } else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    } else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
 
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
@@ -1301,8 +1295,8 @@ bool InterperterThread::RShift(std::shared_ptr<GC> gc) {
         std::holds_alternative<int64_t>(right)) {
         cse.back()->Push(gc, std::get<int64_t>(left) >>
                                  (int)std::get<int64_t>(right));
-    } else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    } else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
 
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
@@ -1359,8 +1353,8 @@ bool InterperterThread::BOr(std::shared_ptr<GC> gc) {
         std::holds_alternative<int64_t>(right)) {
         cse.back()->Push(gc,
                          std::get<int64_t>(left) | std::get<int64_t>(right));
-    } else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    } else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
 
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
@@ -1417,8 +1411,8 @@ bool InterperterThread::XOr(std::shared_ptr<GC> gc) {
         std::holds_alternative<int64_t>(right)) {
         cse.back()->Push(gc,
                          std::get<int64_t>(left) ^ std::get<int64_t>(right));
-    } else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    } else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
 
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
@@ -1474,8 +1468,8 @@ bool InterperterThread::BAnd(std::shared_ptr<GC> gc) {
         std::holds_alternative<int64_t>(right)) {
         cse.back()->Push(gc,
                          std::get<int64_t>(left) & std::get<int64_t>(right));
-    } else if (std::holds_alternative<THeapObjectHolder>(left)) {
-        auto obj = std::get<THeapObjectHolder>(left).obj;
+    } else if (std::holds_alternative<THeapObject *>(left)) {
+        auto obj = std::get<THeapObject *>(left);
         auto dict = dynamic_cast<TDictionary *>(obj);
 
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
@@ -1520,10 +1514,9 @@ bool InterperterThread::BAnd(std::shared_ptr<GC> gc) {
     return false;
 }
 bool InterperterThread::InvokeOne(GCList &ls, TObject fn, TObject arg) {
-    if (std::holds_alternative<THeapObjectHolder>(fn)) {
+    if (std::holds_alternative<THeapObject *>(fn)) {
 
-        auto obj =
-            dynamic_cast<TCallable *>(std::get<THeapObjectHolder>(fn).obj);
+        auto obj = dynamic_cast<TCallable *>(std::get<THeapObject *>(fn));
         if (obj != nullptr) {
             auto closure = dynamic_cast<TClosure *>(obj);
             if (closure != nullptr) {
@@ -1568,10 +1561,10 @@ bool InterperterThread::ExecuteFunction(std::shared_ptr<GC> gc) {
                 if (args.size() == 3) {
 
                     if (std::holds_alternative<std::string>(args[1]) &&
-                        std::holds_alternative<THeapObjectHolder>(args[2])) {
+                        std::holds_alternative<THeapObject *>(args[2])) {
                         std::string key = std::get<std::string>(args[1]);
                         TList *ls = dynamic_cast<TList *>(
-                            std::get<THeapObjectHolder>(args[2]).obj);
+                            std::get<THeapObject *>(args[2]));
                         if (ls != nullptr)
                             return ExecuteMethod2(gc, args[0], key, ls->items);
                     }
@@ -1580,10 +1573,10 @@ bool InterperterThread::ExecuteFunction(std::shared_ptr<GC> gc) {
                 return false;
             }
 
-            if (std::holds_alternative<THeapObjectHolder>(fn)) {
+            if (std::holds_alternative<THeapObject *>(fn)) {
 
-                auto obj = dynamic_cast<TCallable *>(
-                    std::get<THeapObjectHolder>(fn).obj);
+                auto obj =
+                    dynamic_cast<TCallable *>(std::get<THeapObject *>(fn));
                 if (obj != nullptr) {
                     auto closure = dynamic_cast<TClosure *>(obj);
                     if (closure != nullptr) {
@@ -2147,8 +2140,7 @@ bool InterperterThread::JumpIfDefined(std::shared_ptr<GC> gc) {
         auto _res2 = stk->Pop(ls);
 
         stk->ip = stk->ip + 4;
-        if (!std::holds_alternative<Undefined>(_res2) &&
-            !std::holds_alternative<std::nullptr_t>(_res2)) {
+        if (!std::holds_alternative<Undefined>(_res2) && !IsNull(_res2)) {
             stk->ip = n;
             stk->Push(gc, _res2);
         }
@@ -2321,9 +2313,8 @@ bool InterperterThread::AppendList(std::shared_ptr<GC> gc) {
     gc->BarrierBegin();
     auto obj = stk->Pop(ls);
     auto objhold = stk->Pop(ls);
-    if (std::holds_alternative<THeapObjectHolder>(objhold)) {
-        auto list =
-            dynamic_cast<TList *>(std::get<THeapObjectHolder>(objhold).obj);
+    if (std::holds_alternative<THeapObject *>(objhold)) {
+        auto list = dynamic_cast<TList *>(std::get<THeapObject *>(objhold));
         if (list != nullptr) {
             list->Add(obj);
         }
@@ -2353,12 +2344,12 @@ bool InterperterThread::AppendDictionary(std::shared_ptr<GC> gc) {
     auto value = stk->Pop(ls);
     auto k = stk->Pop(ls);
     auto objhold = stk->Pop(ls);
-    if (std::holds_alternative<THeapObjectHolder>(objhold) &&
+    if (std::holds_alternative<THeapObject *>(objhold) &&
         std::holds_alternative<std::string>(k)) {
-        auto dict = dynamic_cast<TDictionary *>(
-            std::get<THeapObjectHolder>(objhold).obj);
-        auto cls = dynamic_cast<TClassObject *>(
-            std::get<THeapObjectHolder>(objhold).obj);
+        auto dict =
+            dynamic_cast<TDictionary *>(std::get<THeapObject *>(objhold));
+        auto cls =
+            dynamic_cast<TClassObject *>(std::get<THeapObject *>(objhold));
 
         if (dict != nullptr) {
             dict->SetValue(std::get<std::string>(k), value);

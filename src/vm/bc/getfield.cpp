@@ -323,8 +323,8 @@ bool InterperterThread::GetField(std::shared_ptr<GC> gc) {
             stk->Push(gc, Undefined());
             return false;
         }
-        if (std::holds_alternative<THeapObjectHolder>(instance)) {
-            auto obj = std::get<THeapObjectHolder>(instance).obj;
+        if (std::holds_alternative<THeapObject *>(instance)) {
+            auto obj = std::get<THeapObject *>(instance);
             auto bA = dynamic_cast<TByteArray *>(obj);
             auto list = dynamic_cast<TList *>(obj);
             auto dict = dynamic_cast<TDictionary *>(obj);
@@ -669,9 +669,9 @@ bool InterperterThread::GetField(std::shared_ptr<GC> gc) {
                 gc->BarrierBegin();
                 TObject fn = dict->GetValue("get" + key);
                 gc->BarrierEnd();
-                if (std::holds_alternative<THeapObjectHolder>(fn) &&
-                    dynamic_cast<TCallable *>(
-                        std::get<THeapObjectHolder>(fn).obj) != nullptr) {
+                if (std::holds_alternative<THeapObject *>(fn) &&
+                    dynamic_cast<TCallable *>(std::get<THeapObject *>(fn)) !=
+                        nullptr) {
                     return InvokeOne(ls, fn, dict);
                 } else {
                     gc->BarrierBegin();

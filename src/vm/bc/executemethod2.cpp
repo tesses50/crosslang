@@ -24,7 +24,7 @@ bool InterperterThread::ExecuteMethod2(std::shared_ptr<GC> gc, TObject instance,
         GCList ls(gc);
         std::regex regex;
         TVMVersion version;
-        if (std::holds_alternative<std::nullptr_t>(instance)) {
+        if (IsNull(instance)) {
             if (key == "ToString") {
                 cse.back()->Push(gc, "null");
                 return false;
@@ -1964,8 +1964,8 @@ bool InterperterThread::ExecuteMethod2(std::shared_ptr<GC> gc, TObject instance,
             }
             cse.back()->Push(gc, Undefined());
             return false;
-        } else if (std::holds_alternative<THeapObjectHolder>(instance)) {
-            auto obj = std::get<THeapObjectHolder>(instance).obj;
+        } else if (std::holds_alternative<THeapObject *>(instance)) {
+            auto obj = std::get<THeapObject *>(instance);
             auto list = dynamic_cast<TList *>(obj);
             auto dynList = dynamic_cast<TDynamicList *>(obj);
             auto bArray = dynamic_cast<TByteArray *>(obj);

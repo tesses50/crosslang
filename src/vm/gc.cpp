@@ -140,8 +140,8 @@ bool GC::UsingNullThreads() { return false; }
 void GC::BarrierBegin() { this->mtx.Lock(); }
 void GC::BarrierEnd() { this->mtx.Unlock(); }
 void GC::Watch(TObject obj) {
-    if (std::holds_alternative<THeapObjectHolder>(obj)) {
-        auto _item = std::get<THeapObjectHolder>(obj).obj;
+    if (std::holds_alternative<THeapObject *>(obj)) {
+        auto _item = std::get<THeapObject *>(obj);
         this->BarrierBegin();
         this->objects.insert(_item);
         auto nowAllocs = ++this->allocs;
@@ -151,14 +151,14 @@ void GC::Watch(TObject obj) {
     }
 }
 void GC::Mark(TObject obj) {
-    if (std::holds_alternative<THeapObjectHolder>(obj)) {
-        auto _item = std::get<THeapObjectHolder>(obj).obj;
+    if (std::holds_alternative<THeapObject *>(obj)) {
+        auto _item = std::get<THeapObject *>(obj);
         _item->Mark();
     }
 }
 void GC::Unwatch(TObject obj) {
-    if (std::holds_alternative<THeapObjectHolder>(obj)) {
-        auto _item = std::get<THeapObjectHolder>(obj).obj;
+    if (std::holds_alternative<THeapObject *>(obj)) {
+        auto _item = std::get<THeapObject *>(obj);
         this->BarrierBegin();
         this->objects.erase(_item);
         this->BarrierEnd();

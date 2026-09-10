@@ -44,8 +44,8 @@ bool ToBool(TObject obj) {
     } else if (std::holds_alternative<Tesses::Framework::Uuid>(obj)) {
         auto &uuid = std::get<Tesses::Framework::Uuid>(obj);
         return !uuid.IsEmpty();
-    } else if (std::holds_alternative<THeapObjectHolder>(obj)) {
-        auto o = std::get<THeapObjectHolder>(obj).obj;
+    } else if (std::holds_alternative<THeapObject *>(obj)) {
+        auto o = std::get<THeapObject *>(obj);
         auto ls = dynamic_cast<TList *>(o);
         auto aarray = dynamic_cast<TAssociativeArray *>(o);
         auto dict = dynamic_cast<TDictionary *>(o);
