@@ -4,8 +4,8 @@ namespace Tesses::CrossLang {
 class ProcessObject : public TNativeObject {
   public:
     ProcessObject(GCList &ls) {
-        arguments = TList::Create(ls);
-        environment = TList::Create(ls);
+        arguments = ls.Create<TList>();
+        environment = ls.Create<TList>();
         process.includeThisEnv = true;
         process.redirectStdIn = false;
 

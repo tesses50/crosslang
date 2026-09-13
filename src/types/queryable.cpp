@@ -32,7 +32,7 @@ TList *TQueryable::ToList(GCList &ls) {
     auto enumerator = this->GetEnumerator(ls);
     if (enumerator == nullptr)
         return nullptr;
-    auto list = TList::Create(ls);
+    auto list = ls.Create<TList>();
     while (enumerator->MoveNext(gc)) {
         gc->BarrierBegin();
         list->Add(enumerator->GetCurrent(ls));

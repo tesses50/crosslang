@@ -58,7 +58,7 @@ bool InterperterThread::ExecuteMethod2(std::shared_ptr<GC> gc, TObject instance,
                 if (GetArgument(args, 0, str)) {
                     std::smatch m;
                     if (std::regex_search(str, m, regex)) {
-                        auto myLs = TList::Create(ls);
+                        auto myLs = ls.Create<TList>();
                         gc->BarrierBegin();
                         for (auto item : m) {
                             auto itm = TDictionary::Create(ls);
@@ -288,7 +288,7 @@ bool InterperterThread::ExecuteMethod2(std::shared_ptr<GC> gc, TObject instance,
                 std::get<Tesses::Framework::Filesystem::VFSPath>(instance);
             if (key == "GetEnumerator") {
 
-                TList *_ls = TList::Create(ls);
+                TList *_ls = ls.Create<TList>();
                 for (auto item : path.path) {
                     _ls->Add(item);
                 }
@@ -683,7 +683,7 @@ bool InterperterThread::ExecuteMethod2(std::shared_ptr<GC> gc, TObject instance,
 
                 auto res = Tesses::Framework::Http::HttpUtils::SplitString(
                     str, delimiter, count);
-                TList *mls = TList::Create(ls);
+                TList *mls = ls.Create<TList>();
                 for (auto item : res) {
                     if (!removeEmpty || !item.empty())
                         mls->Add(item);
@@ -825,7 +825,7 @@ bool InterperterThread::ExecuteMethod2(std::shared_ptr<GC> gc, TObject instance,
                 std::vector<std::string> lines;
                 textReader->ReadAllLines(lines);
                 gc->BarrierBegin();
-                TList *list = TList::Create(ls);
+                TList *list = ls.Create<TList>();
                 for (auto &item : lines)
                     list->Add(item);
                 gc->BarrierEnd();
@@ -1072,8 +1072,6 @@ bool InterperterThread::ExecuteMethod2(std::shared_ptr<GC> gc, TObject instance,
                 std::get<std::shared_ptr<Tesses::Framework::Streams::Stream>>(
                     instance);
             if (strm != nullptr) {
-                auto memStrm = std::dynamic_pointer_cast<
-                    Tesses::Framework::Streams::MemoryStream>(strm);
                 auto netStrm = std::dynamic_pointer_cast<
                     Tesses::Framework::Streams::NetworkStream>(strm);
 
@@ -1090,134 +1088,8 @@ bool InterperterThread::ExecuteMethod2(std::shared_ptr<GC> gc, TObject instance,
                         return InvokeMethod(ls, o, dict2, args);
                     }
                 }
-                if (memStrm != nullptr) {
-                    if (key == "GetBytes") {
-                        auto res = TByteArray::Create(ls);
-                        res->data = memStrm->GetBuffer();
-                        cse.back()->Push(gc, res);
-                        return false;
-                    }
-                }
+
                 if (netStrm != nullptr) {
-                    if (key == "SetMulticastMembership") {
-                        std::string ma;
-                        std::string ifaceIP = "0.0.0.0";
-                        if (GetArgument(args, 0, ma)) {
-                            GetArgument(args, 1, ifaceIP);
-                            netStrm->SetMulticastMembership(ma, ifaceIP);
-                        }
-                        cse.back()->Push(gc, Undefined());
-                        return false;
-                    }
-                    if (key == "GetPort") {
-                        cse.back()->Push(gc, (int64_t)netStrm->GetPort());
-                        return false;
-                    }
-                    if (key == "Bind") {
-                        std::string ip;
-                        int64_t port;
-                        if (GetArgument(args, 0, ip) &&
-                            GetArgument(args, 1, port))
-                            netStrm->Bind(ip, (uint16_t)port);
-
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if (key == "Accept") {
-                        std::string ip;
-                        uint16_t port;
-                        auto strm = netStrm->Accept(ip, port);
-                        TDictionary *dict = TDictionary::Create(ls);
-                        gc->BarrierBegin();
-                        dict->SetValue("IP", ip);
-                        dict->SetValue("Port", (int64_t)port);
-                        dict->SetValue("Stream", strm);
-
-                        gc->BarrierEnd();
-                        cse.back()->Push(gc, dict);
-                        return false;
-                    }
-                    if (key == "Listen") {
-                        int64_t backlog;
-                        if (GetArgument(args, 0, backlog)) {
-                            netStrm->Listen((int32_t)backlog);
-                        } else {
-                            netStrm->Listen(10);
-                        }
-
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if (key == "ReadFrom") {
-                        TByteArray *data;
-                        int64_t offset;
-                        int64_t length;
-                        if (GetArgumentHeap<TByteArray *>(args, 0, data) &&
-                            GetArgument<int64_t>(args, 1, offset) &&
-                            GetArgument<int64_t>(args, 2, length)) {
-                            size_t off = (size_t)offset;
-                            size_t len = (size_t)length;
-                            std::string ip = {};
-                            uint16_t port = 0;
-
-                            if (off < len)
-
-                                len = netStrm->ReadFrom(
-                                    data->data.data() + off,
-                                    std::min(len,
-                                             std::min(data->data.size() - off,
-                                                      data->data.size())),
-                                    ip, port);
-
-                            else
-                                len = 0;
-
-                            TDictionary *dict = TDictionary::Create(ls);
-                            gc->BarrierBegin();
-                            dict->SetValue("IP", ip);
-                            dict->SetValue("Port", (int64_t)port);
-                            dict->SetValue("Read", (int64_t)len);
-
-                            gc->BarrierEnd();
-                            cse.back()->Push(gc, dict);
-
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
-                    if (key == "WriteTo") {
-                        TByteArray *data;
-                        int64_t offset;
-                        int64_t length;
-                        std::string ip;
-                        int64_t port;
-                        if (GetArgumentHeap<TByteArray *>(args, 0, data) &&
-                            GetArgument<int64_t>(args, 1, offset) &&
-                            GetArgument<int64_t>(args, 2, length) &&
-                            GetArgument(args, 3, ip) &&
-                            GetArgument(args, 4, port)) {
-                            size_t off = (size_t)offset;
-                            size_t len = (size_t)length;
-
-                            if (off < len)
-
-                                len = netStrm->WriteTo(
-                                    data->data.data() + off,
-                                    std::min(len,
-                                             std::min(data->data.size() - off,
-                                                      data->data.size())),
-                                    ip, (int64_t)port);
-
-                            else
-                                len = 0;
-
-                            cse.back()->Push(gc, (int64_t)len);
-                            return false;
-                        }
-                        cse.back()->Push(gc, nullptr);
-                        return false;
-                    }
                 }
 
                 if (key == "Read") {
@@ -1966,7 +1838,7 @@ bool InterperterThread::ExecuteMethod2(std::shared_ptr<GC> gc, TObject instance,
             return false;
         } else if (std::holds_alternative<THeapObject *>(instance)) {
             auto obj = std::get<THeapObject *>(instance);
-            auto list = dynamic_cast<TList *>(obj);
+
             auto dynList = dynamic_cast<TDynamicList *>(obj);
             auto bArray = dynamic_cast<TByteArray *>(obj);
             auto dict = dynamic_cast<TDictionary *>(obj);
@@ -3332,190 +3204,6 @@ bool InterperterThread::ExecuteMethod2(std::shared_ptr<GC> gc, TObject instance,
 
                     cse.back()->Push(
                         gc, TAssociativeArrayEnumerator::Create(ls, aArray));
-                    return false;
-                }
-                cse.back()->Push(gc, Undefined());
-                return false;
-            } else if (list != nullptr) {
-
-                if (key == "GetEnumerator") {
-                    cse.back()->Push(gc, TListEnumerator::Create(ls, list));
-                    return false;
-                } else if (key == "ToString") {
-
-                    cse.back()->Push(gc, Json_Encode(list));
-                    return false;
-
-                } else if (key == "Insert") {
-                    if (args.size() != 2) {
-                        throw VMException(
-                            "List.Insert must only accept two arguments");
-                    }
-                    int64_t index;
-
-                    if (!GetArgument(args, 0, index)) {
-                        throw VMException(
-                            "List.Insert first argument must be Long");
-                    }
-
-                    gc->BarrierBegin();
-                    list->Insert(index, args[1]);
-                    gc->BarrierEnd();
-                    cse.back()->Push(gc, Undefined());
-                    return false;
-                } else if (key == "Add") {
-                    if (args.size() != 1) {
-                        throw VMException(
-                            "List.Add must only accept one argument");
-                    }
-                    gc->BarrierBegin();
-                    list->Add(args[0]);
-                    gc->BarrierEnd();
-                    cse.back()->Push(gc, Undefined());
-                    return false;
-                } else if (key == "Contains") {
-                    if (args.size() != 1) {
-                        throw VMException(
-                            "List.Contains must only accept one argument");
-                    }
-                    gc->BarrierBegin();
-                    for (int64_t i = 0; i < list->Count(); i++) {
-                        auto item = list->Get(i);
-                        gc->BarrierEnd();
-                        if (Equals(gc, args[0], item)) {
-                            cse.back()->Push(gc, true);
-                            return false;
-                        }
-                        gc->BarrierBegin();
-                    }
-                    gc->BarrierEnd();
-                    cse.back()->Push(gc, false);
-                    return false;
-                } else if (key == "IndexOf") {
-                    // IndexOf(obj, $idx)
-                    if (args.size() < 1 || args.size() > 2) {
-                        throw VMException("List.IndexOf must either have one "
-                                          "or two arguments");
-                    }
-
-                    int64_t i = 0;
-
-                    GetArgument(args, 1, i);
-                    gc->BarrierBegin();
-                    for (; i < list->Count(); i++) {
-                        auto item = list->Get(i);
-                        gc->BarrierEnd();
-                        if (Equals(gc, args[0], item)) {
-
-                            cse.back()->Push(gc, i);
-                            return false;
-                        }
-                        gc->BarrierBegin();
-                    }
-                    gc->BarrierEnd();
-                    cse.back()->Push(gc, (int64_t)-1);
-                    return false;
-                } else if (key == "RemoveAllEqual") {
-                    if (args.size() != 1) {
-                        throw VMException("List.RemoveAllEqual must only "
-                                          "accept one argument");
-                    }
-
-                    gc->BarrierBegin();
-                    for (int64_t i = 0; i < list->Count(); i++) {
-                        auto item = list->Get(i);
-                        gc->BarrierEnd();
-                        if (Equals(gc, args[0], item)) {
-                            gc->BarrierBegin();
-                            list->RemoveAt(i);
-                            i--;
-                        } else
-                            gc->BarrierBegin();
-                    }
-                    gc->BarrierEnd();
-                    cse.back()->Push(gc, Undefined());
-                    return false;
-                } else if (key == "Remove") {
-                    if (args.size() != 1) {
-                        throw VMException(
-                            "List.Remove must only accept one argument");
-                    }
-
-                    gc->BarrierBegin();
-                    for (int64_t i = 0; i < list->Count(); i++) {
-                        auto item = list->Get(i);
-                        gc->BarrierEnd();
-                        if (Equals(gc, args[0], item)) {
-                            gc->BarrierBegin();
-                            list->RemoveAt(i);
-                            gc->BarrierEnd();
-                            break;
-                        }
-                        gc->BarrierBegin();
-                    }
-                    gc->BarrierEnd();
-                    cse.back()->Push(gc, Undefined());
-                    return false;
-                } else if (key == "RemoveAt") {
-                    if (args.size() != 1) {
-                        throw VMException(
-                            "List.RemoveAt must only accept one argument");
-                    }
-
-                    if (!std::holds_alternative<int64_t>(args[0])) {
-                        throw VMException(
-                            "List.RemoveAt must only accept a long");
-                    }
-                    gc->BarrierBegin();
-                    list->RemoveAt(std::get<int64_t>(args[0]));
-                    gc->BarrierEnd();
-                    cse.back()->Push(gc, Undefined());
-                    return false;
-                } else if (key == "Clear") {
-                    gc->BarrierBegin();
-                    list->Clear();
-                    gc->BarrierEnd();
-                    cse.back()->Push(gc, Undefined());
-                    return false;
-                } else if (key == "GetAt") {
-                    if (args.size() != 1) {
-                        throw VMException(
-                            "List.GetAt must only accept one argument");
-                    }
-
-                    if (!std::holds_alternative<int64_t>(args[0])) {
-                        throw VMException("List.GetAt must only accept a long");
-                    }
-
-                    int64_t index = std::get<int64_t>(args[0]);
-                    if (index >= 0 && index < list->Count()) {
-                        cse.back()->Push(gc, list->Get(index));
-                        return false;
-                    }
-
-                } else if (key == "SetAt") {
-                    if (args.size() != 2) {
-                        throw VMException(
-                            "List.SetAt must only accept two arguments");
-                    }
-
-                    if (!std::holds_alternative<int64_t>(args[0])) {
-                        throw VMException("List.SetAt first argument must only "
-                                          "accept a long");
-                    }
-
-                    int64_t index = std::get<int64_t>(args[0]);
-                    if (index >= 0 && index < list->Count()) {
-                        list->Set(index, args[1]);
-                        return false;
-                    }
-
-                }
-
-                else if (key == "Count" || key == "Length") {
-                    gc->BarrierBegin();
-                    cse.back()->Push(gc, list->Count());
-                    gc->BarrierEnd();
                     return false;
                 }
                 cse.back()->Push(gc, Undefined());

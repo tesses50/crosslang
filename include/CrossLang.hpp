@@ -84,31 +84,33 @@ class TVMVersion {
      *
      * @return uint8_t The major
      */
-    uint8_t Major() { return major; }
+    uint8_t Major() const { return major; }
     /**
      * @brief Minor
      *
      * @return uint8_t The minor
      */
-    uint8_t Minor() { return minor; }
+    uint8_t Minor() const { return minor; }
     /**
      * @brief Patch
      *
      * @return uint8_t The patch
      */
-    uint8_t Patch() { return patch; }
+    uint8_t Patch() const { return patch; }
     /**
      * @brief Build
      *
      * @return uint16_t The build
      */
-    uint16_t Build() { return build >> 2; }
+    uint16_t Build() const { return build >> 2; }
     /**
      * @brief Stage (dev, alpha, beta or prod)
      *
      * @return TVMVersionStage The stage
      */
-    TVMVersionStage VersionStage() { return (TVMVersionStage)(build & 3); }
+    TVMVersionStage VersionStage() const {
+        return static_cast<TVMVersionStage>(build & 3);
+    }
     /**
      * @brief Set the Major
      *
@@ -215,7 +217,7 @@ class TVMVersion {
      *
      * @param versionData an array that is 5 bytes long
      */
-    void ToArray(uint8_t *versionData) {
+    void ToArray(uint8_t *versionData) const {
         versionData[0] = major;
         versionData[1] = minor;
         versionData[2] = patch;
@@ -267,7 +269,7 @@ class TVMVersion {
      * @return int returns 1 if this is newer than other version, 0 if same, -1
      * if this is older than other version
      */
-    int CompareTo(TVMVersion &version) {
+    int CompareTo(const TVMVersion &version) const {
         if (this->major > version.major)
             return 1;
         if (this->major < version.major)
@@ -291,7 +293,7 @@ class TVMVersion {
      *
      * @return uint64_t serialized as a long
      */
-    uint64_t AsLong() {
+    uint64_t AsLong() const {
         uint64_t v = (uint64_t)major << 32;
         v |= (uint64_t)minor << 24;
         v |= (uint64_t)patch << 16;
@@ -304,7 +306,7 @@ class TVMVersion {
      * @return int CompareTo(RuntimeVersion) where RuntimeVersion is the runtime
      * version
      */
-    int CompareToRuntime() {
+    int CompareToRuntime() const {
         TVMVersion version(CROSSLANG_BYTECODE_MAJOR, CROSSLANG_BYTECODE_MINOR,
                            CROSSLANG_BYTECODE_PATCH, CROSSLANG_BYTECODE_BUILD,
                            CROSSLANG_BYTECODE_VERSIONSTAGE);
@@ -319,9 +321,10 @@ class TVMVersion {
      * @return true the parsing succeeded
      * @return false the parsing failed
      */
-    static bool TryParse(std::string versionStr, TVMVersion &version) {
+    static bool TryParse(const std::string &versionStr, TVMVersion &version) {
         if (versionStr.empty())
             return false;
+
         size_t sep = versionStr.find_last_of('-');
 
         std::string left = versionStr;
@@ -399,7 +402,7 @@ class TVMVersion {
      * @return std::string the version string like 1.0.0.0-prod (or dev, alpha,
      * beta)
      */
-    std::string ToString() {
+    std::string ToString() const {
         std::string str = {};
         str.append(std::to_string((int)this->Major()));
         str.push_back('.');
@@ -408,14 +411,20 @@ class TVMVersion {
         str.append(std::to_string((int)this->Patch()));
         str.push_back('.');
         str.append(std::to_string((int)this->Build()));
-        if (this->VersionStage() == TVMVersionStage::DevVersion) {
+
+        switch (this->VersionStage()) {
+        case TVMVersionStage::DevVersion:
             str.append("-dev");
-        } else if (this->VersionStage() == TVMVersionStage::AlphaVersion) {
+            break;
+        case TVMVersionStage::AlphaVersion:
             str.append("-alpha");
-        } else if (this->VersionStage() == TVMVersionStage::BetaVersion) {
+            break;
+        case TVMVersionStage::BetaVersion:
             str.append("-beta");
-        } else if (this->VersionStage() == TVMVersionStage::ProductionVersion) {
+            break;
+        case TVMVersionStage::ProductionVersion:
             str.append("-prod");
+            break;
         }
         return str;
     }
@@ -1347,14 +1356,67 @@ class Parser {
 class THeapObject;
 class CallStackEntry;
 class InterperterThread;
+class TString;
 class THeapObject {
+  protected:
+    virtual bool opAdd(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                       TObject rhs);
+    virtual bool opSub(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                       TObject rhs);
+    virtual bool opTimes(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                         TObject rhs);
+    virtual bool opDiv(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                       TObject rhs);
+    virtual bool opMod(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                       TObject rhs);
+    virtual bool opLessThan(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                            TObject rhs);
+    virtual bool opGreaterThan(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                               TObject rhs);
+    virtual bool opLessThanEqual(InterperterThread *thrd,
+                                 std::shared_ptr<GC> gc, TObject rhs);
+    virtual bool opGreaterThanEqual(InterperterThread *thrd,
+                                    std::shared_ptr<GC> gc, TObject rhs);
+    virtual bool opLeftShift(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                             TObject rhs);
+    virtual bool opRightShift(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                              TObject rhs);
+    virtual bool opBitwiseOr(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                             TObject rhs);
+    virtual bool opBitwiseAnd(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                              TObject rhs);
+    virtual bool opXor(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                       TObject rhs);
+    virtual bool opNeg(InterperterThread *thrd, std::shared_ptr<GC> gc);
+    virtual bool opBitwiseNot(InterperterThread *thrd, std::shared_ptr<GC> gc);
+    virtual bool opLogicalNot(InterperterThread *thrd, std::shared_ptr<GC> gc);
+    virtual bool opExecuteMethod(InterperterThread *thrd,
+                                 std::shared_ptr<GC> gc,
+                                 const std::string &name,
+                                 const std::vector<TObject> &args);
+    virtual bool opSetField(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                            const std::string &name, TObject value);
+    virtual bool opGetField(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                            const std::string &name);
+
   public:
     bool marked;
     virtual void Mark() { marked = true; }
     THeapObject() = default;
     THeapObject(const THeapObject &) = delete;
     THeapObject &operator=(const THeapObject &) = delete;
+
     virtual ~THeapObject() = default;
+
+    virtual std::string TypeName() = 0;
+
+    virtual TString *ToString(GCList &ls);
+    virtual bool ToBool();
+
+    virtual bool IsEqualTo(std::shared_ptr<GC> gc, TObject rhs);
+    virtual bool IsNotEqualTo(std::shared_ptr<GC> gc, TObject rhs);
+
+    friend class InterperterThread;
 };
 
 // this is a dummy type with
@@ -1368,13 +1430,12 @@ class TContinue {};
  */
 
 using TObject =
-    std::variant<Undefined, int64_t, double, char, bool, std::string,
-                 std::regex, Tesses::Framework::Filesystem::VFSPath,
-                 MethodInvoker, THeapObject *, TVMVersion,
+    std::variant<Undefined, int64_t, double, char, bool, std::regex,
+                 Tesses::Framework::Filesystem::VFSPath, MethodInvoker,
+                 THeapObject *, TVMVersion,
                  std::shared_ptr<Tesses::Framework::Date::DateTime>,
                  std::shared_ptr<Tesses::Framework::Date::TimeSpan>, TBreak,
-                 TContinue, std::shared_ptr<Tesses::Framework::Streams::Stream>,
-                 std::shared_ptr<Tesses::Framework::Filesystem::VFS>,
+                 TContinue, std::shared_ptr<Tesses::Framework::Filesystem::VFS>,
                  std::shared_ptr<Tesses::Framework::Http::IHttpServer>,
                  std::shared_ptr<Tesses::Framework::Http::HttpRequestBody>,
                  std::shared_ptr<Tesses::Framework::TextStreams::TextReader>,
@@ -1432,7 +1493,7 @@ class GC : public std::enable_shared_from_this<GC> {
 };
 
 std::string GetObjectTypeString(TObject obj);
-std::string ToString(std::shared_ptr<GC> gc, TObject obj);
+std::string ObjectToString(std::shared_ptr<GC> gc, TObject obj);
 
 class GCList {
     std::vector<THeapObject *> items;
@@ -1452,6 +1513,8 @@ class GCList {
         return obj;
     }
 
+    TString *FromString(std::string_view str);
+
     void Add(TObject v);
     void Remove(TObject v);
     void Mark();
@@ -1470,36 +1533,164 @@ class TFileChunk : public THeapObject {
     static TFileChunk *Create(GCList &gc);
     TFile *file;
     std::vector<uint8_t> code;
-    std::vector<std::string> args;
-    std::optional<std::string> name;
+    std::vector<TString *> args;
+    std::optional<TString *> name;
+    void Mark();
+};
+class TMutByteView;
+class TByteView : public THeapObject {
+  public:
+    virtual std::pair<const uint8_t *, size_t> GetBounds() const = 0;
+    TString *ToString(GCList &ls);
+    void CopyTo(TMutByteView *view);
+    void CopyTo(TMutByteView *view, size_t srcOffset, size_t destOffset,
+                size_t length);
+    std::pair<const uint8_t *, size_t>
+    GetBoundsConstrained(size_t offset = 0, size_t length = (size_t)-1) {
+        auto bounds = GetBounds();
+
+        if (bounds.first == nullptr || offset >= bounds.second || length == 0)
+            return std::pair<const uint8_t *, size_t>(nullptr, 0);
+
+        length = std::min(length, bounds.second - offset);
+
+        return std::pair<const uint8_t *, size_t>(bounds.first + offset,
+                                                  length);
+    }
+    std::string TypeName();
+    bool opExecuteMethod(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                         const std::string &name,
+                         const std::vector<TObject> &args);
+    bool opGetField(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                    const std::string &name);
+
+    int64_t GetAt(size_t index) {
+        auto res = GetBoundsConstrained(index, 1);
+        if (res.first == nullptr || res.second != 1)
+            return -1;
+        return *res.first;
+    }
+};
+
+class TMutByteView : public TByteView {
+  public:
+    std::pair<const uint8_t *, size_t> GetBounds() const;
+    virtual std::pair<uint8_t *, size_t> GetMutableBounds() = 0;
+    std::pair<uint8_t *, size_t>
+    GetMutableBoundsConstrained(size_t offset = 0, size_t length = (size_t)-1) {
+        auto bounds = GetMutableBounds();
+        if (bounds.first == nullptr || offset >= bounds.second || length == 0)
+            return std::pair<uint8_t *, size_t>(nullptr, 0);
+
+        length = std::min(length, bounds.second - offset);
+
+        return std::pair<uint8_t *, size_t>(bounds.first + offset, length);
+    }
+};
+
+class TMemoryStreamMutByteView : public TMutByteView {
+    std::shared_ptr<Tesses::Framework::Streams::MemoryStream> strm;
+
+  public:
+    TMemoryStreamMutByteView(
+        std::shared_ptr<Tesses::Framework::Streams::MemoryStream> strm);
+    std::pair<uint8_t *, size_t> GetMutableBounds();
+};
+
+class TString : public TByteView {
+  private:
+    std::string text;
+
+  protected:
+    bool opAdd(InterperterThread *thrd, std::shared_ptr<GC> gc, TObject rhs);
+    bool opLessThan(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                    TObject rhs);
+    bool opGreaterThan(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                       TObject rhs);
+    bool opLessThanEqual(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                         TObject rhs);
+    bool opGreaterThanEqual(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                            TObject rhs);
+
+  public:
+    TString();
+    explicit TString(std::string_view str);
+    TString(std::string_view lhs, std::string_view rhs);
+    TString(const char *text, size_t len);
+    template <typename Itterator>
+    TString(Itterator begin, Itterator end) : text(begin, end) {}
+    TString(std::string &&str);
+
+    const std::string &GetString() const;
+
+    std::pair<const uint8_t *, size_t> GetBounds() const;
+
+    TString *ToString(GCList &ls);
+
+    std::string TypeName();
+
+    bool IsEqualTo(std::shared_ptr<GC> gc, TObject rhs);
+    bool IsNotEqualTo(std::shared_ptr<GC> gc, TObject rhs);
+};
+class TResource : public TByteView {
+    std::vector<uint8_t> bytes;
+
+  public:
+    TResource(std::vector<uint8_t> &&bytes);
+
+    std::pair<const uint8_t *, size_t> GetBounds() const;
+    std::string TypeName();
+};
+class TByteArray : public TMutByteView {
+    std::vector<uint8_t> data;
+
+  public:
+    TByteArray(size_t length);
+    TByteArray(TByteView *view);
+    void Resize(size_t length);
+    std::pair<uint8_t *, size_t> GetMutableBounds();
+    std::string TypeName();
+};
+class TMutSpan : public TMutByteView {
+    TMutByteView *view;
+    int64_t offset;
+    int64_t length;
+
+  public:
+    TMutSpan(TMutByteView *view, int64_t offset, int64_t length);
+    std::pair<uint8_t *, size_t> GetMutableBounds();
+    std::string TypeName();
+    void Mark();
+};
+class TSpan : public TByteView {
+    TByteView *view;
+    int64_t offset;
+    int64_t length;
+
+  public:
+    TSpan(TByteView *view, int64_t offset, int64_t length);
+    std::pair<const uint8_t *, size_t> GetBounds() const;
+    std::string TypeName();
     void Mark();
 };
 
-class TByteArray : public THeapObject {
-  public:
-    std::vector<uint8_t> data;
-    [[deprecated("Use GCList::Create<T>() instead")]]
-    static TByteArray *Create(GCList *gc);
-    [[deprecated("Use GCList::Create<T>() instead")]]
-    static TByteArray *Create(GCList &gc);
-};
 enum class TClassModifier { Private, Protected, Public, Static };
 class TClassEntry {
   public:
     TClassModifier modifier;
     bool isFunction;
     bool isAbstract;
-    std::vector<std::string> args;
-    std::string documentation;
-    std::string name;
+    std::vector<TString *> args;
+    TString *documentation;
+    TString *name;
 
     uint32_t chunkId;
 };
 class TClass {
   public:
-    std::string documentation;
-    std::vector<std::string> name;
-    std::vector<std::string> inherits;
+    TString *documentation;
+    std::vector<TString *> name;
+    std::vector<TString *> inherits;
     std::vector<TClassEntry> entry;
 };
 class TClassObjectEntry {
@@ -1519,19 +1710,19 @@ class TFile : public THeapObject {
     static TFile *Create(GCList &gc);
     std::vector<TFileChunk *> chunks;
 
-    std::vector<std::string> strings;
-    std::vector<std::pair<std::string, std::string>> vms;
-    std::vector<std::pair<std::vector<std::string>, uint32_t>> functions;
-    std::vector<std::pair<std::string, TVMVersion>> dependencies;
-    std::vector<std::pair<std::string, TVMVersion>> tools;
+    std::vector<TString *> strings;
+    std::vector<std::pair<TString *, TString *>> vms;
+    std::vector<std::pair<std::vector<TString *>, uint32_t>> functions;
+    std::vector<std::pair<TString *, TVMVersion>> dependencies;
+    std::vector<std::pair<TString *, TVMVersion>> tools;
     std::vector<std::pair<std::string, std::vector<uint8_t>>> sections;
-    std::vector<std::pair<std::string, std::vector<uint8_t>>> metadata;
-    std::vector<std::vector<uint8_t>> resources;
+    std::vector<std::pair<TString *, std::vector<uint8_t>>> metadata;
+    std::vector<TResource *> resources;
     std::vector<TClass> classes;
-    std::string name;
+    TString *name;
     TVMVersion version;
-    std::string info;
-    int32_t icon = -1;
+    TString *info;
+    TResource *icon = nullptr;
 
     void Load(std::shared_ptr<GC> gc,
               std::shared_ptr<Tesses::Framework::Streams::Stream> strm);
@@ -1541,10 +1732,10 @@ class TFile : public THeapObject {
                 uint8_t *buffer, size_t len);
     uint32_t
     EnsureInt(std::shared_ptr<Tesses::Framework::Streams::Stream> strm);
-    std::string
-    EnsureString(std::shared_ptr<Tesses::Framework::Streams::Stream> strm);
+    void EnsureString(GCList &ls,
+                      std::shared_ptr<Tesses::Framework::Streams::Stream> strm);
 
-    std::string
+    TString *
     GetString(std::shared_ptr<Tesses::Framework::Streams::Stream> strm);
     void Mark();
 
@@ -1570,6 +1761,13 @@ class TAssociativeArray : public THeapObject {
 };
 
 class TList : public THeapObject {
+  protected:
+    bool opExecuteMethod(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                         const std::string &name,
+                         const std::vector<TObject> &args);
+    bool opGetField(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                    const std::string &name);
+
   public:
     TList() = default;
     template <typename Itterator>
@@ -1577,10 +1775,7 @@ class TList : public THeapObject {
     TList(std::initializer_list<TObject> il) : items(il) {}
     TList(int64_t capacity) { items.reserve(capacity); }
     std::vector<TObject> items;
-    [[deprecated("Use GCList::Create<T>() instead")]]
-    static TList *Create(GCList *gc);
-    [[deprecated("Use GCList::Create<T>() instead")]]
-    static TList *Create(GCList &gc);
+
     template <typename Itterator>
     [[deprecated("Use GCList::Create<T>() instead")]]
     static TList *Create(GCList *gc, Itterator begin, Itterator end) {
@@ -1599,6 +1794,7 @@ class TList : public THeapObject {
     static TList *Create(GCList &gc, std::initializer_list<TObject> il) {
         return gc.Create<TList>(il);
     }
+    std::string TypeName();
     virtual int64_t Count();
     virtual TObject Get(int64_t index);
     virtual void Set(int64_t index, TObject value);
@@ -2235,7 +2431,7 @@ class TDynamicList : public THeapObject {
     TObject Remove(GCList &ls, TObject v);
     TObject RemoveAt(GCList &ls, int64_t v);
     TObject Clear(GCList &ls);
-    TObject ToString(GCList &ls);
+    TString *ToString(GCList &ls);
 
     ~TDynamicList();
 };
@@ -2449,12 +2645,64 @@ class TNativeObject : public THeapObject {
         return ls->Create<T>(std::forward<TArgs>(args)...);
     }
 
-    virtual TObject CallMethod(GCList &ls, std::string name,
-                               std::vector<TObject> args) = 0;
-    virtual std::string TypeName() = 0;
-    virtual bool ToBool();
-    virtual bool Equals(std::shared_ptr<GC> gc, TObject right);
+    virtual TObject CallMethod(InterperterThread *thrd, GCList &ls,
+                               const std::string &name,
+                               const std::vector<TObject> &args) = 0;
 };
+class ITStream : public TNativeObject {
+  protected:
+    bool Exists(std::string_view str);
+
+  public:
+    TObject CallMethod(InterperterThread *thrd, GCList &ls,
+                       const std::string &name,
+                       const std::vector<TObject> &args);
+    std::string TypeName();
+    virtual std::shared_ptr<Tesses::Framework::Streams::Stream> GetStream() = 0;
+};
+class TObjectStreamWrapper : public ITStream {
+    std::shared_ptr<TObjectStream> strm;
+
+  public:
+    TObjectStreamWrapper(std::shared_ptr<TObjectStream> strm);
+    TObject CallMethod(InterperterThread *thrd, GCList &ls,
+                       const std::string &name,
+                       const std::vector<TObject> &args);
+    std::string TypeName();
+    std::shared_ptr<Tesses::Framework::Streams::Stream> GetStream();
+};
+class TStream : public ITStream {
+    std::shared_ptr<Tesses::Framework::Streams::Stream> strm;
+
+  public:
+    TStream(std::shared_ptr<Tesses::Framework::Streams::Stream> strm);
+    std::shared_ptr<Tesses::Framework::Streams::Stream> GetStream();
+};
+
+class TMemoryStream : public ITStream {
+    std::shared_ptr<Tesses::Framework::Streams::MemoryStream> strm;
+
+  public:
+    TMemoryStream(
+        std::shared_ptr<Tesses::Framework::Streams::MemoryStream> strm);
+    std::shared_ptr<Tesses::Framework::Streams::Stream> GetStream();
+    TObject CallMethod(InterperterThread *thrd, GCList &ls,
+                       const std::string &name,
+                       const std::vector<TObject> &args);
+    std::string TypeName();
+};
+
+class TNetworkStream : public ITStream {
+    std::shared_ptr<Tesses::Framework::Streams::NetworkStream> strm;
+    TNetworkStream(
+        std::shared_ptr<Tesses::Framework::Streams::NetworkStream> strm);
+    std::shared_ptr<Tesses::Framework::Streams::Stream> GetStream();
+    TObject CallMethod(InterperterThread *thrd, GCList &ls,
+                       const std::string &name,
+                       const std::vector<TObject> &args);
+    std::string TypeName();
+};
+
 class TRandom : public TNativeObject {
   public:
     Tesses::Framework::Random random;
@@ -2565,7 +2813,7 @@ class SyntaxException : public std::exception {
     LexTokenLineInfo LineInfo() { return line; }
 };
 
-template <typename T> bool GetObject(TObject &obj, T &res) {
+template <typename T> bool GetObject(const TObject &obj, T &res) {
     if (!std::holds_alternative<T>(obj))
         return false;
     res = std::get<T>(obj);
@@ -2580,20 +2828,34 @@ inline bool IsNull(const TObject &obj) {
 }
 
 [[deprecated("Use GetObjectHeap() with TString instead")]]
-inline bool GetObject(TObject &obj, std::string &str) {
+inline bool GetObject(const TObject &obj, std::string &str) {
     if (!std::holds_alternative<std::string>(obj))
         return false;
     str = std::get<std::string>(obj);
     return true;
 }
 
+template <
+    typename T,
+    std::enable_if_t<std::is_base_of_v<Tesses::Framework::Streams::Stream, T>,
+                     int> = 0>
+bool GetObject(const TObject &obj, std::shared_ptr<T> &ptr) {
+    ITStream *strm;
+    if (!GetObjectHeap(obj, strm))
+        return false;
+    auto res = std::dynamic_pointer_cast<T>(strm->GetStream());
+    if (!res)
+        return false;
+    ptr = res;
+    return true;
+}
+
 template <typename T>
-bool GetArgument(std::vector<TObject> &args, size_t index, T &obj) {
+bool GetArgument(const std::vector<TObject> &args, size_t index, T &obj) {
     if (index >= args.size())
         return false;
     return GetObject(args[index], obj);
 }
-
 template <typename T> bool GetObjectHeap(TObject &obj, T &res) {
     THeapObject *h;
     if (!GetObject<THeapObject *>(obj, h))
@@ -2606,7 +2868,7 @@ template <typename T> bool GetObjectHeap(TObject &obj, T &res) {
 }
 
 template <typename T>
-bool GetArgumentHeap(std::vector<TObject> &args, size_t index, T &obj) {
+bool GetArgumentHeap(const std::vector<TObject> &args, size_t index, T &obj) {
     if (index >= args.size())
         return false;
     return GetObjectHeap(args[index], obj);
@@ -2616,8 +2878,8 @@ bool GetObjectAsPath(TObject &obj, Tesses::Framework::Filesystem::VFSPath &path,
 bool GetArgumentAsPath(std::vector<TObject> &args, size_t index,
                        Tesses::Framework::Filesystem::VFSPath &path,
                        bool allowString = true);
-bool ToBool(TObject obj);
-bool Equals(std::shared_ptr<GC> gc, TObject left, TObject right);
+bool ObjectToBool(TObject obj);
+bool ObjectEquals(std::shared_ptr<GC> gc, TObject left, TObject right);
 typedef void (*PluginFunction)(std::shared_ptr<GC> gc, TRootEnvironment *env);
 #if !defined(_WIN32)
 #define DLLEXPORT
@@ -2662,11 +2924,10 @@ ToHttpServer(std::shared_ptr<GC> gc, TObject obj);
 
 class EmbedStream : public Tesses::Framework::Streams::Stream {
     size_t offset;
-    MarkedTObject file;
-    uint32_t resource;
+    MarkedTObject resource;
 
   public:
-    EmbedStream(std::shared_ptr<GC> gc, TFile *file, uint32_t resource);
+    EmbedStream(std::shared_ptr<GC> gc, TResource *res);
     bool CanRead();
     bool CanSeek();
     bool EndOfStream();

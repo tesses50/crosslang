@@ -114,7 +114,7 @@ static TObject JsonDeserialize(GCList &ls2, JToken json) {
     if (TryGetJToken(json, str))
         return str;
     if (TryGetJToken(json, arr)) {
-        TList *ls = TList::Create(ls2);
+        TList *ls = ls2.Create<TList>();
 
         for (auto &item : arr) {
             auto itemRes = JsonDeserialize(ls2, item);

@@ -9,7 +9,7 @@ TArgWrapper *TArgWrapper::Create(GCList *ls, TCallable *callable) {
 }
 TObject TArgWrapper::Call(GCList &ls, std::vector<TObject> args) {
     auto cse = GC::GetCurrentFunction();
-    TList *argList = TList::Create(ls);
+    TList *argList = ls.Create<TList>();
     argList->items = args;
     TObject v = this->callable->Call(ls, {argList});
     GC::SetCurrentFunction(cse);

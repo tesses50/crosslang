@@ -100,7 +100,7 @@ class SQLiteObject : public TNativeObject {
 
                 this->db->Exec(arg, res);
 
-                TList *list = TList::Create(ls);
+                TList *list = ls.Create<TList>();
 
                 for (auto &item : res) {
                     TDictionary *dict = TDictionary::Create(ls);

@@ -2042,7 +2042,8 @@ bool InterperterThread::DeclareConstVariable(std::shared_ptr<GC> gc) {
 
             throw VMException(
                 "[DECLARECONSTVARIABLE] Can't pop string, got type " +
-                GetObjectTypeString(key) + " = " + ToString(gc, key) + ".");
+                GetObjectTypeString(key) + " = " + ObjectToString(gc, key) +
+                ".");
         }
     }
     return false;
@@ -2060,10 +2061,8 @@ bool InterperterThread::PushResourceStream(std::shared_ptr<GC> gc) {
 
             gc->BarrierBegin();
             GCList ls(gc);
-            //              TByteArray* arr = TByteArray::Create(ls);
-            //                arr->data = stk->callable->file->resources[n];
-            stk->Push(
-                gc, std::make_shared<EmbedStream>(gc, stk->callable->file, n));
+            stk->Push(gc, ls.Create<TStream>(std::make_shared<EmbedStream>(
+                              gc, stk->callable->file->resources[n])));
 
             gc->BarrierEnd();
         } else {
@@ -2086,9 +2085,9 @@ bool InterperterThread::PushResource(std::shared_ptr<GC> gc) {
 
             gc->BarrierBegin();
             GCList ls(gc);
-            TByteArray *arr = TByteArray::Create(ls);
-            arr->data = stk->callable->file->resources[n];
-            stk->Push(gc, arr);
+
+            stk->Push(gc,
+                      ls.Create<TByteArray>(stk->callable->file->resources[n]));
 
             gc->BarrierEnd();
         } else {
@@ -2379,7 +2378,7 @@ bool InterperterThread::CreateArray(std::shared_ptr<GC> gc) {
     std::vector<CallStackEntry *> &cse = this->call_stack_entries;
     auto stk = cse.back();
     GCList ls(gc);
-    TList *dict = TList::Create(ls);
+    TList *dict = ls.Create<TList>();
     stk->Push(gc, dict);
     return false;
 }
@@ -2910,7 +2909,7 @@ void InterperterThread::AddCallStackEntry(GCList &ls, TClosure *closure,
                                      : closure->env;
     cse->ip = 0;
     if (closure->closure->args.empty() && closure->chunkId != 0) {
-        TList *list = TList::Create(ls);
+        TList *list = ls.Create<TList>();
         list->items = args;
         cse->env->DeclareVariable("arguments", list);
 
@@ -2974,7 +2973,7 @@ void InterperterThread::AddCallStackEntry(GCList &ls, TClosure *closure,
         if (i == closure->closure->args.size() - 1 && back.size() > 2 &&
             back[0] == '$' && back[1] == '$') {
             auto argName = closure->closure->args[i];
-            auto lsArgs = TList::Create(ls);
+            auto lsArgs = ls.Create<TList>();
             for (; i < args.size(); i++)
                 lsArgs->Add(args[i]);
             cse->env->DeclareVariable(trimStart(argName), lsArgs);

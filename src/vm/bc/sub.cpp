@@ -67,7 +67,15 @@ bool InterperterThread::Sub(std::shared_ptr<GC> gc) {
             std::make_shared<Tesses::Framework::Date::DateTime>((*l) - (*r)));
     } else if (std::holds_alternative<THeapObject *>(left)) {
         auto obj = std::get<THeapObject *>(left);
-        auto dict = dynamic_cast<TDictionary *>(obj);
+
+        if (obj == nullptr) {
+            cse.back()->Push(gc, Undefined());
+            return false;
+        }
+
+        return obj->opSub(this, gc, right);
+
+        /*auto dict = dynamic_cast<TDictionary *>(obj);
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
 
         auto natObj = dynamic_cast<TNativeObject *>(obj);
@@ -104,7 +112,7 @@ bool InterperterThread::Sub(std::shared_ptr<GC> gc) {
         } else {
             cse.back()->Push(gc, Undefined());
         }
-
+        */
     } else {
         cse.back()->Push(gc, Undefined());
     }

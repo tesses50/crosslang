@@ -45,7 +45,7 @@ TObject TDynamicDictionary::CallMethod(GCList &ls, std::string name,
     ls.GetGC()->BarrierBegin();
     dict->SetValue("Type", "CallMethod");
     dict->SetValue("Name", name);
-    auto argVal = TList::Create(ls);
+    auto argVal = ls.Create<TList>();
     argVal->items = args;
     dict->SetValue("Arguments", argVal);
     ls.GetGC()->BarrierEnd();

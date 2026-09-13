@@ -43,15 +43,18 @@ void TFile::Ensure(std::shared_ptr<Tesses::Framework::Streams::Stream> stream,
             "End of file, could not read " + std::to_string((int64_t)len) +
             " byte(s)., offset=" + std::to_string(stream->GetLength()));
 }
-std::string TFile::EnsureString(
-    std::shared_ptr<Tesses::Framework::Streams::Stream> stream) {
+void TFile::EnsureString(
+    GCList &ls, std::shared_ptr<Tesses::Framework::Streams::Stream> stream) {
     auto len = EnsureInt(stream);
-    if (len == 0)
-        return {};
+    if (len == 0) {
+        this->strings.push_back(ls.FromString(""));
+        return;
+    }
     std::string str = {};
     str.resize((size_t)len);
     Ensure(stream, (uint8_t *)str.data(), str.size());
-    return str;
+
+    this->strings.push_back(ls.Create<TString>(std::move(str)));
 }
 
 uint32_t
@@ -60,7 +63,7 @@ TFile::EnsureInt(std::shared_ptr<Tesses::Framework::Streams::Stream> stream) {
     Ensure(stream, buffer, 4);
     return BitConverter::ToUint32BE(buffer[0]);
 }
-std::string
+TString *
 TFile::GetString(std::shared_ptr<Tesses::Framework::Streams::Stream> stream) {
     uint32_t index = EnsureInt(stream);
     if (index >= this->strings.size())
@@ -75,7 +78,7 @@ void TFile::EnsureCanRunInCrossLang() {
         return;
 
     for (auto item : this->vms) {
-        if (item.first == VMName) {
+        if (item.first->GetString() == VMName) {
             return;
         }
     }
@@ -83,7 +86,8 @@ void TFile::EnsureCanRunInCrossLang() {
     std::string errorMessage = "The virtual machines supported are:\n";
 
     for (auto item : this->vms) {
-        errorMessage += item.first + "\n\t" + item.second + "\n";
+        errorMessage +=
+            item.first->GetString() + "\n\t" + item.second->GetString() + "\n";
     }
     throw VMException(errorMessage);
 }
@@ -152,7 +156,7 @@ TDictionary *TFile::MetadataDecode(GCList &ls, size_t midx) {
                     items.push_back(parseEnt());
                 }
 
-                return TList::Create(ls, items.begin(), items.end());
+                return ls.Create<TList>(items.begin(), items.end());
             } else
                 throw std::out_of_range("Abrupt end of metadata");
         } break;
@@ -166,8 +170,8 @@ TDictionary *TFile::MetadataDecode(GCList &ls, size_t midx) {
                     if (index + 4 <= bytes.size()) {
                         auto val2 = BitConverter::ToUint32BE(bytes[index]);
                         index += 4;
-                        std::string &text = this->strings.at((size_t)val2);
-                        items.emplace_back(text, parseEnt());
+                        TString *text = this->strings.at((size_t)val2);
+                        items.emplace_back(text->GetString(), parseEnt());
                     } else
                         throw std::out_of_range("Abrupt end of metadata");
                 }
@@ -180,9 +184,7 @@ TDictionary *TFile::MetadataDecode(GCList &ls, size_t midx) {
             if (index + 4 <= bytes.size()) {
                 auto val = BitConverter::ToUint32BE(bytes[index]);
                 index += 4;
-                auto ba = TByteArray::Create(ls);
-                ba->data = this->resources.at((size_t)val);
-                return ba;
+                return ls.Create<TByteArray>(this->resources.at((size_t)val));
             } else
                 throw std::out_of_range("Abrupt end of metadata");
         } break;
@@ -190,7 +192,8 @@ TDictionary *TFile::MetadataDecode(GCList &ls, size_t midx) {
             if (index + 4 <= bytes.size()) {
                 auto val = BitConverter::ToUint32BE(bytes[index]);
                 index += 4;
-                return std::make_shared<EmbedStream>(ls.GetGC(), this, val);
+                return ls.Create<TStream>(
+                    std::make_shared<EmbedStream>(ls.GetGC(), this, val));
             } else
                 throw std::out_of_range("Abrupt end of metadata");
         } break;
@@ -212,8 +215,8 @@ TDictionary *TFile::MetadataDecode(GCList &ls, size_t midx) {
                     ls, "", {},
                     [val, this](GCList &ls,
                                 std::vector<TObject> args) -> TObject {
-                        return std::make_shared<EmbedStream>(ls.GetGC(), this,
-                                                             val);
+                        return ls.Create<TStream>(std::make_shared<EmbedStream>(
+                            ls.GetGC(), this, val));
                     });
                 em->watch.push_back(this);
                 ls.GetGC()->BarrierEnd();
@@ -261,26 +264,36 @@ void TFile::Load(std::shared_ptr<GC> gc,
             this->info = GetString(stream);
         } else if (strncmp(table_name, "DEPS", 4) == 0) // dependencies
         {
-            std::string name = GetString(stream);
+            TString *name = GetString(stream);
             uint8_t version_bytes[5];
             Ensure(stream, version_bytes, sizeof(version_bytes));
             TVMVersion depVersion(version_bytes);
+            gc->BarrierBegin();
             this->dependencies.push_back(
-                std::pair<std::string, TVMVersion>(name, depVersion));
+                std::pair<TString *, TVMVersion>(name, depVersion));
+            gc->BarrierEnd();
         } else if (strncmp(table_name, "TOOL", 4) ==
                    0) // compile tools (for package manager)
         {
-            std::string name = GetString(stream);
+            TString *name = GetString(stream);
             uint8_t version_bytes[5];
             Ensure(stream, version_bytes, sizeof(version_bytes));
             TVMVersion depVersion(version_bytes);
+            gc->BarrierBegin();
             this->tools.push_back(
-                std::pair<std::string, TVMVersion>(name, depVersion));
+                std::pair<TString *, TVMVersion>(name, depVersion));
+            gc->BarrierEnd();
         } else if (strncmp(table_name, "RESO", 4) ==
                    0) // resources (using embed)
         {
-            auto &data = this->resources.emplace_back(tableLen);
+            std::vector<uint8_t> data;
+            data.resize(tableLen);
             Ensure(stream, data.data(), data.size());
+            GCList ls(gc);
+            gc->BarrierBegin();
+            this->resources.push_back(ls.Create<TResource>(std::move(data)));
+            gc->BarrierEnd();
+
         } else if (strncmp(table_name, "CHKS", 4) == 0 &&
                    gc != nullptr) // chunks
         {
@@ -288,11 +301,13 @@ void TFile::Load(std::shared_ptr<GC> gc,
             size_t chunkCount = (size_t)EnsureInt(stream);
             for (size_t j = 0; j < chunkCount; j++) {
 
-                auto chunk = TFileChunk::Create(ls);
+                auto chunk = ls.Create<TFileChunk>();
                 chunk->file = this;
                 size_t argCount = (size_t)EnsureInt(stream);
                 for (size_t k = 0; k < argCount; k++) {
+                    gc->BarrierBegin();
                     chunk->args.push_back(GetString(stream));
+                    gc->BarrierEnd();
                 }
                 size_t len = (size_t)EnsureInt(stream);
                 chunk->code.resize(len);
@@ -307,33 +322,45 @@ void TFile::Load(std::shared_ptr<GC> gc,
             size_t funLength = (size_t)EnsureInt(stream);
 
             for (size_t j = 0; j < funLength; j++) {
-                std::vector<std::string> fnParts;
+                std::vector<TString *> fnParts;
                 uint32_t fnPartsC = EnsureInt(stream);
                 for (uint32_t k = 0; k < fnPartsC; k++) {
                     fnParts.push_back(GetString(stream));
                 }
 
                 uint32_t fnNumber = EnsureInt(stream);
+                gc->BarrierBegin();
                 this->functions.push_back(
-                    std::pair<std::vector<std::string>, uint32_t>(fnParts,
-                                                                  fnNumber));
+                    std::pair<std::vector<TString *>, uint32_t>(fnParts,
+                                                                fnNumber));
+                gc->BarrierEnd();
             }
 
         } else if (strncmp(table_name, "STRS", 4) == 0) // strings
         {
             size_t strsLen = (size_t)EnsureInt(stream);
+
+            gc->BarrierBegin();
+            this->strings.reserve(strsLen);
+            gc->BarrierEnd();
+
+            GCList ls(gc);
             for (size_t j = 0; j < strsLen; j++) {
-                this->strings.push_back(EnsureString(stream));
+                gc->BarrierBegin();
+                EnsureString(ls, stream);
+                gc->BarrierEnd();
             }
         } else if (strncmp(table_name, "ICON", 4) == 0) // icon
         {
-            this->icon = (int32_t)EnsureInt(stream);
+            this->icon = this->resources.at(EnsureInt(stream));
         } else if (strncmp(table_name, "MACH", 4) == 0) // machine
         {
-            std::string name = GetString(stream);
-            std::string howToGet = GetString(stream);
+            TString *name = GetString(stream);
+            TString *howToGet = GetString(stream);
+            gc->BarrierBegin();
             this->vms.push_back(
-                std::pair<std::string, std::string>(name, howToGet));
+                std::pair<TString *, TString *>(name, howToGet));
+            gc->BarrierEnd();
         } else if (strncmp(table_name, "CLSS", 4) == 0) // classes
         {
             uint32_t clsCnt = EnsureInt(stream);
@@ -341,14 +368,17 @@ void TFile::Load(std::shared_ptr<GC> gc,
                 TClass cls;
                 cls.documentation = GetString(stream);
                 uint32_t name_cnt = EnsureInt(stream);
+                cls.name.reserve((size_t)name_cnt);
                 for (uint32_t k = 0; k < name_cnt; k++) {
                     cls.name.push_back(GetString(stream));
                 }
                 name_cnt = EnsureInt(stream);
+                cls.inherits.reserve((size_t)name_cnt);
                 for (uint32_t k = 0; k < name_cnt; k++) {
                     cls.inherits.push_back(GetString(stream));
                 }
                 name_cnt = EnsureInt(stream);
+                cls.entry.reserve((size_t)name_cnt);
                 for (uint32_t k = 0; k < name_cnt; k++) {
                     TClassEntry ent;
                     Ensure(stream, main_header, 1);
@@ -359,12 +389,15 @@ void TFile::Load(std::shared_ptr<GC> gc,
                     ent.documentation = GetString(stream);
                     ent.name = GetString(stream);
                     uint32_t arglen = EnsureInt(stream);
+                    ent.args.reserve((size_t)arglen);
                     for (uint32_t l = 0; l < arglen; l++)
                         ent.args.push_back(GetString(stream));
                     ent.chunkId = EnsureInt(stream);
                     cls.entry.push_back(ent);
                 }
+                gc->BarrierBegin();
                 this->classes.push_back(cls);
+                gc->BarrierEnd();
             }
         } else if (strncmp(table_name, "META", 4) == 0) // structured metadata
         {

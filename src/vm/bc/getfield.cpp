@@ -145,59 +145,6 @@ bool InterperterThread::GetField(std::shared_ptr<GC> gc) {
             cse.back()->Push(gc, Undefined());
             return false;
         }
-        if (std::holds_alternative<
-                std::shared_ptr<Tesses::Framework::Streams::Stream>>(
-                instance)) {
-            auto strm =
-                std::get<std::shared_ptr<Tesses::Framework::Streams::Stream>>(
-                    instance);
-            if (strm != nullptr) {
-                auto netStrm = std::dynamic_pointer_cast<
-                    Tesses::Framework::Streams::NetworkStream>(strm);
-
-                if (key == "CanRead") {
-
-                    cse.back()->Push(gc, strm->CanRead());
-                    return false;
-                }
-                if (key == "CanWrite") {
-
-                    cse.back()->Push(gc, strm->CanWrite());
-                    return false;
-                }
-                if (key == "CanSeek") {
-
-                    cse.back()->Push(gc, strm->CanSeek());
-                    return false;
-                }
-                if (key == "EndOfStream") {
-
-                    cse.back()->Push(gc, strm->EndOfStream());
-                    return false;
-                }
-                if (key == "Length") {
-
-                    cse.back()->Push(gc, strm->GetLength());
-                    return false;
-                }
-                if (key == "Position") {
-
-                    cse.back()->Push(gc, strm->GetPosition());
-                    return false;
-                }
-
-                if (netStrm != nullptr) {
-                    if (key == "Port") {
-                        cse.back()->Push(gc, (int64_t)netStrm->GetPort());
-                        return false;
-                    }
-                }
-
-                cse.back()->Push(gc, Undefined());
-
-                return false;
-            }
-        }
         if (std::holds_alternative<TVMVersion>(instance)) {
             TVMVersion &version = std::get<TVMVersion>(instance);
             if (key == "Major") {
@@ -391,7 +338,7 @@ bool InterperterThread::GetField(std::shared_ptr<GC> gc) {
                     cse.back()->Push(gc, file->info);
                     return false;
                 } else if (key == "Dependencies") {
-                    auto list = TList::Create(ls);
+                    auto list = ls.Create<TList>();
                     gc->BarrierBegin();
                     for (auto item : file->dependencies) {
                         auto res = TDictionary::Create(ls);
@@ -403,7 +350,7 @@ bool InterperterThread::GetField(std::shared_ptr<GC> gc) {
                     cse.back()->Push(gc, list);
                     return false;
                 } else if (key == "Tools") {
-                    auto list = TList::Create(ls);
+                    auto list = ls.Create<TList>();
                     gc->BarrierBegin();
                     for (auto item : file->tools) {
                         auto res = TDictionary::Create(ls);
@@ -415,7 +362,7 @@ bool InterperterThread::GetField(std::shared_ptr<GC> gc) {
                     cse.back()->Push(gc, list);
                     return false;
                 } else if (key == "Strings") {
-                    auto list = TList::Create(ls);
+                    auto list = ls.Create<TList>();
                     gc->BarrierBegin();
                     for (auto item : file->name) {
                         list->Add(item);
@@ -429,7 +376,7 @@ bool InterperterThread::GetField(std::shared_ptr<GC> gc) {
                     cse.back()->Push(gc, (int64_t)file->metadata.size());
                     return false;
                 } else if (key == "Metadata") {
-                    TList *meta = TList::Create(ls);
+                    TList *meta = ls.Create<TList>();
                     gc->BarrierBegin();
                     for (size_t i = 0; i < file->metadata.size(); i++) {
                         meta->Add(TDictionary::Create(
@@ -441,7 +388,7 @@ bool InterperterThread::GetField(std::shared_ptr<GC> gc) {
                     cse.back()->Push(gc, meta);
                     return false;
                 } else if (key == "Sections") {
-                    TList *sections = TList::Create(ls);
+                    TList *sections = ls.Create<TList>();
                     gc->BarrierBegin();
                     for (auto &item : file->sections) {
                         TByteArray *ba = TByteArray::Create(ls);
@@ -455,7 +402,7 @@ bool InterperterThread::GetField(std::shared_ptr<GC> gc) {
                     cse.back()->Push(gc, sections);
                     return false;
                 } else if (key == "SupportedVMs") {
-                    TList *supported = TList::Create(ls);
+                    TList *supported = ls.Create<TList>();
                     gc->BarrierBegin();
                     if (file->vms.empty()) {
                         supported->Add(TDictionary::Create(
@@ -471,7 +418,7 @@ bool InterperterThread::GetField(std::shared_ptr<GC> gc) {
                     cse.back()->Push(gc, supported);
                     return false;
                 } else if (key == "Chunks") {
-                    auto list = TList::Create(ls);
+                    auto list = ls.Create<TList>();
                     gc->BarrierBegin();
                     for (auto item : file->chunks) {
                         list->Add(item);
@@ -482,7 +429,7 @@ bool InterperterThread::GetField(std::shared_ptr<GC> gc) {
                     cse.back()->Push(gc, list);
                     return false;
                 } else if (key == "Classes") {
-                    auto list = TList::Create(ls);
+                    auto list = ls.Create<TList>();
                     gc->BarrierBegin();
 
                     for (uint32_t i = 0; i < (uint32_t)file->classes.size();
@@ -494,13 +441,13 @@ bool InterperterThread::GetField(std::shared_ptr<GC> gc) {
                     gc->BarrierEnd();
                     return false;
                 } else if (key == "Functions") {
-                    auto list = TList::Create(ls);
+                    auto list = ls.Create<TList>();
                     gc->BarrierBegin();
                     for (auto &item : file->functions) {
                         TDictionary *dict = TDictionary::Create(ls);
                         if (!item.first.empty())
                             dict->SetValue("Documentation", item.first[0]);
-                        TList *nameParts = TList::Create(ls);
+                        TList *nameParts = ls.Create<TList>();
                         for (size_t i = 1; i < item.first.size(); i++) {
                             nameParts->Add(item.first[i]);
                         }
@@ -530,7 +477,7 @@ bool InterperterThread::GetField(std::shared_ptr<GC> gc) {
             }
             if (chunk != nullptr) {
                 if (key == "Arguments") {
-                    auto myargs = TList::Create(ls);
+                    auto myargs = ls.Create<TList>();
                     gc->BarrierBegin();
                     for (auto item : chunk->args) {
                         myargs->Add(item);
@@ -586,7 +533,7 @@ bool InterperterThread::GetField(std::shared_ptr<GC> gc) {
             if (closure != nullptr) {
                 if (key == "Arguments") {
                     GCList ls2(gc);
-                    TList *ls = TList::Create(ls2);
+                    TList *ls = ls2.Create<TList>();
                     for (auto arg : closure->closure->args) {
                         ls->Add(arg);
                     }
@@ -601,7 +548,7 @@ bool InterperterThread::GetField(std::shared_ptr<GC> gc) {
             if (externalMethod != nullptr) {
                 if (key == "Arguments") {
                     GCList ls2(gc);
-                    TList *ls = TList::Create(ls2);
+                    TList *ls = ls2.Create<TList>();
                     for (auto arg : externalMethod->args) {
                         ls->Add(arg);
                     }
@@ -635,16 +582,7 @@ bool InterperterThread::GetField(std::shared_ptr<GC> gc) {
                     return false;
                 }
             }
-            if (list != nullptr) {
-                if (key == "Count" || key == "Length") {
-                    int64_t len = list->Count();
-                    if (len < 0)
-                        len = 0;
 
-                    stk->Push(gc, len);
-                    return false;
-                }
-            }
             if (dynList != nullptr) {
                 if (key == "Count" || key == "Length") {
                     int64_t len = dynList->Count(ls);

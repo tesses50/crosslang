@@ -231,32 +231,7 @@ bool InterperterThread::SetField(std::shared_ptr<GC> gc) {
             stk->Push(gc, Undefined());
             return false;
         }
-        if (std::holds_alternative<
-                std::shared_ptr<Tesses::Framework::Streams::Stream>>(
-                instance)) {
-            auto strm =
-                std::get<std::shared_ptr<Tesses::Framework::Streams::Stream>>(
-                    instance);
 
-            auto netStrm = std::dynamic_pointer_cast<
-                Tesses::Framework::Streams::NetworkStream>(strm);
-            if (netStrm != nullptr) {
-                int64_t n0;
-                bool bc;
-                if (key == "Broadcast" && GetObject(value, bc))
-                    netStrm->SetBroadcast(bc);
-                if (key == "NoDelay" && GetObject(value, bc))
-                    netStrm->SetNoDelay(bc);
-                if (key == "ReuseAddress" && GetObject(value, bc))
-                    netStrm->SetReuseAddress(bc);
-                if (key == "ReusePort" && GetObject(value, bc))
-                    netStrm->SetReusePort(bc);
-                if (key == "MulticastTTL" && GetObject(value, n0))
-                    netStrm->SetMulticastTTL((uint8_t)n0);
-            }
-            stk->Push(gc, Undefined());
-            return false;
-        }
         if (std::holds_alternative<THeapObject *>(instance)) {
             auto obj = std::get<THeapObject *>(instance);
 

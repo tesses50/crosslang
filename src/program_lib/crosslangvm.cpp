@@ -25,7 +25,7 @@ TObject CrossLangVM(GCList &ls, TRootEnvironment *env,
 
         env->EnsureDictionary(ls.GetGC(), "Net")
             ->SetValue("WebServerPort", (int64_t)port);
-        TList *args2 = TList::Create(ls);
+        TList *args2 = ls.Create<TList>();
         for (auto &item : args.positional) {
             args2->Add(item);
         }
@@ -48,7 +48,7 @@ TObject CrossLangVM(GCList &ls, TRootEnvironment *env,
         TF_Quit();
         return (int64_t)0;
     } else {
-        TList *args = TList::Create(ls);
+        TList *args = ls.Create<TList>();
         for (size_t arg = 1; arg < argv.size(); arg++)
             args->Add(std::string(argv[arg]));
 

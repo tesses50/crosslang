@@ -142,7 +142,7 @@ TObject CrossLangShell(GCList &ls, std::vector<std::string> &argv) {
     env->LoadFileWithDependencies(
         ls.GetGC(), Tesses::Framework::Filesystem::LocalFS, filename);
 
-    TList *args = TList::Create(ls);
+    TList *args = ls.Create<TList>();
 
     args->Add(filename.ToString());
 

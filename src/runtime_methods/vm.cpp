@@ -39,7 +39,7 @@ static TObject AstToTObject(GCList &ls, SyntaxNode node) {
         ls.GetGC()->BarrierBegin();
         r->SetValue("Type", asn.nodeName);
         r->SetValue("IsExpression", asn.isExpression);
-        TList *ls2 = TList::Create(ls);
+        TList *ls2 = ls.Create<TList>();
         for (auto item : asn.nodes) {
             ls2->Add(AstToTObject(ls, item));
         }
@@ -268,7 +268,7 @@ static TObject VM_GetStacktrace(GCList &ls, std::vector<TObject> args) {
     auto current_function = GC::GetCurrentFunction();
     if (current_function != nullptr) {
         if (current_function->thread != nullptr) {
-            TList *list = TList::Create(ls);
+            TList *list = ls.Create<TList>();
             ls.GetGC()->BarrierBegin();
             for (auto item : current_function->thread->call_stack_entries) {
                 auto dict = TDictionary::Create(ls);

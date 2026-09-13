@@ -121,6 +121,15 @@ bool InterperterThread::Add(std::shared_ptr<GC> gc) {
         cse.back()->Push(gc, str);
     } else if (std::holds_alternative<THeapObject *>(left)) {
         auto obj = std::get<THeapObject *>(left);
+
+        if (obj == nullptr) {
+            cse.back()->Push(gc, Undefined());
+            return false;
+        }
+
+        return obj->opAdd(this, gc, right);
+
+        /*
         auto dict = dynamic_cast<TDictionary *>(obj);
         auto dynDict = dynamic_cast<TDynamicDictionary *>(obj);
         auto natObj = dynamic_cast<TNativeObject *>(obj);
@@ -156,6 +165,7 @@ bool InterperterThread::Add(std::shared_ptr<GC> gc) {
         } else {
             cse.back()->Push(gc, Undefined());
         }
+        */
 
     } else {
         cse.back()->Push(gc, Undefined());

@@ -63,7 +63,7 @@ static TObject FS_ReadAllLines(GCList &ls, std::vector<TObject> args) {
         Tesses::Framework::Filesystem::Helpers::ReadAllLines(vfs, path, lines);
 
         ls.GetGC()->BarrierBegin();
-        auto items = TList::Create(ls);
+        auto items = ls.Create<TList>();
         for (auto &l : lines) {
             items->Add(l);
         }

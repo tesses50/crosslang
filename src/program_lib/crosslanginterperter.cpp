@@ -39,7 +39,7 @@ TObject CrossLangInterperter(GCList &ls, TRootEnvironment *env,
             }
         }
 
-        TList *args = TList::Create(ls);
+        TList *args = ls.Create<TList>();
         for (int arg = 1; arg < argv.size(); arg++)
             args->Add(std::string(argv[arg]));
 

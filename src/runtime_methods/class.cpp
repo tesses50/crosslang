@@ -2,7 +2,7 @@
 
 namespace Tesses::CrossLang {
 static TList *VectorOfStringToList(GCList &ls, std::vector<std::string> &strs) {
-    TList *list = TList::Create(ls);
+    TList *list = ls.Create<TList>();
     ls.GetGC()->BarrierBegin();
     for (auto &item : strs)
         list->Add(item);
@@ -10,7 +10,7 @@ static TList *VectorOfStringToList(GCList &ls, std::vector<std::string> &strs) {
     return list;
 }
 static TList *EntriesToList(GCList &ls, std::vector<TClassEntry> &ents) {
-    TList *list = TList::Create(ls);
+    TList *list = ls.Create<TList>();
     ls.GetGC()->BarrierBegin();
     for (auto &item : ents) {
         std::string modifier = "public";
@@ -42,7 +42,7 @@ static TList *EntriesToList(GCList &ls, std::vector<TClassEntry> &ents) {
     return list;
 }
 static TList *ClassInstanceToList(GCList &ls, TClassObject *co) {
-    TList *list = TList::Create(ls);
+    TList *list = ls.Create<TList>();
     ls.GetGC()->BarrierBegin();
     for (auto &item : co->entries) {
         if (item.modifier == TClassModifier::Public) {
@@ -126,7 +126,7 @@ static TObject Class_CreateInstance(TRootEnvironment *env, GCList &ls,
 }
 static TObject Class_GetClassNames(TRootEnvironment *env, GCList &ls,
                                    std::vector<TObject> args) {
-    TList *list = TList::Create(ls);
+    TList *list = ls.Create<TList>();
     ls.GetGC()->BarrierBegin();
     for (auto &item : env->classes) {
         list->Add(JoinPeriod(item.first->classes.at(item.second).name));

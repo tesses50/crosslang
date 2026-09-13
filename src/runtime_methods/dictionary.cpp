@@ -2,7 +2,7 @@
 
 namespace Tesses::CrossLang {
 TObject Dictionary_FindByKey(GCList &ls, std::vector<TObject> args) {
-    TList *dest = TList::Create(ls);
+    TList *dest = ls.Create<TList>();
     ls.GetGC()->BarrierBegin();
     std::string key;
     if (GetArgument(args, 1, key)) {

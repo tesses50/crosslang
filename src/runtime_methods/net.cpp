@@ -17,13 +17,13 @@ static std::shared_ptr<SMTPBody>
 TObjectToSMTPBody(GCList &ls, std::string mimeType, TObject obj) {
     std::shared_ptr<SMTPBody> body;
     std::string text;
-    TByteArray *ba;
+    TByteView *ba;
     std::shared_ptr<Tesses::Framework::Streams::Stream> sho;
     if (GetObject(obj, text)) {
         body = std::make_shared<SMTPStringBody>(text, mimeType);
     } else if (GetObjectHeap(obj, ba)) {
         std::shared_ptr<MemoryStream> ms = std::make_shared<MemoryStream>(true);
-        ms->WriteBlock(ba->data.data(), ba->data.size());
+        ms->WriteBlock(ba->GetData(), ba->GetSize());
         ms->Seek(0L, SeekOrigin::Begin);
 
         body = std::make_shared<SMTPStreamBody>(mimeType, ms);
@@ -191,7 +191,7 @@ class THttpDictionary : public TNativeObject {
             }
             return nullptr;
         } else if (key == "ToList") {
-            TList *_ls = TList::Create(ls);
+            TList *_ls = ls.Create<TList>();
             for (auto item : dict->kvp) {
                 for (auto i : item.second) {
                     auto d = TDictionary::Create(ls);
@@ -334,7 +334,7 @@ class TServerContext : public TNativeObjectThatReturnsHttpDictionary {
                         return strm;
                     });
 
-                return TList::Create(ls, response.begin(), response.end());
+                return ls.Create<TList>(response.begin(), response.end());
             }
         } else if (key == "getNeedToParseFormData")
             return ctx->NeedToParseFormData();
@@ -1581,7 +1581,7 @@ void TStd::RegisterNet(std::shared_ptr<GC> gc, TRootEnvironment *env) {
     dict->DeclareFunction(
         gc, "getIPAddresses", "Get the ip addresses of this machine", {"$ipv6"},
         [](GCList &ls, std::vector<TObject> args) -> TObject {
-            TList *a = TList::Create(ls);
+            TList *a = ls.Create<TList>();
             bool ipv6 = false;
             GetArgument(args, 0, ipv6);
             ls.GetGC()->BarrierBegin();

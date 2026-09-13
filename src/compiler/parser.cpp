@@ -1865,6 +1865,8 @@ SyntaxNode Parser::ParseBAnd() {
 SyntaxNode Parser::ParseExpression() {
     SyntaxNode expr = ParseAssignment();
     while (IsSymbol(",")) {
+        if (IsAnySymbol({"]", "}"}, false))
+            break;
         expr = AdvancedSyntaxNode::Create(CommaExpression, true,
                                           {expr, ParseAssignment()});
     }

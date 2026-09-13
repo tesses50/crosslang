@@ -23,7 +23,7 @@ bool InterperterThread::InvokeMethod(GCList &ls, TObject fn, TObject instance,
             if (closure != nullptr) {
 
                 if (!closure->closure->args.empty() &&
-                    closure->closure->args[0] == "this") {
+                    closure->closure->args[0].GetString() == "this") {
                     std::vector<TObject> args2;
                     args2.push_back(instance);
                     args2.insert(args2.end(), args.begin(), args.end());

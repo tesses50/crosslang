@@ -91,7 +91,7 @@ static TObject Env_GetRealExecutablePath(GCList &ls,
 }
 static TObject Env_GetAll(GCList &ls, std::vector<TObject> args) {
     ls.GetGC()->BarrierBegin();
-    TList *list = TList::Create(ls);
+    TList *list = ls.Create<TList>();
     std::vector<std::pair<std::string, std::string>> env;
     Tesses::Framework::Platform::Environment::GetEnvironmentVariables(env);
     for (auto &item : env) {
