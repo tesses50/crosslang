@@ -1085,16 +1085,14 @@ void CodeGen::GenNode(std::vector<ByteCodeInstruction *> &instructions,
             GenNode(instructions, adv.nodes[0], scope, contscope, brkscope,
                     contI, brkI);
             instructions.push_back(new JumpStyleInstruction(JMPC, ifIdTrue));
-            if (!std::holds_alternative<std::nullptr_t>(adv.nodes[2])) {
-                GenNode(instructions, adv.nodes[2], scope, contscope, brkscope,
-                        contI, brkI);
-            }
+            GenNode(instructions, adv.nodes[2], scope, contscope, brkscope,
+                    contI, brkI);
+
             instructions.push_back(new JumpStyleInstruction(JMP, ifIdEnd));
             instructions.push_back(new LabelInstruction(ifIdTrue));
-            if (!std::holds_alternative<std::nullptr_t>(adv.nodes[1])) {
-                GenNode(instructions, adv.nodes[1], scope, contscope, brkscope,
-                        contI, brkI);
-            }
+            GenNode(instructions, adv.nodes[1], scope, contscope, brkscope,
+                    contI, brkI);
+
             instructions.push_back(new LabelInstruction(ifIdEnd));
 
         } else if (adv.nodeName == CompoundAssignExpression &&
