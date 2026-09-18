@@ -1085,6 +1085,7 @@ void CodeGen::GenNode(std::vector<ByteCodeInstruction *> &instructions,
             GenNode(instructions, adv.nodes[0], scope, contscope, brkscope,
                     contI, brkI);
             instructions.push_back(new JumpStyleInstruction(JMPC, ifIdTrue));
+
             GenNode(instructions, adv.nodes[2], scope, contscope, brkscope,
                     contI, brkI);
 
