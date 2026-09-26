@@ -22,6 +22,16 @@
 #include <iostream>
 #include <stdexcept>
 namespace Tesses::CrossLang {
+AdvancedSyntaxNode AdvancedSyntaxNode::Create(std::string_view nodeName,
+                                              bool isExpression,
+                                              std::vector<SyntaxNode> nodes) {
+    AdvancedSyntaxNode asn;
+    asn.nodeName = std::string(nodeName);
+    asn.isExpression = isExpression;
+    asn.nodes = nodes;
+    return asn;
+}
+
 SyntaxNode TObject2SyntaxNode(TObject o) {
     if (std::holds_alternative<Undefined>(o))
         return Undefined();
