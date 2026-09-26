@@ -12,7 +12,6 @@ src/vm/bc/tobool.cpp
 src/compiler/codegen.cpp
 src/compiler/lexer.cpp
 src/compiler/parser.cpp
-src/compiler/ast.cpp
 src/runtime_methods/uuid.cpp
 src/runtime_methods/class.cpp
 src/runtime_methods/console.cpp
