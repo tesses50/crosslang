@@ -8,8 +8,11 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/builds/l/crossint",
-            "args": ["queryable.tcross"],
+            "program": "${workspaceFolder}/build/crosslang",
+            "args": [
+                "webapp",
+                "tytd2025"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/builds/l",
             "environment": [],
@@ -28,6 +31,5 @@
                 }
             ]
         }
-
     ]
 }

@@ -179,6 +179,8 @@ void GC::BarrierEnd() { this->mtx.Unlock(); }
 void GC::Watch(TObject obj) {
     if (std::holds_alternative<THeapObject *>(obj)) {
         auto _item = std::get<THeapObject *>(obj);
+        if (_item == nullptr)
+            return;
         this->BarrierBegin();
         this->objects.insert(_item);
         auto nowAllocs = ++this->allocs;
@@ -190,12 +192,15 @@ void GC::Watch(TObject obj) {
 void GC::Mark(TObject obj) {
     if (std::holds_alternative<THeapObject *>(obj)) {
         auto _item = std::get<THeapObject *>(obj);
-        _item->Mark();
+        if (_item)
+            _item->Mark();
     }
 }
 void GC::Unwatch(TObject obj) {
     if (std::holds_alternative<THeapObject *>(obj)) {
         auto _item = std::get<THeapObject *>(obj);
+        if (_item == nullptr)
+            return;
         this->BarrierBegin();
         this->objects.erase(_item);
         this->BarrierEnd();
