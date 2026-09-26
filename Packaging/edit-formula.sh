@@ -1,8 +1,8 @@
 export HASH=`curl https://git.tesses.org/tesses50/crosslang/archive/$VERSION.tar.gz 2> /dev/null | shasum -a 256 | awk '{print $1}'`
 
 echo "class Crosslang < Formula" > "Formula/crosslang.rb"
-echo "  desc \"\"" >> "Formula/crosslang.rb"
-echo "  homepage \"\"" >> "Formula/crosslang.rb"
+echo "  desc \"CrossLang is a dynamically-typed scripting language built on TessesFramework, named in honor of Jesus's sacrifice.\"" >> "Formula/crosslang.rb"
+echo "  homepage \"https://crosslang.tesseslanguage.com/\"" >> "Formula/crosslang.rb"
 echo "  url \"https://git.tesses.org/tesses50/crosslang/archive/$VERSION.tar.gz\"" >> "Formula/crosslang.rb"
 echo "  sha256 \"$HASH\"" >> "Formula/crosslang.rb"
 echo "  license \"GPLv3\"" >> "Formula/crosslang.rb"

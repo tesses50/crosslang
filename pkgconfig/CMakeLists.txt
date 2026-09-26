@@ -10,6 +10,8 @@ else()
 set(PKGCONFIG_DEPS "")
 endif()
 
+message(NOTICE "SrcFile ${CMAKE_CURRENT_BINARY_DIR}/crosslang.pc")
+message(NOTICE "Outdir ${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 
 configure_file(crosslang.pc.in crosslang.pc @ONLY)
 install(FILES

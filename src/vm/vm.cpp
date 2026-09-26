@@ -1,3 +1,23 @@
+/*
+    CrossLang is a dynamically-typed scripting language built on
+   TessesFramework, named in honor of Jesus's sacrifice.
+
+    Copyright (C) 2026 Mike Nolan
+    SPDX-License-Identifier: GPL-3.0-or-later WITH TessesFramework-Exception-1.0
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 #include "CrossLang.hpp"
 #include "TessesFramework/Serialization/BitConverter.hpp"
 #include "TessesFramework/Streams/ByteReader.hpp"
@@ -2727,6 +2747,31 @@ execute:
                 if (stk->mustReturn) {
 
                     stk->mustReturn = false;
+
+                    gc->BarrierBegin();
+                    GCList ls(gc);
+                    std::vector<TCallable *> callable;
+                    while (!cse.empty()) {
+                        auto r = cse.back();
+                        auto e = r->env;
+                        for (uint32_t i = 0; i < r->scopes; i++) {
+                            if (!e->defers.empty()) {
+                                ls.Add(e);
+                                callable.insert(callable.end(),
+                                                e->defers.begin(),
+                                                e->defers.end());
+                            }
+                            e = e->GetParentEnvironment();
+                        }
+                        cse.erase(cse.end() - 1);
+                    }
+                    gc->BarrierEnd();
+
+                    for (auto item : callable) {
+                        GCList ls2(gc);
+                        item->Call(ls2, {});
+                    }
+
                     if (cse.size() > 1) {
                         GCList ls(gc);
                         TObject o = cse[cse.size() - 1]->Pop(ls);

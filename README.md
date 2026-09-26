@@ -1,18 +1,19 @@
-Tesses Cross Language
-=====================
+CrossLang
+=========
+CrossLang is a dynamically-typed scripting language built on TessesFramework, named in honor of Jesus's sacrifice.
 
 ![CrossImage](crosslang.png)
 
 [WebSite](https://crosslang.tesseslanguage.com/)
 
 ## What is required to build this project
-- [TessesFramework](https://git.tesses.org/tesses50/tessesframework) (if you turn CROSSLANG_FETCHCONTENT off otherwise it will be grabbed automaticly)
+- [TessesFramework](https://git.tesses.org/tesses50/tessesframework) (if you turn CROSSLANG_FETCHCONTENT off otherwise it will be grabbed automatically)
 - CMake
 
 
 ## Use in docker (use my container)
 ```bash
-    sudo docker pull -t git.tesses.org/tesses50/crosslang:latest
+    sudo docker pull git.tesses.org/tesses50/crosslang:latest
 ```
 
 ## Use in docker (build the container yourself)
@@ -23,16 +24,15 @@ Tesses Cross Language
 ```
 
 ## To Install
-- Install [mbedtls](https://github.com/Mbed-TLS/mbedtls) (use sudo apt install libmbedtls-dev on debian) for TessesFramework (no longer works on debian, needs -DTESSESFRAMEWORK_FETCHCONTENT=ON for debian)
-- Follow the commands bellow
+Pick one depending on what you need
 
-## Run these commands to install crosslang (with plugin support)
+### Run these commands to install crosslang (with plugin support)
 ```bash
 git clone https://git.tesses.org/tesses50/tessesframework
 cd tessesframework
 mkdir build 
 cd build
-cmake -S .. -B . -DTESSESFRAMEWORK_FETCHCONTENT=OFF
+cmake -S .. -B .
 make
 sudo make install
 cd ../..
@@ -45,11 +45,16 @@ make
 sudo make install
 ```
 
-## Build with shared libs only (self contained dependencies)
+### Build with shared libs only (self contained dependencies)
 ```bash
 cmake -S ../.. -B .
 make -j`nproc`
 sudo make install
+```
+
+## Installing or Updating the Shell
+```bash
+crosslang update-shell
 ```
 
 ```

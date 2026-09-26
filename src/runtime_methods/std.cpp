@@ -1,4 +1,23 @@
+/*
+    CrossLang is a dynamically-typed scripting language built on
+   TessesFramework, named in honor of Jesus's sacrifice.
 
+    Copyright (C) 2026 Mike Nolan
+    SPDX-License-Identifier: GPL-3.0-or-later WITH TessesFramework-Exception-1.0
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 #include "CrossLang.hpp"
 #include "TessesFramework/Streams/ByteReader.hpp"
 #include "TessesFramework/Streams/Stream.hpp"
@@ -31,7 +50,7 @@ std::string SharedExtension = ".dylib";
 std::string SharedExtension = ".so";
 #endif
 
-class TMuxex : public TNativeObject {
+class TMutex : public TNativeObject {
   public:
     Tesses::Framework::Threading::Mutex mtx;
 
@@ -46,6 +65,33 @@ class TMuxex : public TNativeObject {
             return mtx.TryLock();
         }
 
+        return Undefined();
+    }
+};
+class TCond : public TNativeObject {
+  public:
+    Tesses::Framework::Threading::Cond cond;
+    std::string TypeName() { return "Cond"; }
+
+    TObject CallMethod(GCList &ls, std::string key, std::vector<TObject> args) {
+        if (key == "Broadcast") {
+            cond.Broadcast();
+        } else if (key == "Signal") {
+            cond.Signal();
+        } else if (key == "Wait") {
+            TMutex *mtx;
+            if (GetArgumentHeap(args, 0, mtx)) {
+                std::shared_ptr<Tesses::Framework::Date::TimeSpan> ts;
+                int64_t num;
+                if (GetArgument(args, 1, ts)) {
+                    if (ts)
+                        return cond.Wait(&mtx->mtx, *ts);
+                } else if (GetArgument(args, 1, num)) {
+                    return cond.Wait(&mtx->mtx, static_cast<uint32_t>(num));
+                } else
+                    cond.Wait(&mtx->mtx);
+            }
+        }
         return Undefined();
     }
 };
@@ -443,6 +489,7 @@ static TObject TypeIsNumber(GCList &ls, std::vector<TObject> args) {
     return std::holds_alternative<int64_t>(args[0]) ||
            std::holds_alternative<double>(args[0]);
 }
+
 static TObject TypeIsLong(GCList &ls, std::vector<TObject> args) {
     if (args.empty())
         return nullptr;
@@ -537,6 +584,16 @@ static TObject TypeIsQueryable(GCList &ls, std::vector<TObject> args) {
         return nullptr;
     TQueryable *queryable;
     return GetArgumentHeap(args, 0, queryable);
+}
+static TObject TypeIsException(GCList &ls, std::vector<TObject> args) {
+    TException *ex;
+    TNativeException *nex;
+    return GetArgumentHeap(args, 0, ex) || GetArgumentHeap(args, 0, nex);
+}
+static TObject TypeIsNativeException(GCList &ls, std::vector<TObject> args) {
+
+    TNativeException *nex;
+    return GetArgumentHeap(args, 0, nex);
 }
 static TObject New_SubdirFilesystem(GCList &ls, std::vector<TObject> args) {
     std::shared_ptr<Tesses::Framework::Filesystem::VFS> vfs;
@@ -917,14 +974,10 @@ TObject ParseLong(GCList &ls, std::vector<TObject> args) {
 
         std::string str = ToString(ls.GetGC(), args[0]);
 
-        try {
-            int64_t v = std::stoll(str, &pos, base);
-            if (pos < str.size())
-                return nullptr;
-            return v;
-        } catch (std::exception &ex) {
-            return nullptr;
-        }
+        int64_t d;
+        if (Tesses::Framework::Serialization::BitConverter::TryParseSigned(
+                str, d, base))
+            return d;
     }
     return nullptr;
 }
@@ -936,14 +989,10 @@ TObject ParseDouble(GCList &ls, std::vector<TObject> args) {
 
         std::string str = ToString(ls.GetGC(), args[0]);
 
-        try {
-            double v = std::stod(str, &pos);
-            if (pos < str.size())
-                return nullptr;
-            return v;
-        } catch (std::exception &ex) {
-            return nullptr;
-        }
+        double d;
+        if (Tesses::Framework::Serialization::BitConverter::TryParseDouble(str,
+                                                                           d))
+            return d;
     }
     return nullptr;
 }
@@ -1212,6 +1261,26 @@ static TObject New_Queryable(GCList &ls, std::vector<TObject> args) {
     }
     return nullptr;
 }
+static TObject New_Exception(GCList &ls, std::vector<TObject> args) {
+    // TException(message,$type,$extrafields,$innerException);
+
+    std::string message;
+
+    if (GetArgument(args, 0, message)) {
+        std::string type = "Exception";
+        TDictionary *extraFields = nullptr;
+        TObject innerException = Undefined();
+        GetArgument(args, 1, type);
+        GetArgumentHeap(args, 2, extraFields);
+        if (args.size() > 3)
+            innerException = args[3];
+
+        return ls.Create<TException>(message, type, extraFields,
+                                     innerException);
+    }
+
+    return nullptr;
+}
 
 void TStd::RegisterRoot(std::shared_ptr<GC> gc, TRootEnvironment *env) {
     GCList ls(gc);
@@ -1426,7 +1495,13 @@ void TStd::RegisterRoot(std::shared_ptr<GC> gc, TRootEnvironment *env) {
     env->DeclareFunction(gc, "TypeIsQueryable",
                          "Get whether object is a Queryable", {"object"},
                          TypeIsQueryable);
-
+    env->DeclareFunction(
+        gc, "TypeIsException",
+        "Get whether object is either an Exception or a NativeException",
+        {"object"}, TypeIsException);
+    env->DeclareFunction(gc, "TypeIsNativeException",
+                         "Get whether object is a NativeException", {"object"},
+                         TypeIsNativeException);
     newTypes->DeclareFunction(
         gc, "Regex", "Create regex object", {"regex"},
         [](GCList &ls, std::vector<TObject> args) -> TObject {
@@ -1438,9 +1513,14 @@ void TStd::RegisterRoot(std::shared_ptr<GC> gc, TRootEnvironment *env) {
             return nullptr;
         });
     newTypes->DeclareFunction(
-        gc, "Mutex", "Create mutex", {},
+        gc, "Mutex", "Create a mutex", {},
         [](GCList &ls, std::vector<TObject> args) -> TObject {
-            return TNativeObject::Create<TMuxex>(ls);
+            return TNativeObject::Create<TMutex>(ls);
+        });
+    newTypes->DeclareFunction(
+        gc, "Cond", "Create a conditional variable", {},
+        [](GCList &ls, std::vector<TObject> args) -> TObject {
+            return TNativeObject::Create<TCond>(ls);
         });
     newTypes->DeclareFunction(
         gc, "Thread", "Create thread", {"callback"},
@@ -1481,6 +1561,10 @@ void TStd::RegisterRoot(std::shared_ptr<GC> gc, TRootEnvironment *env) {
         [](GCList &ls, std::vector<TObject> args) -> TObject {
             return TAssociativeArray::Create(ls);
         });
+
+    newTypes->DeclareFunction(
+        gc, "Exception", "Create an Exception",
+        {"message", "$type", "$extraFields", "$innerException"}, New_Exception);
     newTypes->DeclareFunction(
         gc, "ByteArray",
         "Create bytearray, with optional either size (to size it) or string "

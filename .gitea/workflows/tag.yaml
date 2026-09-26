@@ -5,7 +5,7 @@ on:
       - 'v*'
 
 env:
-  TF_VERSION: 0.0.7
+  TF_VERSION: 0.0.9
   PACKAGE_AND_BREW: ${{ secrets.PACKAGE_AND_BREW }} 
   VERSION: ${{ gitea.ref_name }}
   RESULT_IMAGE_NAME: tesses50/crosslang
@@ -15,7 +15,7 @@ env:
 jobs:
   build-ppc:
     name: "🔨 Build for PowerPC"
-    runs-on: ubuntu-latest
+    runs-on: asrock
     container: 
       image: git.tesses.org/tesses50/linux-ppc:latest
     steps:
@@ -31,27 +31,31 @@ jobs:
 
   build-packages:
     name: "🔨 Build for everything else"
-    runs-on: fw13-ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
         include:
           - container: "git.tesses.org/tesses50/linux-x64:latest"
+            puter: "msi-walmart"
             nfpmName: "amd64"
             debianName: "x86_64-linux-gnu"
           - container: "git.tesses.org/tesses50/linux-x86:latest"
+            puter: "asrock"
             nfpmName: "386"
             debianName: "i386-linux-gnu"
           - container: "git.tesses.org/tesses50/linux-arm:latest"
+            puter: "fw13-ubuntu-latest"
             nfpmName: "arm7"
             debianName: "arm-linux-gnueabihf"
           - container: "git.tesses.org/tesses50/linux-arm64:latest"
+            puter: "msi-walmart"
             nfpmName: "arm64"
             debianName: "aarch64-linux-gnu"
           - container: "git.tesses.org/tesses50/linux-riscv64:latest"
             nfpmName: "riscv64"
             debianName: "riscv64-linux-gnu"
-            
+            puter: "asrock"
+    runs-on: ${{ matrix.puter }}  
     container: 
       image: ${{ matrix.container }}
     steps:
@@ -67,7 +71,8 @@ jobs:
   
           
   update-tap:
-    runs-on: global-container-mingw
+    runs-on: msi-walmart
+    container: git.tesses.org/tesses50/global-containers-mingw:latest
     steps:
       - uses: actions/checkout@v4
       - run: |

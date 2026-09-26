@@ -1,3 +1,23 @@
+/*
+    CrossLang is a dynamically-typed scripting language built on
+   TessesFramework, named in honor of Jesus's sacrifice.
+
+    Copyright (C) 2026 Mike Nolan
+    SPDX-License-Identifier: GPL-3.0-or-later WITH TessesFramework-Exception-1.0
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 #include "CrossLang.hpp"
 #include <TessesFramework/Crypto/ClientTLSStream.hpp>
 #include <TessesFramework/Http/HttpClient.hpp>
@@ -1449,6 +1469,315 @@ static TObject New_ServerSentEvents(GCList &ls, std::vector<TObject> args) {
     return std::make_shared<Tesses::Framework::Http::ServerSentEvents>();
 }
 
+class TAttributeEnumerator : public TEnumerator {
+    std::shared_ptr<Tesses::Framework::Serialization::Html::HtmlNode> node;
+    std::unordered_map<
+        std::string, std::optional<std::string>,
+        Tesses::Framework::Serialization::Html::CaseInsensitiveHash,
+        Tesses::Framework::Serialization::Html::CaseInsensitiveEqual>::iterator
+        ittr;
+    bool hasStarted;
+
+  public:
+    TAttributeEnumerator(
+        std::shared_ptr<Tesses::Framework::Serialization::Html::HtmlNode> node)
+        : node(node), hasStarted(false) {}
+    bool MoveNext(std::shared_ptr<GC> ls) {
+        if (!node)
+            return false;
+        if (!this->hasStarted) {
+            this->hasStarted = true;
+            this->ittr = this->node->attributes.begin();
+            return !this->node->attributes.empty();
+        } else {
+            this->ittr++;
+            return this->ittr != this->node->attributes.end();
+        }
+    }
+    TObject GetCurrent(GCList &ls) {
+        if (!this->hasStarted)
+            return Undefined();
+        if (this->ittr != this->node->attributes.end()) {
+            ls.GetGC()->BarrierBegin();
+
+            auto kvp = TDictionary::Create(ls);
+            kvp->SetValue("Key", this->ittr->first);
+            kvp->SetValue("Value",
+                          this->ittr->second
+                              ? static_cast<TObject>(this->ittr->second.value())
+                              : static_cast<TObject>(nullptr));
+            ls.GetGC()->BarrierEnd();
+            return kvp;
+        }
+        return Undefined();
+    }
+};
+
+class TAttributeHolder : public TNativeObject {
+    std::shared_ptr<Tesses::Framework::Serialization::Html::HtmlNode> node;
+
+  public:
+    TAttributeHolder(
+        std::shared_ptr<Tesses::Framework::Serialization::Html::HtmlNode> node)
+        : node(node) {}
+    std::string TypeName() { return "Net.Http.HtmlAttributeList"; }
+    TObject CallMethod(GCList &ls, std::string key, std::vector<TObject> args) {
+        if (!node)
+            return Undefined();
+        if (key == "GetAt") {
+            std::string key;
+            if (GetArgument(args, 0, key)) {
+                auto attr = node->attributes.find(key);
+                if (attr != node->attributes.end()) {
+                    if (attr->second)
+                        return attr->second.value();
+                    else
+                        return nullptr;
+                }
+            }
+
+            return Undefined();
+        }
+        if (key == "SetAt") {
+            std::string key;
+            if (args.size() == 2 && GetArgument(args, 0, key)) {
+                if (std::holds_alternative<Undefined>(args[1])) {
+                    node->attributes.erase(key);
+                    return Undefined();
+                }
+                if (IsNull(args[1])) {
+                    node->attributes[key] = std::nullopt;
+                    return nullptr;
+                }
+                std::string str;
+                if (GetArgument(args, 1, str)) {
+                    node->attributes[key] = str;
+                    return str;
+                }
+            }
+            return Undefined();
+        }
+
+        if (key == "GetEnumerator") {
+            return ls.Create<TAttributeEnumerator>(this->node);
+        }
+
+        if (key == "ToString") {
+            std::string attr;
+            for (auto &item : node->attributes) {
+                attr += " ";
+                attr += item.first;
+                if (item.second) {
+                    attr += "\"";
+                    attr += HttpUtils::HtmlEncode(*item.second);
+                    attr += "\"";
+                }
+            }
+            return attr;
+        }
+
+        return Undefined();
+    }
+};
+class TChildrenEnumerator : public TEnumerator {
+    int64_t index;
+    std::shared_ptr<Tesses::Framework::Serialization::Html::HtmlNode> node;
+
+  public:
+    TChildrenEnumerator(
+        std::shared_ptr<Tesses::Framework::Serialization::Html::HtmlNode> node)
+        : index(-1), node(node) {}
+    bool MoveNext(std::shared_ptr<GC> ls) {
+        if (!this->node)
+            return false;
+        this->index++;
+        return this->index >= 0 &&
+               static_cast<size_t>(this->index) < this->node->children.size();
+    }
+    TObject GetCurrent(GCList &ls);
+};
+class TChildrenHolder : public TNativeObject {
+
+    std::shared_ptr<Tesses::Framework::Serialization::Html::HtmlNode> node;
+
+  public:
+    TChildrenHolder(
+        std::shared_ptr<Tesses::Framework::Serialization::Html::HtmlNode> node)
+        : node(node) {}
+    std::string TypeName() { return "Net.Http.HtmlChildrenList"; }
+    TObject CallMethod(GCList &ls, std::string key, std::vector<TObject> args);
+};
+
+class THtmlNode : public TNativeObject {
+    TAttributeHolder *attrHolder;
+    TChildrenHolder *childrenHolder;
+
+  public:
+    THtmlNode(
+        std::shared_ptr<GC> gc,
+        std::shared_ptr<Tesses::Framework::Serialization::Html::HtmlNode> node)
+        : node(node) {
+        GCList ls(gc);
+        attrHolder = ls.Create<TAttributeHolder>(node);
+        childrenHolder = ls.Create<TChildrenHolder>(node);
+    }
+    std::shared_ptr<Tesses::Framework::Serialization::Html::HtmlNode> node;
+    std::string TypeName() { return "HtmlNode"; }
+    TObject CallMethod(GCList &ls, std::string key, std::vector<TObject> args) {
+        if (!node)
+            return Undefined();
+        if (key == "getInnerText") {
+            return node->InnerText();
+        }
+
+        if (key == "getAttributes") {
+            return this->attrHolder;
+        }
+        if (key == "getChildren") {
+            return this->childrenHolder;
+        }
+        if (key == "FindNodes") {
+            std::string tag;
+            if (GetArgument(args, 0, tag)) {
+                ls.GetGC()->BarrierBegin();
+                TList *list = ls.Create<TList>();
+                for (auto &item : node->FindNodes(tag)) {
+                    auto no = std::const_pointer_cast<
+                        Tesses::Framework::Serialization::Html::HtmlNode>(item);
+                    list->Add(ls.Create<THtmlNode>(ls.GetGC(), no));
+                }
+                ls.GetGC()->BarrierEnd();
+                return list;
+            }
+
+            return Undefined();
+        }
+        if (key == "setIsText") {
+            if (GetArgument(args, 0, node->isText))
+                return node->isText;
+            return Undefined();
+        }
+        if (key == "getIsText") {
+            return node->isText;
+        }
+        if (key == "getText" || key == "getTag" || key == "getTextOrTag") {
+            return node->text_or_tag;
+        }
+        if (key == "setText" || key == "setTag" || key == "setTextOrTag") {
+            if (GetArgument(args, 0, node->text_or_tag))
+                return node->text_or_tag;
+            return Undefined();
+        }
+
+        if (key == "ToString") {
+            return node->ToString();
+        }
+        return Undefined();
+    }
+    void Mark() {
+        if (this->marked)
+            return;
+        this->marked = true;
+        attrHolder->Mark();
+        childrenHolder->Mark();
+    }
+};
+
+TObject TChildrenEnumerator::GetCurrent(GCList &ls) {
+    if (!this->node)
+        return nullptr;
+    if (this->index <= -1)
+        return nullptr;
+    if (this->node->children.empty())
+        return nullptr;
+    if (static_cast<size_t>(this->index) >= this->node->children.size())
+        return nullptr;
+    return ls.Create<THtmlNode>(
+        ls.GetGC(), this->node->children[static_cast<size_t>(this->index)]);
+}
+TObject TChildrenHolder::CallMethod(GCList &ls, std::string key,
+                                    std::vector<TObject> args) {
+    if (!this->node)
+        return Undefined();
+    if (key == "Clear") {
+        node->children.clear();
+        return Undefined();
+    }
+    if (key == "getCount" || key == "getLength" || key == "Count" ||
+        key == "Length") {
+        return static_cast<int64_t>(this->node->children.size());
+    }
+    if (key == "GetAt") {
+        int64_t n0;
+        if (GetArgument(args, 0, n0)) {
+            size_t num = static_cast<size_t>(n0);
+            if (num < this->node->children.size()) {
+                return ls.Create<THtmlNode>(ls.GetGC(),
+                                            this->node->children[num]);
+            }
+        }
+        return Undefined();
+    }
+    if (key == "SetAt") {
+        int64_t n0;
+        THtmlNode *htmlNode;
+        if (GetArgument(args, 0, n0) && GetArgumentHeap(args, 1, htmlNode)) {
+            size_t num = static_cast<size_t>(n0);
+            if (num < this->node->children.size() && htmlNode->node) {
+                this->node->children[num] = htmlNode->node;
+                ls.Add(htmlNode);
+                return htmlNode;
+            }
+        }
+        return Undefined();
+    }
+    if (key == "RemoveAt") {
+        int64_t n0;
+        if (GetArgument(args, 0, n0)) {
+            size_t num = static_cast<size_t>(n0);
+            if (num < this->node->children.size()) {
+                this->node->children.erase(this->node->children.cbegin() + num);
+            }
+        }
+        return Undefined();
+    }
+    if (key == "Add") {
+
+        THtmlNode *htmlNode;
+        if (GetArgumentHeap(args, 0, htmlNode) && htmlNode->node) {
+            this->node->children.push_back(htmlNode->node);
+        }
+        return Undefined();
+    }
+    if (key == "GetEnumerator") {
+        return ls.Create<TChildrenEnumerator>(this->node);
+    }
+    return Undefined();
+}
+
+static TObject New_HtmlNode(GCList &ls, std::vector<TObject> args) {
+
+    return ls.Create<THtmlNode>(
+        ls.GetGC(),
+        std::make_shared<Tesses::Framework::Serialization::Html::HtmlNode>());
+}
+static TObject Net_Http_ParseHtml(GCList &ls, std::vector<TObject> args) {
+    std::shared_ptr<Tesses::Framework::TextStreams::TextReader> textReader;
+    if (GetArgument(args, 0, textReader)) {
+        return ls.Create<THtmlNode>(
+            ls.GetGC(),
+            Tesses::Framework::Serialization::Html::Parse(textReader));
+    }
+    auto strReader =
+        std::make_shared<Tesses::Framework::TextStreams::StringReader>();
+    if (GetArgument(args, 0, strReader->GetString())) {
+        return ls.Create<THtmlNode>(
+            ls.GetGC(),
+            Tesses::Framework::Serialization::Html::Parse(strReader));
+    }
+    return nullptr;
+}
+
 void TStd::RegisterNet(std::shared_ptr<GC> gc, TRootEnvironment *env) {
 
     env->permissions.canRegisterNet = true;
@@ -1489,6 +1818,8 @@ void TStd::RegisterNet(std::shared_ptr<GC> gc, TRootEnvironment *env) {
     _new->DeclareFunction(gc, "ServerSentEvents",
                           "Create server sent events object", {""},
                           New_ServerSentEvents);
+    _new->DeclareFunction(gc, "HtmlNode", "Create an html node", {},
+                          New_HtmlNode);
 
     TDictionary *http = TDictionary::Create(ls);
     TDictionary *smtp = TDictionary::Create(ls);
@@ -1574,6 +1905,9 @@ void TStd::RegisterNet(std::shared_ptr<GC> gc, TRootEnvironment *env) {
         gc, "MountableServer",
         "Create a server you can mount to, must mount parents before child",
         {"root"}, New_MountableServer);
+
+    http->DeclareFunction(gc, "ParseHtml", "Parse html document",
+                          {"strOrTextReader"}, Net_Http_ParseHtml);
     dict->DeclareFunction(gc, "NetworkStream", "Create a network stream",
                           {"ipv6", "datagram"}, New_NetworkStream);
     smtp->DeclareFunction(gc, "Send", "Send email via smtp server",

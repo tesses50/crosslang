@@ -1,3 +1,23 @@
+/*
+    CrossLang is a dynamically-typed scripting language built on
+   TessesFramework, named in honor of Jesus's sacrifice.
+
+    Copyright (C) 2026 Mike Nolan
+    SPDX-License-Identifier: GPL-3.0-or-later WITH TessesFramework-Exception-1.0
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 #include "CrossLang.hpp"
 #include <chrono>
 #include <iostream>
@@ -97,6 +117,23 @@ TDictionary *CreateThread(GCList &ls, TCallable *callable, bool detached) {
     return dict;
 }
 void GC::Start() {
+    using namespace Tesses::Framework::Serialization::Json;
+    auto prefsFile = GetCrossLangConfigDir() / "prefs.json";
+    if (Tesses::Framework::Filesystem::LocalFS->FileExists(prefsFile)) {
+        try {
+            JToken tkn = Json::Decode(
+                Tesses::Framework::Filesystem::Helpers::ReadAllText(
+                    Tesses::Framework::Filesystem::LocalFS, prefsFile));
+            JObject root;
+            int64_t ittrs;
+            if (TryGetJToken(tkn, root) &&
+                root.TryGetValueAsType("alloc_threshold", ittrs)) {
+                this->threshold = static_cast<uint32_t>(ittrs);
+            }
+        } catch (...) {
+            this->threshold = ALLOC_THRESHOLD;
+        }
+    }
 
     this->tpool = new Tesses::Framework::Lazy<
         Tesses::Framework::Threading::ThreadPool *>(
@@ -113,7 +150,7 @@ void GC::Start() {
     this->thrd = new Thread([this]() -> void {
         while (this->IsRunning()) {
             this->BarrierBegin();
-            while (this->IsRunning() && (this->allocs < ALLOC_THRESHOLD))
+            while (this->IsRunning() && (this->allocs < this->threshold))
                 this->cond.Wait(&this->mtx);
             this->allocs = 0;
             std::vector<THeapObject *> to_delete;
@@ -146,7 +183,7 @@ void GC::Watch(TObject obj) {
         this->objects.insert(_item);
         auto nowAllocs = ++this->allocs;
         this->BarrierEnd();
-        if (nowAllocs >= ALLOC_THRESHOLD)
+        if (nowAllocs >= this->threshold)
             this->cond.Signal();
     }
 }
