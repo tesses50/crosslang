@@ -100,6 +100,15 @@ static TObject Crypto_Base64Decode(GCList &ls, std::vector<TObject> args) {
     }
     return nullptr;
 }
+static TObject Crypto_ConstantEquals(GCList &ls, std::vector<TObject> args) {
+    TByteArray *left;
+    TByteArray *right;
+    if (GetArgumentHeap(args, 0, left) && GetArgumentHeap(args, 1, right)) {
+        return Tesses::Framework::Crypto::ConstantEquals(left->data,
+                                                         right->data);
+    }
+    return false;
+}
 void TStd::RegisterCrypto(std::shared_ptr<GC> gc, TRootEnvironment *env) {
 
     env->permissions.canRegisterCrypto = true;
@@ -110,6 +119,9 @@ void TStd::RegisterCrypto(std::shared_ptr<GC> gc, TRootEnvironment *env) {
     dict->DeclareFunction(gc, "PBKDF2", "Hash passwords with PBKDF2",
                           {"pass", "salt", "itterations", "keylen", "shanum"},
                           Crypto_PBKDF2);
+    dict->DeclareFunction(gc, "ConstantEquals",
+                          "Compare two byte arrays using constant time",
+                          {"array1", "array2"}, Crypto_ConstantEquals);
     dict->DeclareFunction(gc, "RandomBytes",
                           "Create bytearray but with random bytes in it "
                           "instead of zeros (this uses mbedtls by the way)",

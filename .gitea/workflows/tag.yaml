@@ -5,7 +5,7 @@ on:
       - 'v*'
 
 env:
-  TF_VERSION: 0.0.9
+  TF_VERSION: 0.0.10
   PACKAGE_AND_BREW: ${{ secrets.PACKAGE_AND_BREW }} 
   VERSION: ${{ gitea.ref_name }}
   RESULT_IMAGE_NAME: tesses50/crosslang
@@ -15,7 +15,7 @@ env:
 jobs:
   build-ppc:
     name: "🔨 Build for PowerPC"
-    runs-on: asrock
+    runs-on: msi-walmart
     container: 
       image: git.tesses.org/tesses50/linux-ppc:latest
     steps:
@@ -44,11 +44,11 @@ jobs:
             nfpmName: "386"
             debianName: "i386-linux-gnu"
           - container: "git.tesses.org/tesses50/linux-arm:latest"
-            puter: "fw13-ubuntu-latest"
+            puter: "msi-walmart"
             nfpmName: "arm7"
             debianName: "arm-linux-gnueabihf"
           - container: "git.tesses.org/tesses50/linux-arm64:latest"
-            puter: "msi-walmart"
+            puter: "asrock"
             nfpmName: "arm64"
             debianName: "aarch64-linux-gnu"
           - container: "git.tesses.org/tesses50/linux-riscv64:latest"
@@ -71,7 +71,7 @@ jobs:
   
           
   update-tap:
-    runs-on: msi-walmart
+    runs-on: asrock
     container: git.tesses.org/tesses50/global-containers-mingw:latest
     steps:
       - uses: actions/checkout@v4
