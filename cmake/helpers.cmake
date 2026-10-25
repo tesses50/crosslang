@@ -31,7 +31,7 @@ target_include_directories(crosslang
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
 
-if(TESSESFRAMEWORK_FETCHCONTENT)
+if(CROSSLANG_FETCHCONTENT)
 target_link_libraries(crosslang PUBLIC tessesframework)
 else()
 target_link_libraries(crosslang PUBLIC TessesFramework::tessesframework)
