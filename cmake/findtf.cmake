@@ -5,7 +5,7 @@ set(CROSSLANG_STATIC ${TESSESFRAMEWORK_STATIC} CACHE INTERNAL "For CrossLang" FO
 FetchContent_Declare(
     TessesFramework
     GIT_REPOSITORY https://git.tesses.org/tesses50/tessesframework.git
-    GIT_TAG d99001d6ebb957272f399dd371bf571c8c16f248
+    GIT_TAG 7649a1ad4c4fc230c96bcf044fd36f6cef1671be
 )
 set(TESSESFRAMEWORK_ENABLE_EXAMPLES OFF)
 FetchContent_MakeAvailable(TessesFramework)

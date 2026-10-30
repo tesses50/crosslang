@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.13
+Fix the event loop so it isn't 100% CPU utilization
+
 ## 0.0.12
 Fix fetchcontent, add constant time compare for bytearray
 
