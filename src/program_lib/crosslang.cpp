@@ -112,24 +112,37 @@ TObject CrossLangShell(GCList &ls, std::vector<std::string> &argv) {
         auto subdir =
             std::make_shared<Tesses::Framework::Filesystem::SubdirFilesystem>(
                 Tesses::Framework::Filesystem::LocalFS, dir);
-        HttpRequest req;
-        req.followRedirects = true;
-        req.url = "https://redirect.tesses.net/crosslang-shell";
-        req.method = "GET";
-        HttpResponse resp(req);
-        if (resp.statusCode == StatusCode::OK) {
-            auto strm = resp.ReadAsStream();
-            CrossLang::CrossArchiveExtract(strm, subdir);
+        if (argv.size() == 2) {
+            HttpRequest req;
+            req.followRedirects = true;
+            req.url = "https://redirect.tesses.net/crosslang-shell";
+            req.method = "GET";
+            HttpResponse resp(req);
+            if (resp.statusCode == StatusCode::OK) {
+                auto strm = resp.ReadAsStream();
+                CrossLang::CrossArchiveExtract(strm, subdir);
 
-            return (int64_t)0;
+                return (int64_t)0;
+            } else {
+                std::cout << "Error when fetching the script error: "
+                          << std::to_string(resp.statusCode) << " "
+                          << HttpUtils::StatusCodeString(resp.statusCode)
+                          << std::endl;
+                return (int64_t)1;
+            }
         } else {
-            std::cout << "Error when fetching the script error: "
-                      << std::to_string(resp.statusCode) << " "
-                      << HttpUtils::StatusCodeString(resp.statusCode)
-                      << std::endl;
-            return (int64_t)1;
+            if (Tesses::Framework::Filesystem::LocalFS->FileExists(argv[2])) {
+                auto strm = Tesses::Framework::Filesystem::LocalFS->OpenFile(
+                    argv[2], "rb");
+                CrossLang::CrossArchiveExtract(strm, subdir);
+                return (int64_t)0;
+            } else {
+                Tesses::Framework::Console::WriteView("Unable to open file \"");
+                Tesses::Framework::Console::WriteView(argv[2]);
+                Tesses::Framework::Console::WriteLineView("\"");
+                return (int64_t)1;
+            }
         }
-        return (int64_t)0;
     }
 
     if (!Tesses::Framework::Filesystem::LocalFS->RegularFileExists(filename)) {

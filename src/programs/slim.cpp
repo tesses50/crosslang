@@ -85,7 +85,9 @@ int main(int argc, char **argv) {
                                    "file, used to be crossdump");
                 Console::WriteLine("vm:             interpert bytecode file, "
                                    "used to be crossvm");
-                Console::WriteLine("update-shell:   update the shell");
+                Console::WriteLine(
+                    "update-shell:   update the shell (can update offline now "
+                    "if you pass a crvm as another argument)");
                 Console::WriteLine(
                     "configdir:      print the config directory");
 

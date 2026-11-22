@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.0.14
+Rebase on tessesframework 0.0.12, add offline updating of the shell
+
 ## 0.0.13
 Fix the event loop so it isn't 100% CPU utilization
 
