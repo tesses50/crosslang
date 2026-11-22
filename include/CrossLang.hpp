@@ -1611,6 +1611,9 @@ class TString : public TByteView {
                          TObject rhs);
     bool opGreaterThanEqual(InterperterThread *thrd, std::shared_ptr<GC> gc,
                             TObject rhs);
+    bool opExecuteMethod(InterperterThread *thrd, std::shared_ptr<GC> gc,
+                         const std::string &name,
+                         const std::vector<TObject> &args);
 
   public:
     TString();
@@ -2240,16 +2243,13 @@ class TYieldEnumerator : public TEnumerator {
 class TStringEnumerator : public TEnumerator {
     bool hasStarted;
     size_t index;
-    std::string str;
+    TString *str;
 
   public:
-    TStringEnumerator(std::string str);
-    [[deprecated("Use GCList::Create<T>() instead")]]
-    static TStringEnumerator *Create(GCList &ls, std::string str);
-    [[deprecated("Use GCList::Create<T>() instead")]]
-    static TStringEnumerator *Create(GCList *ls, std::string str);
+    TStringEnumerator(TString *str);
     bool MoveNext(std::shared_ptr<GC> ls);
     TObject GetCurrent(GCList &ls);
+    void Mark();
 };
 
 class TListEnumerator : public TEnumerator {

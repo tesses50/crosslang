@@ -92,15 +92,15 @@ TCustomEnumerator *TCustomEnumerator::Create(GCList &ls, TDictionary *dict) {
     return ls.Create<TCustomEnumerator>(dict);
 }
 TEnumerator *TEnumerator::CreateFromObject(GCList &ls, TObject obj) {
-    std::string str;
+    TString *str;
     TList *mls;
     TDynamicList *dynList;
     TDynamicDictionary *dynDict;
     TDictionary *dict;
     TEnumerator *enumerator;
     TQueryable *q;
-    if (GetObject(obj, str)) {
-        return TStringEnumerator::Create(ls, str);
+    if (GetObjectHeap(obj, str)) {
+        return ls.Create<TStringEnumerator>(str);
     } else if (GetObjectHeap(obj, mls)) {
         return TListEnumerator::Create(ls, mls);
     } else if (GetObjectHeap(obj, dynList)) {
@@ -283,32 +283,33 @@ void TDynamicListEnumerator::Mark() {
     this->marked = true;
     this->ls->Mark();
 }
-TStringEnumerator::TStringEnumerator(std::string str)
+TStringEnumerator::TStringEnumerator(TString *str)
     : str(str), hasStarted(false) {}
-TStringEnumerator *TStringEnumerator::Create(GCList &ls, std::string str) {
-    return ls.Create<TStringEnumerator>(str);
-}
-TStringEnumerator *TStringEnumerator::Create(GCList *ls, std::string str) {
-    return ls->Create<TStringEnumerator>(str);
-}
+
 bool TStringEnumerator::MoveNext(std::shared_ptr<GC> ls) {
     if (!this->hasStarted) {
         this->hasStarted = true;
         this->index = 0;
-        return !this->str.empty();
+        return !this->str->GetString().empty();
     } else {
-        if (this->index >= this->str.size())
+        if (this->index >= this->str->GetString().size())
             return false;
         this->index++;
-        return this->index < this->str.size();
+        return this->index < this->str->GetString().size();
     }
 }
 TObject TStringEnumerator::GetCurrent(GCList &ls) {
     if (!this->hasStarted)
         return nullptr;
-    if (this->index < this->str.size())
-        return this->str[this->index];
+    if (this->index < this->str->GetString().size())
+        return this->str->GetString()[this->index];
     return nullptr;
+}
+void TStringEnumerator::Mark() {
+    if (this->marked)
+        return;
+    this->marked = true;
+    this->str->Mark();
 }
 
 }; // namespace Tesses::CrossLang

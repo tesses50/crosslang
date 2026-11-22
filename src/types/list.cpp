@@ -111,10 +111,6 @@ TObject TDynamicList::SetAt(GCList &ls, int64_t index, TObject val) {
 
 TDynamicList::~TDynamicList() {}
 
-TByteArray *TByteArray::Create(GCList &ls) { return ls.Create<TByteArray>(); }
-
-TByteArray *TByteArray::Create(GCList *ls) { return ls->Create<TByteArray>(); }
-
 void TList::Add(TObject value) { this->items.push_back(value); }
 void TList::Set(int64_t index, TObject value) {
     if (index >= 0 && index < this->Count()) {
@@ -209,7 +205,7 @@ bool TList::opExecuteMethod(InterperterThread *thrd, std::shared_ptr<GC> gc,
         for (int64_t i = 0; i < this->Count(); i++) {
             auto item = this->Get(i);
             gc->BarrierEnd();
-            if (Equals(gc, args[0], item)) {
+            if (ObjectEquals(gc, args[0], item)) {
                 cse.back()->Push(gc, true);
                 return false;
             }
@@ -232,7 +228,7 @@ bool TList::opExecuteMethod(InterperterThread *thrd, std::shared_ptr<GC> gc,
         for (; i < this->Count(); i++) {
             auto item = this->Get(i);
             gc->BarrierEnd();
-            if (Equals(gc, args[0], item)) {
+            if (ObjectEquals(gc, args[0], item)) {
 
                 cse.back()->Push(gc, i);
                 return false;
@@ -252,7 +248,7 @@ bool TList::opExecuteMethod(InterperterThread *thrd, std::shared_ptr<GC> gc,
         for (int64_t i = 0; i < this->Count(); i++) {
             auto item = this->Get(i);
             gc->BarrierEnd();
-            if (Equals(gc, args[0], item)) {
+            if (ObjectEquals(gc, args[0], item)) {
                 gc->BarrierBegin();
                 this->RemoveAt(i);
                 i--;
@@ -271,7 +267,7 @@ bool TList::opExecuteMethod(InterperterThread *thrd, std::shared_ptr<GC> gc,
         for (int64_t i = 0; i < this->Count(); i++) {
             auto item = this->Get(i);
             gc->BarrierEnd();
-            if (Equals(gc, args[0], item)) {
+            if (ObjectEquals(gc, args[0], item)) {
                 gc->BarrierBegin();
                 this->RemoveAt(i);
                 gc->BarrierEnd();
